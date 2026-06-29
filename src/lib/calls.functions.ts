@@ -22,8 +22,7 @@ export const startCallLog = createServerFn({ method: "POST" })
     resumeId?: string | null;
   }) => input)
   .handler(async ({ data, context }) => {
-    const { supabase, userId } = context;
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { userId } = context;
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
     // ---- Pre-flight safety checks ----
@@ -87,7 +86,7 @@ export const startCallLog = createServerFn({ method: "POST" })
     }
 
     if (data.resumeId) {
-      const { data: existing } = await supabase
+      const { data: existing } = await supabaseAdmin
         .from("call_logs")
         .select("id, caller_id, callee_id, kind, ended_at, last_flushed_at, started_at, duration_seconds, coins_spent, free_seconds_used")
         .eq("id", data.resumeId)
@@ -349,6 +348,7 @@ export const listRecentCalls = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }): Promise<RecentCall[]> => {
     const { supabase, userId } = context;
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data, error } = await supabase
       .from("call_logs")
       .select("id, kind, caller_id, callee_id, started_at, ended_at, duration_seconds, coins_spent, status")
@@ -369,7 +369,7 @@ export const listRecentCalls = createServerFn({ method: "GET" })
         .eq("is_banned", false)
         .eq("onboarded", true)
         .is("deleted_at", null);
-      profilesById = new Map(withAiAvatars(profs ?? []).map((p) => [p.id, p]));
+      profilesById = new Map(withAiAvatars(profs ?? []).map((p) => [p.id as string, p]));
     }
 
     return (data ?? []).map((r) => {
