@@ -423,16 +423,6 @@ function ConnectScreen() {
         </div>
       )}
 
-      <PrecallPermissionDialog
-        open={!!pendingCall}
-        kind={pendingCall?.kind ?? "voice"}
-        onCancel={() => setPendingCall(null)}
-        onReady={() => {
-          const p = pendingCall;
-          setPendingCall(null);
-          if (p) setCallInvite(p);
-        }}
-      />
       <CallInviteDialog pendingCall={callInvite} onClose={() => setCallInvite(null)} />
     </AppShell>
   );
