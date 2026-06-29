@@ -227,15 +227,62 @@ function ChatRoom() {
         )}
       </div>
 
-      <div className="glass border-t p-3 sticky bottom-0">
-        <div className="mx-auto max-w-3xl flex gap-2">
-          <Input value={text} onChange={(e) => setText(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && send()}
-            placeholder={sessionEnded ? "Recharge to continue" : "Type a message…"}
-            disabled={sessionEnded} />
-          <Button onClick={send} disabled={sessionEnded || !text.trim()}><Send className="size-4" /></Button>
-        </div>
-      </div>
+      {(() => {
+        const isFriends = partner?.outgoing === "accepted" || partner?.incoming === "accepted";
+        const blockReason: "REQUEST_PENDING" | "INCOMING_PENDING" | "NOT_FRIENDS" | null = isFriends
+          ? null
+          : partner?.outgoing === "pending"
+            ? "REQUEST_PENDING"
+            : partner?.incoming === "pending"
+              ? "INCOMING_PENDING"
+              : "NOT_FRIENDS";
+        const reasonText =
+          blockReason === "REQUEST_PENDING"
+            ? "REQUEST_PENDING — Waiting for them to accept your friend request before you can message."
+            : blockReason === "INCOMING_PENDING"
+              ? "NOT_FRIENDS — Accept their friend request above to start messaging."
+              : blockReason === "NOT_FRIENDS"
+                ? "NOT_FRIENDS — Send a friend request and wait for them to accept before messaging."
+                : null;
+        const disabled = sessionEnded || !!blockReason;
+        const placeholder = sessionEnded
+          ? "Recharge to continue"
+          : blockReason === "REQUEST_PENDING"
+            ? "Waiting for them to accept your request…"
+            : blockReason === "INCOMING_PENDING"
+              ? "Accept their request to start messaging"
+              : blockReason === "NOT_FRIENDS"
+                ? "Send a friend request to message"
+                : "Type a message…";
+        return (
+          <div className="glass border-t sticky bottom-0">
+            {reasonText && (
+              <div className="mx-auto max-w-3xl px-3 pt-2">
+                <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-300 text-[11px] px-3 py-2 flex items-center justify-between gap-2">
+                  <span className="truncate">{reasonText}</span>
+                  {blockReason === "NOT_FRIENDS" && (
+                    <Button size="sm" variant="outline" className="h-7 text-[11px]" onClick={doFollow}>
+                      <UserPlus className="size-3 mr-1" /> Send request
+                    </Button>
+                  )}
+                </div>
+              </div>
+            )}
+            <div className="mx-auto max-w-3xl flex gap-2 p-3">
+              <Input
+                value={text}
+                onChange={(e) => setText(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && send()}
+                placeholder={placeholder}
+                disabled={disabled}
+              />
+              <Button onClick={send} disabled={disabled || !text.trim()}>
+                <Send className="size-4" />
+              </Button>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }
