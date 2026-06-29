@@ -16,6 +16,7 @@ type IncomingInvite = {
   id: string;
   kind: "voice" | "video";
   expiresAt: string;
+  deliveredAt: string | null;
   caller: {
     id: string;
     username: string | null;
@@ -25,6 +26,7 @@ type IncomingInvite = {
     language?: string | null;
   };
 };
+
 
 export function IncomingCallDialog({ disabled }: { disabled?: boolean }) {
   const navigate = useNavigate();
