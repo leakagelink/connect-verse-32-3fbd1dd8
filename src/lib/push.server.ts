@@ -117,6 +117,13 @@ export type FcmPayload = {
   body?: string | null;
   deepLink?: string | null;
   data?: Record<string, string>;
+  /**
+   * Android notification channel ID. MUST match a channel registered in
+   * android/app/src/main/java/in/talkora/app/NotificationChannels.java
+   * (incoming_calls | missed_calls | messages | general). Falls back to
+   * "general" when omitted so we never ship a payload without a channel.
+   */
+  channelId?: "incoming_calls" | "missed_calls" | "messages" | "general";
 };
 
 /**
@@ -138,6 +145,7 @@ export async function sendFcmToTokens(
   const endpoint = `https://fcm.googleapis.com/v1/projects/${sa.project_id}/messages:send`;
   const data: Record<string, string> = { ...(payload.data || {}) };
   if (payload.deepLink) data.deep_link = payload.deepLink;
+  const channelId = payload.channelId ?? "general";
 
   // FCM v1 has no batch endpoint for multicast; fan out in parallel.
   await Promise.all(tokens.map(async (token) => {
@@ -153,7 +161,16 @@ export async function sendFcmToTokens(
             token,
             notification: { title: payload.title, body: payload.body ?? "" },
             data,
-            android: { priority: "HIGH" },
+            android: {
+              priority: "HIGH",
+              notification: {
+                channel_id: channelId,
+                // Heads-up category for call-related channels.
+                notification_priority: channelId === "general"
+                  ? "PRIORITY_DEFAULT"
+                  : "PRIORITY_HIGH",
+              },
+            },
           },
         }),
       });
