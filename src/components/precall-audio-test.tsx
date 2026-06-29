@@ -41,9 +41,21 @@ export function PreCallAudioTest({ onPassed, onCancel }: Props) {
   const [speakers, setSpeakers] = useState<MediaDeviceInfo[]>([]);
   const [micId, setMicId] = useState<string>(() => localStorage.getItem(LS_MIC_KEY) || "");
   const [spkId, setSpkId] = useState<string>(() => localStorage.getItem(LS_SPK_KEY) || "");
+  const [lostDevice, setLostDevice] = useState<{ kind: "mic" | "speaker"; label: string } | null>(null);
   const supportsSinkId =
     typeof document !== "undefined" &&
     typeof (document.createElement("audio") as AudioElementWithSink).setSinkId === "function";
+
+  // Refs mirror state so the devicechange listener (registered once) sees
+  // the latest selected ids and previous device labels without re-binding.
+  const micIdRef = useRef(micId);
+  const spkIdRef = useRef(spkId);
+  const micsRef = useRef<MediaDeviceInfo[]>([]);
+  const speakersRef = useRef<MediaDeviceInfo[]>([]);
+  useEffect(() => { micIdRef.current = micId; }, [micId]);
+  useEffect(() => { spkIdRef.current = spkId; }, [spkId]);
+  useEffect(() => { micsRef.current = mics; }, [mics]);
+  useEffect(() => { speakersRef.current = speakers; }, [speakers]);
 
   const streamRef = useRef<MediaStream | null>(null);
   const audioCtxRef = useRef<AudioContext | null>(null);
@@ -228,7 +240,43 @@ export function PreCallAudioTest({ onPassed, onCancel }: Props) {
   useEffect(() => {
     void refreshDevices();
     void startMic();
-    const onChange = () => { void refreshDevices(); };
+    const onChange = async () => {
+      try {
+        const list = await navigator.mediaDevices.enumerateDevices();
+        const nextMics = list.filter((d) => d.kind === "audioinput");
+        const nextSpks = list.filter((d) => d.kind === "audiooutput");
+        setMics(nextMics);
+        setSpeakers(nextSpks);
+
+        const curMicId = micIdRef.current;
+        const curSpkId = spkIdRef.current;
+
+        // Mic disconnected → warn, drop selection, re-run with default.
+        if (curMicId && !nextMics.some((d) => d.deviceId === curMicId)) {
+          const prev = micsRef.current.find((d) => d.deviceId === curMicId);
+          const label = prev?.label || "Selected microphone";
+          setLostDevice({ kind: "mic", label });
+          localStorage.removeItem(LS_MIC_KEY);
+          setMicId("");
+          stopMic();
+          setLevel(0);
+          setToneStatus("idle");
+          await startMic("");
+        }
+
+        // Speaker disconnected → warn, drop selection, force a fresh tone test.
+        if (curSpkId && !nextSpks.some((d) => d.deviceId === curSpkId)) {
+          const prev = speakersRef.current.find((d) => d.deviceId === curSpkId);
+          const label = prev?.label || "Selected speaker";
+          setLostDevice({ kind: "speaker", label });
+          localStorage.removeItem(LS_SPK_KEY);
+          setSpkId("");
+          setToneStatus("idle");
+        }
+      } catch {
+        /* ignore */
+      }
+    };
     navigator.mediaDevices?.addEventListener?.("devicechange", onChange);
     return () => {
       navigator.mediaDevices?.removeEventListener?.("devicechange", onChange);
@@ -276,6 +324,31 @@ export function PreCallAudioTest({ onPassed, onCancel }: Props) {
           Pick your mic and speaker, then run the checks before connecting.
         </p>
       </div>
+
+      {lostDevice && (
+        <div className="flex items-start gap-2 rounded-md border border-amber-500/40 bg-amber-500/10 p-2.5 text-xs text-amber-700 dark:text-amber-300">
+          <AlertCircle className="size-4 shrink-0 mt-0.5" />
+          <div className="flex-1 space-y-1">
+            <p className="font-medium">
+              {lostDevice.kind === "mic" ? "Microphone disconnected" : "Speaker disconnected"}
+            </p>
+            <p>
+              "{lostDevice.label}" is no longer available. We've switched to the system default —
+              {lostDevice.kind === "mic"
+                ? " speak again to confirm the new mic is working."
+                : " tap Play tone to confirm the new speaker."}
+            </p>
+          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-6 px-2 text-xs"
+            onClick={() => setLostDevice(null)}
+          >
+            Dismiss
+          </Button>
+        </div>
+      )}
 
       {/* Mic row */}
       <div className="rounded-lg border bg-card p-3 space-y-2">
