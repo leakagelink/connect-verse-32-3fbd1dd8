@@ -142,8 +142,22 @@ export function LanguagesSection({
       </div>
 
       {filtered.length === 0 ? (
-        <div className="text-sm text-muted-foreground text-center py-6 border border-dashed rounded-xl">
-          No live creators in this language right now.
+        <div className="flex flex-col items-center gap-2 py-7 px-4 border border-dashed rounded-xl bg-card/30">
+          <Globe2 className="size-6 text-muted-foreground/70" />
+          <p className="text-sm font-medium">
+            No live creators in{" "}
+            <span className="text-foreground">
+              {APP_LANGUAGES.find((l) => l.code === selected)?.name ?? "this language"}
+            </span>{" "}
+            right now.
+          </p>
+          <p className="text-xs text-muted-foreground">Try another language or see everyone who's live.</p>
+          <button
+            onClick={() => setSelected("all")}
+            className="mt-1 text-xs font-semibold text-primary hover:underline"
+          >
+            Show all live creators →
+          </button>
         </div>
       ) : (
         <LiveCreatorsStrip users={filtered} loading={false} onCall={onCall} />
