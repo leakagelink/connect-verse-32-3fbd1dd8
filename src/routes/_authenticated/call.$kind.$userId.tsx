@@ -24,7 +24,7 @@ import { SosButton } from "@/components/sos-button";
 import { SafetyTipOverlay } from "@/components/safety-tip-overlay";
 import { ModerationSampler } from "@/components/moderation-sampler";
 import { useScreenPrivacy } from "@/hooks/use-screen-privacy";
-import { onHardwareBack } from "@/lib/native";
+import { onHardwareBack, openAppSettings, requestCallPermissions, isNative } from "@/lib/native";
 import { CallPermissionGate } from "@/components/call-permission-gate";
 import { supabase } from "@/integrations/supabase/client";
 import { recordCallMetrics } from "@/lib/calling.functions";
@@ -56,6 +56,14 @@ function CallScreen() {
   const [networkQ, setNetworkQ] = useState<number>(0); // 0=unknown,1=excellent..6=down
   const [remoteJoined, setRemoteJoined] = useState(false);
   const [audioBlocked, setAudioBlocked] = useState(false);
+  // Structured join failure so we can show actionable retry UI instead of a
+  // toast + redirect away from the call.
+  const [joinError, setJoinError] = useState<{
+    kind: "mic" | "camera" | "media" | "in-use" | "other";
+    message: string;
+  } | null>(null);
+  const [joinAttempt, setJoinAttempt] = useState(0);
+  const [retrying, setRetrying] = useState(false);
   
   
   const elapsedRef = useRef(0);
@@ -301,10 +309,18 @@ function CallScreen() {
           } catch { /* ignore log start failure */ }
         }, 1200);
       } catch (e: any) {
+        if (!mounted) return;
         const msg = String(e?.message ?? e ?? "");
-        const isMedia = /getUserMedia|NotAllowedError|NotFoundError|Permission|media|camera|mic/i.test(msg);
-        toast.error(isMedia ? `Could not access camera / mic: ${msg}` : `Couldn't start call: ${msg}`);
-        navigate({ to: "/connect" });
+        // Classify so we can show the right call-to-action.
+        let kindOfErr: "mic" | "camera" | "media" | "in-use" | "other" = "other";
+        if (/NotReadableError|in use|busy/i.test(msg)) kindOfErr = "in-use";
+        else if (/camera/i.test(msg) && /(NotAllowed|Permission|denied|NotFound)/i.test(msg)) kindOfErr = "camera";
+        else if (/(NotAllowed|Permission|denied)/i.test(msg) && /(mic|audio)/i.test(msg)) kindOfErr = "mic";
+        else if (/NotAllowedError|Permission/i.test(msg)) kindOfErr = kind === "video" ? "media" : "mic";
+        else if (/NotFoundError/i.test(msg)) kindOfErr = kind === "video" ? "media" : "mic";
+        else if (/getUserMedia|media|camera|mic/i.test(msg)) kindOfErr = "media";
+        setJoinError({ kind: kindOfErr, message: msg || "Unknown error" });
+        setRetrying(false);
       }
     }
     start();
@@ -316,7 +332,7 @@ function CallScreen() {
         (s.session as { leave: () => Promise<void> }).leave().catch(() => {});
       }
     };
-  }, [kind, navigate, myId, userId, permReady, inviteId, inviteStatusFn]);
+  }, [kind, navigate, myId, userId, permReady, inviteId, inviteStatusFn, joinAttempt]);
 
 
   useEffect(() => {
@@ -612,6 +628,7 @@ function CallScreen() {
   const ss = String(totalElapsed % 60).padStart(2, "0");
 
 
+
   if (!permReady) {
     return (
       <AppShell>
@@ -620,6 +637,78 @@ function CallScreen() {
           onReady={() => setPermReady(true)}
           onCancel={() => navigate({ to: "/connect" })}
         />
+      </AppShell>
+    );
+  }
+
+  if (joinError) {
+    const titles: Record<typeof joinError.kind, string> = {
+      mic: "Microphone unavailable",
+      camera: "Camera unavailable",
+      media: "Camera or microphone unavailable",
+      "in-use": "Mic / camera is busy",
+      other: "Couldn't start the call",
+    };
+    const tips: Record<typeof joinError.kind, string> = {
+      mic: "We couldn't capture your microphone. Make sure mic permission is granted and no other app is using it.",
+      camera: "We couldn't capture your camera. Grant camera permission and make sure no other app is using it.",
+      media: "We couldn't capture your camera or microphone. Grant access and try again.",
+      "in-use": "Another app (like WhatsApp or your browser) is using your mic or camera. Close it and retry.",
+      other: "Something went wrong while connecting. Please try again.",
+    };
+    const needsPerm = joinError.kind !== "in-use" && joinError.kind !== "other";
+
+    async function handleRetry() {
+      setRetrying(true);
+      try {
+        if (needsPerm) {
+          // Re-prompt the OS for permission inside the tap gesture.
+          try { await requestCallPermissions(kind as "voice" | "video"); } catch { /* ignore */ }
+        }
+        setJoinError(null);
+        setRemoteJoined(false);
+        setConnected(false);
+        setJoinAttempt((n) => n + 1);
+      } finally {
+        // The effect re-run flips retrying off via setRetrying(false) in the
+        // catch path or via successful connect (joinError === null).
+        setTimeout(() => setRetrying(false), 800);
+      }
+    }
+
+    async function handleOpenSettings() {
+      const ok = await openAppSettings();
+      if (!ok) toast.info("Open Settings → Apps → Talkora → Permissions and enable Microphone / Camera.");
+    }
+
+    return (
+      <AppShell>
+        <Card className="glass p-6 max-w-md mx-auto mt-6 space-y-4 text-center">
+          <div className="mx-auto size-14 rounded-full bg-destructive/15 text-destructive flex items-center justify-center">
+            <ShieldAlert className="size-7" />
+          </div>
+          <div className="space-y-1">
+            <h2 className="text-lg font-semibold">{titles[joinError.kind]}</h2>
+            <p className="text-sm text-muted-foreground">{tips[joinError.kind]}</p>
+          </div>
+          <details className="text-left text-xs text-muted-foreground bg-muted/40 rounded-md p-2">
+            <summary className="cursor-pointer select-none">Technical details</summary>
+            <p className="mt-1 break-words font-mono">{joinError.message}</p>
+          </details>
+          <div className="flex flex-col gap-2">
+            <Button onClick={handleRetry} disabled={retrying} className="w-full">
+              {retrying ? "Retrying…" : needsPerm ? "Grant access & retry" : "Try again"}
+            </Button>
+            {needsPerm && isNative() && (
+              <Button variant="outline" onClick={handleOpenSettings} className="w-full">
+                Open app settings
+              </Button>
+            )}
+            <Button variant="ghost" onClick={() => navigate({ to: "/connect" })} className="w-full">
+              Cancel call
+            </Button>
+          </div>
+        </Card>
       </AppShell>
     );
   }
