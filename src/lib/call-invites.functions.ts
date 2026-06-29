@@ -628,3 +628,197 @@ export const diagSelfMissedCall = createServerFn({ method: "POST" })
       fcmPushed: pushResult.pushed,
     };
   });
+// ============================================================================
+// E2E: Busy-reset flow
+// Admin-only. Simulates a creator whose previous call ended but whose
+// availability/invite rows are stuck on "busy". Runs refreshStaleBusy and
+// assertCallable to prove that the next caller will get through, not BUSY.
+// Returns a structured PASS/FAIL report. Cleans up all rows it created.
+// ============================================================================
+export const runBusyResetE2E = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((d: unknown) =>
+    z.object({ calleeId: z.string().uuid().optional() }).parse(d ?? {}),
+  )
+  .handler(async ({ context, data }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const db = supabaseAdmin as any;
+    const { data: isAdmin } = await context.supabase.rpc("has_role", {
+      _user_id: context.userId,
+      _role: "admin",
+    });
+    if (!isAdmin) throw new Error("Forbidden");
+
+    const steps: Array<{ step: string; ok: boolean; detail?: any }> = [];
+    const log = (step: string, ok: boolean, detail?: any) =>
+      steps.push({ step, ok, detail });
+
+    // 1) Resolve callee (creator) — explicit or first onboarded creator that isn't an admin.
+    let calleeId = data.calleeId;
+    if (!calleeId) {
+      const admins = await hiddenAdminIds(db);
+      const { data: candidates } = await db
+        .from("profiles")
+        .select("id, username, is_creator, onboarded, is_banned")
+        .eq("is_creator", true)
+        .eq("onboarded", true)
+        .eq("is_banned", false)
+        .is("deleted_at", null)
+        .limit(20);
+      const pick = (candidates ?? []).find((p: any) => !admins.has(p.id));
+      if (!pick) {
+        return { pass: false, reason: "No eligible creator to test against.", steps };
+      }
+      calleeId = pick.id;
+    }
+    log("resolve_callee", true, { calleeId });
+
+    // 2) Pick a fake caller — any other onboarded user (not the callee, not admin).
+    const admins = await hiddenAdminIds(db);
+    const { data: others } = await db
+      .from("profiles")
+      .select("id, username")
+      .neq("id", calleeId)
+      .eq("onboarded", true)
+      .eq("is_banned", false)
+      .is("deleted_at", null)
+      .limit(50);
+    const fakeCaller = (others ?? []).find((p: any) => !admins.has(p.id));
+    if (!fakeCaller) {
+      return { pass: false, reason: "No eligible caller to simulate.", steps };
+    }
+    log("resolve_fake_caller", true, { fakeCallerId: fakeCaller.id });
+
+    // Snapshot original availability so we can restore on cleanup.
+    const { data: profBefore } = await db
+      .from("profiles")
+      .select("availability")
+      .eq("id", calleeId)
+      .maybeSingle();
+    const originalAvailability = profBefore?.availability ?? "online";
+
+    let createdLogId: string | null = null;
+    let createdInviteId: string | null = null;
+
+    try {
+      // 3) Inject stale state:
+      //    a) ended call_log
+      const endedAt = new Date(Date.now() - 60_000).toISOString();
+      const { data: logRow, error: logErr } = await db
+        .from("call_logs")
+        .insert({
+          caller_id: fakeCaller.id,
+          callee_id: calleeId,
+          kind: "voice",
+          status: "completed",
+          ended_at: endedAt,
+          end_reason: "user_ended",
+          ended_by: fakeCaller.id,
+        })
+        .select("id")
+        .single();
+      if (logErr) throw logErr;
+      createdLogId = logRow.id;
+      log("inject_ended_call_log", true, { callLogId: createdLogId });
+
+      //    b) accepted invite linked to the ended log
+      const { data: invRow, error: invErr } = await db
+        .from("call_invites")
+        .insert({
+          caller_id: fakeCaller.id,
+          callee_id: calleeId,
+          kind: "voice",
+          status: "accepted",
+          call_log_id: createdLogId,
+          accepted_at: endedAt,
+          expires_at: new Date(Date.now() + 60_000).toISOString(),
+        })
+        .select("id")
+        .single();
+      if (invErr) throw invErr;
+      createdInviteId = invRow.id;
+      log("inject_accepted_invite", true, { inviteId: createdInviteId });
+
+      //    c) stick availability on in_call
+      await db.from("profiles").update({ availability: "in_call" }).eq("id", calleeId);
+      log("inject_busy_availability", true);
+
+      // 4) Run reconciliation
+      const changed = await refreshStaleBusy(db, calleeId);
+      log("refresh_stale_busy", changed === true, { changed });
+
+      // 5) Verify availability reset
+      const { data: profAfter } = await db
+        .from("profiles")
+        .select("availability")
+        .eq("id", calleeId)
+        .maybeSingle();
+      const availabilityReset = profAfter?.availability === "online";
+      log("availability_reset_to_online", availabilityReset, {
+        availability: profAfter?.availability,
+      });
+
+      // 6) Verify the stale invite was cancelled with ended_at
+      const { data: invAfter } = await db
+        .from("call_invites")
+        .select("status, ended_at, cancelled_at")
+        .eq("id", createdInviteId)
+        .maybeSingle();
+      const inviteCancelled =
+        invAfter?.status === "cancelled" && !!invAfter?.ended_at;
+      log("stale_invite_cancelled", inviteCancelled, invAfter);
+
+      // 7) Verify assertCallable (next user → this creator) no longer throws
+      let assertOk = false;
+      let assertErr: string | null = null;
+      try {
+        await assertCallable(db, context.userId, calleeId);
+        assertOk = true;
+      } catch (e: any) {
+        assertErr = e?.message ?? String(e);
+      }
+      log("assert_callable_passes", assertOk, { error: assertErr });
+
+      // 8) Verify busy-detection (createCallInvite's computeBusy logic) sees creator as free
+      const { data: busyRows } = await db
+        .from("call_invites")
+        .select("id, status, caller_id, expires_at, call_log_id, call_logs:call_log_id(ended_at)")
+        .eq("callee_id", calleeId)
+        .in("status", ["pending", "accepted"]);
+      const stillBusy = (busyRows ?? []).some((r: any) => {
+        if (r.status === "accepted") return !r.call_logs?.ended_at;
+        if (r.status === "pending")
+          return r.expires_at && new Date(r.expires_at).getTime() > Date.now();
+        return false;
+      });
+      log("busy_detector_clear", !stillBusy, { liveRowCount: (busyRows ?? []).length });
+
+      const pass =
+        availabilityReset && inviteCancelled && assertOk && !stillBusy;
+
+      return {
+        pass,
+        calleeId,
+        fakeCallerId: fakeCaller.id,
+        steps,
+        summary: {
+          availabilityReset,
+          inviteCancelled,
+          assertCallableOk: assertOk,
+          busyDetectorClear: !stillBusy,
+        },
+      };
+    } finally {
+      // 9) Cleanup — remove synthetic rows, restore availability
+      if (createdInviteId) {
+        await db.from("call_invites").delete().eq("id", createdInviteId);
+      }
+      if (createdLogId) {
+        await db.from("call_logs").delete().eq("id", createdLogId);
+      }
+      await db
+        .from("profiles")
+        .update({ availability: originalAvailability })
+        .eq("id", calleeId);
+    }
+  });
