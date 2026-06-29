@@ -995,20 +995,66 @@ function CallScreen() {
               <Coins className="size-3" /> {perMin} / min
             </div>
           </div>
-          {/* Low-time warning banner — last 3 minutes for the payer */}
+          {/* Low-time warning — escalates in last 60s */}
           {isPayer && perMin > 0 && totalSecondsLeft > 0 && totalSecondsLeft <= 180 && (
-            <div className="absolute top-12 left-3 right-3 rounded-xl bg-destructive/90 text-destructive-foreground px-3 py-2 shadow-lg backdrop-blur animate-pulse flex items-center justify-between gap-2">
-              <div className="text-[12px] leading-tight">
-                <div className="font-semibold">
-                  Sirf {String(Math.floor(totalSecondsLeft / 60)).padStart(2, "0")}:
-                  {String(totalSecondsLeft % 60).padStart(2, "0")} bache
+            (() => {
+              const critical = totalSecondsLeft <= 60;
+              const mm = String(Math.floor(totalSecondsLeft / 60)).padStart(2, "0");
+              const ss = String(totalSecondsLeft % 60).padStart(2, "0");
+              return (
+                <div
+                  className={`absolute left-3 right-3 rounded-2xl shadow-2xl backdrop-blur animate-pulse ${
+                    critical
+                      ? "top-1/2 -translate-y-1/2 bg-destructive text-destructive-foreground p-5 ring-4 ring-destructive-foreground/30"
+                      : "top-12 bg-destructive/90 text-destructive-foreground px-3 py-2"
+                  }`}
+                  role="alert"
+                  aria-live="assertive"
+                >
+                  {critical ? (
+                    <div className="flex flex-col items-center gap-3 text-center">
+                      <div className="text-[11px] uppercase tracking-widest opacity-90">Call ending soon</div>
+                      <div className="text-5xl font-bold tabular-nums leading-none">
+                        {mm}:{ss}
+                      </div>
+                      <div className="grid grid-cols-2 gap-2 w-full text-[12px] font-medium">
+                        <div className="rounded-lg bg-black/25 px-2 py-1.5">
+                          <div className="opacity-80">Coins left</div>
+                          <div className="text-base font-bold tabular-nums">{coinsLeft}</div>
+                        </div>
+                        <div className="rounded-lg bg-black/25 px-2 py-1.5">
+                          <div className="opacity-80">Burn rate</div>
+                          <div className="text-base font-bold tabular-nums">{perMin}/min</div>
+                        </div>
+                      </div>
+                      <div className="text-[12px] opacity-95">
+                        Coins khatam hote hi call disconnect ho jayegi. Continue karne ke liye abhi recharge karein.
+                      </div>
+                      <Button
+                        size="lg"
+                        variant="secondary"
+                        onClick={() => setRechargeOpen(true)}
+                        className="w-full font-semibold"
+                      >
+                        <Coins className="size-4 mr-2" /> Recharge now
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="text-[12px] leading-tight">
+                        <div className="font-semibold">
+                          Sirf {mm}:{ss} bache · {coinsLeft} coins
+                        </div>
+                        <div className="opacity-90">Call timeout pe disconnect ho jayegi. Continue ke liye recharge karein.</div>
+                      </div>
+                      <Button size="sm" variant="secondary" onClick={() => setRechargeOpen(true)} className="shrink-0">
+                        <Coins className="size-3 mr-1" /> Recharge
+                      </Button>
+                    </div>
+                  )}
                 </div>
-                <div className="opacity-90">Call timeout pe disconnect ho jayegi. Continue karne ke liye abhi coins le.</div>
-              </div>
-              <Button size="sm" variant="secondary" onClick={() => setRechargeOpen(true)} className="shrink-0">
-                <Coins className="size-3 mr-1" /> Recharge
-              </Button>
-            </div>
+              );
+            })()
           )}
           {/* Live free-time / coin-balance HUD — visible from call start */}
           {freeStart !== null && (
