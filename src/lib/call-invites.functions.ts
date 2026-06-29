@@ -113,7 +113,7 @@ async function assertCallable(db: any, callerId: string, calleeId: string) {
     // Stale-busy auto-refresh: if availability is non-online but no live
     // invite/call exists, reset and re-read once before failing.
     if (["busy", "in_call"].includes(callee.availability)) {
-      const changed = await refreshStaleBusy(db, calleeId);
+      const changed = await refreshStaleBusy(db, calleeId!);
       if (changed) {
         const { data: refreshed } = await db
           .from("profiles")
@@ -672,6 +672,7 @@ export const runBusyResetE2E = createServerFn({ method: "POST" })
       calleeId = pick.id;
     }
     log("resolve_callee", true, { calleeId });
+    const calleeIdResolved = calleeId!;
 
     // 2) Pick a fake caller — any other onboarded user (not the callee, not admin).
     const admins = await hiddenAdminIds(db);
