@@ -907,6 +907,15 @@ function CallScreen() {
           )}
           <Button
             size="icon"
+            variant={speakerOn ? "default" : "secondary"}
+            onClick={toggleSpeaker}
+            aria-label={speakerOn ? "Speaker on" : "Speaker off"}
+            title={speakerOn ? "Speaker on — tap for earpiece" : "Tap for speaker"}
+          >
+            {speakerOn ? <Volume2 className="size-5" /> : <VolumeX className="size-5" />}
+          </Button>
+          <Button
+            size="icon"
             variant="secondary"
             onClick={() => setGiftOpen(true)}
             disabled={!connected}
