@@ -29,8 +29,22 @@ export function LanguagesSection({
   }, [creators]);
 
   const [selected, setSelected] = useState<string>("all");
-  const [paused, setPaused] = useState(false);
+  // `paused` is the *effective* pause state; `userPaused` is the sticky
+  // tap-to-pause toggle. Hover & tab-hidden pause transiently without
+  // affecting userPaused, so returning focus resumes smoothly.
+  const [userPaused, setUserPaused] = useState(false);
+  const [hoverPaused, setHoverPaused] = useState(false);
+  const [hiddenPaused, setHiddenPaused] = useState(false);
+  const paused = userPaused || hoverPaused || hiddenPaused;
   const trackRef = useRef<HTMLDivElement | null>(null);
+  const offsetRef = useRef(0); // preserved across pause/resume for smooth continuation
+
+  // Resume when the tab regains visibility.
+  useEffect(() => {
+    const onVis = () => setHiddenPaused(document.visibilityState !== "visible");
+    document.addEventListener("visibilitychange", onVis);
+    return () => document.removeEventListener("visibilitychange", onVis);
+  }, []);
 
   // Auto-slide chips: translate the track leftwards continuously while unpaused.
   useEffect(() => {
@@ -38,17 +52,17 @@ export function LanguagesSection({
     const el = trackRef.current;
     if (!el) return;
     let raf = 0;
-    let x = 0;
     const step = () => {
-      x -= 0.4; // px per frame ≈ slow drift
+      offsetRef.current -= 0.4; // px per frame ≈ slow drift
       const half = el.scrollWidth / 2;
-      if (-x >= half) x = 0;
-      el.style.transform = `translateX(${x}px)`;
+      if (-offsetRef.current >= half) offsetRef.current = 0;
+      el.style.transform = `translateX(${offsetRef.current}px)`;
       raf = requestAnimationFrame(step);
     };
     raf = requestAnimationFrame(step);
     return () => cancelAnimationFrame(raf);
   }, [paused, availableLangs.length]);
+
 
   const filtered = useMemo(() => {
     if (selected === "all") return creators;
