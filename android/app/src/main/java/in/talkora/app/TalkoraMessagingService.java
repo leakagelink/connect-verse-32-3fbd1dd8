@@ -13,7 +13,7 @@ import android.util.Log;
 
 import androidx.core.app.NotificationCompat;
 
-import com.google.firebase.messaging.FirebaseMessagingService;
+import com.capacitorjs.plugins.pushnotifications.MessagingService;
 import com.google.firebase.messaging.RemoteMessage;
 
 import java.util.Map;
@@ -22,14 +22,15 @@ import java.util.Map;
  * Receives high-priority data-only FCM messages from the Talkora backend
  * (see src/lib/push.server.ts → sendDataOnlyFcm).
  *
- * type = "incoming_call"  → launch full-screen IncomingCallActivity
- *                            (WhatsApp / Truecaller style)
- * type = "cancel_call"     → dismiss any existing call notification + activity
+ * Extends the Capacitor push plugin's MessagingService so token registration
+ * and standard notification handling still flow through to JS, while we
+ * layer on full-screen incoming-call handling for our `type=incoming_call`
+ * payload.
  *
- * Token rotation is persisted to SharedPreferences so the JS layer can pick
- * it up on next launch and upsert into device_tokens via registerDeviceToken.
+ * type = "incoming_call"  → launch full-screen IncomingCallActivity
+ * type = "cancel_call"    → dismiss any existing call notification + activity
  */
-public class TalkoraMessagingService extends FirebaseMessagingService {
+public class TalkoraMessagingService extends MessagingService {
     private static final String TAG = "TalkoraFCM";
     public static final String CALL_CHANNEL_ID = "incoming_calls";
     public static final int CALL_NOTIFICATION_ID = 1991;
@@ -48,18 +49,19 @@ public class TalkoraMessagingService extends FirebaseMessagingService {
 
     @Override
     public void onMessageReceived(RemoteMessage message) {
-        super.onMessageReceived(message);
         Map<String, String> data = message.getData();
-        if (data == null || data.isEmpty()) return;
-
-        String type = data.get("type");
-        if (type == null) return;
+        String type = (data != null) ? data.get("type") : null;
 
         if ("incoming_call".equals(type)) {
             showIncomingCall(data);
-        } else if ("cancel_call".equals(type)) {
-            dismissIncomingCall();
+            return; // do NOT call super — we don't want a duplicate banner
         }
+        if ("cancel_call".equals(type)) {
+            dismissIncomingCall();
+            return;
+        }
+        // Everything else (chat / system / gifts) → Capacitor's default flow
+        super.onMessageReceived(message);
     }
 
     private void showIncomingCall(Map<String, String> data) {
@@ -69,7 +71,7 @@ public class TalkoraMessagingService extends FirebaseMessagingService {
         String callerId   = nullSafe(data.get("caller_id"));
         String callerName = nullSafe(data.get("caller_name"));
         String callerAv   = nullSafe(data.get("caller_avatar"));
-        String kind       = nullSafe(data.get("call_kind")); // "voice" | "video"
+        String kind       = nullSafe(data.get("call_kind"));
         if (kind.isEmpty()) kind = "voice";
 
         Intent full = new Intent(this, IncomingCallActivity.class);
@@ -86,15 +88,14 @@ public class TalkoraMessagingService extends FirebaseMessagingService {
         }
         PendingIntent fullPi = PendingIntent.getActivity(this, 1001, full, piFlags);
 
-        // On Android 10+ the OS prefers the full-screen-intent over starting
-        // an activity directly from background. Try a direct launch first,
-        // then fall back to a high-priority heads-up notification with the
-        // full-screen intent attached.
+        // On Android 10+ background activity starts are restricted; try a
+        // direct launch first, then fall back to a heads-up notification with
+        // the full-screen intent attached (the OS will honour it from any
+        // app that holds USE_FULL_SCREEN_INTENT).
         try {
             startActivity(full);
         } catch (Exception ignored) {
-            // Some OEMs block background activity starts; the notification's
-            // full-screen intent below handles that case.
+            // OEM blocked the background start — full-screen intent below handles it.
         }
 
         Uri ringtone = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE);
@@ -120,7 +121,6 @@ public class TalkoraMessagingService extends FirebaseMessagingService {
     private void dismissIncomingCall() {
         NotificationManager nm = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
         if (nm != null) nm.cancel(CALL_NOTIFICATION_ID);
-        // Tell the activity to finish if it's currently showing.
         Intent dismiss = new Intent(IncomingCallActivity.ACTION_DISMISS);
         dismiss.setPackage(getPackageName());
         sendBroadcast(dismiss);
