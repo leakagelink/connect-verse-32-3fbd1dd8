@@ -85,14 +85,17 @@ function premiumCreatorPortrait(seed: string, gender?: string | null): string {
   return `https://randomuser.me/api/portraits/${bucket}/${n}.jpg`;
 }
 
-export function aiAvatarUrl(
+// Memoize URL computation per (seed|style|gender|isCreator). Avatar URLs
+// are pure functions of these inputs, so the cache is safe across renders
+// and stops <img src> from churning when parents re-render.
+const URL_CACHE = new Map<string, string>();
+
+function computeAvatarUrl(
   seed: string,
-  style?: string | null,
-  gender?: string | null,
-  isCreator?: boolean | null,
+  style: string | null,
+  gender: string | null,
+  isCreator: boolean,
 ): string {
-  // Creators get premium photoreal-style portraits unless they've explicitly
-  // picked an illustrated DiceBear style from Settings.
   if (isCreator && (!style || !STYLE_IDS.has(style))) {
     return premiumCreatorPortrait(seed, gender);
   }
@@ -109,6 +112,22 @@ export function aiAvatarUrl(
     params.set("backgroundType", "gradientLinear");
   }
   return `${DICEBEAR_BASE}/${safeStyle}/svg?${params.toString()}`;
+}
+
+export function aiAvatarUrl(
+  seed: string,
+  style?: string | null,
+  gender?: string | null,
+  isCreator?: boolean | null,
+): string {
+  const key = `${seed || ""}|${style || ""}|${gender || ""}|${isCreator ? 1 : 0}`;
+  let cached = URL_CACHE.get(key);
+  if (cached) return cached;
+  cached = computeAvatarUrl(seed, style ?? null, gender ?? null, !!isCreator);
+  // Soft cap to keep memory bounded; LRU not needed at this scale.
+  if (URL_CACHE.size > 5000) URL_CACHE.clear();
+  URL_CACHE.set(key, cached);
+  return cached;
 }
 
 // Server-side helper: backfill `avatar_url` on a profile-like row when the
