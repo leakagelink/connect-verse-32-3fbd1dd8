@@ -189,6 +189,27 @@ function CallScreen() {
     if (!permReady) return; // wait for the user to grant mic/cam via the gate
     async function start() {
       try {
+        if (!inviteId) {
+          throw new Error("Call request missing. Please start the call again from Connect.");
+        }
+        const invite = await inviteStatusFn({ data: { inviteId } });
+        if (invite.status !== "accepted") {
+          throw new Error(
+            invite.status === "pending"
+              ? "Creator has not answered yet. Please wait for acceptance."
+              : "This call request is no longer active. Please start a new call.",
+          );
+        }
+        const expectedPartner = invite.role === "caller" ? invite.calleeId : invite.callerId;
+        if (invite.kind !== kind || expectedPartner !== userId || !invite.callLogId) {
+          throw new Error("Call invite does not match this call session.");
+        }
+        callRoleRef.current = invite.role;
+        callLogIdRef.current = invite.callLogId;
+        syncedFreeRef.current = invite.baselineFreeSecondsUsed ?? 0;
+        syncedCoinsRef.current = invite.baselineCoinsSpent ?? 0;
+        sessionStartElapsedRef.current = invite.baselineDurationSeconds ?? 0;
+
         // Provider-agnostic connect with automatic failover across the
         // calling pool (multi-Agora + multi-100ms). On every credential
         // failure the factory reports it server-side and retries with the
@@ -248,34 +269,12 @@ function CallScreen() {
           setFreeStart(me?.profile?.free_seconds_remaining ?? 0);
           setCoinStart(me?.walletBalance ?? 0);
           try {
-            const resumeKey = `active_call:${userId}:${kind}`;
-            let resumeId: string | null = null;
-            try {
-              const raw = localStorage.getItem(resumeKey);
-              if (raw) {
-                const parsed = JSON.parse(raw);
-                if (
-                  parsed?.id &&
-                  parsed?.lastFlushedAt &&
-                  Date.now() - new Date(parsed.lastFlushedAt).getTime() < 5 * 60 * 1000
-                ) {
-                  resumeId = parsed.id as string;
-                }
-              }
-            } catch { /* ignore */ }
-
-            const res = await startLogFn({
-              data: { calleeId: userId, kind: kind as "voice" | "video", resumeId },
-            });
-            callLogIdRef.current = res.id;
-            syncedFreeRef.current = res.baselineFreeSecondsUsed ?? 0;
-            syncedCoinsRef.current = res.baselineCoinsSpent ?? 0;
-            sessionStartElapsedRef.current = res.baselineDurationSeconds ?? 0;
+            const resumeKey = `active_call:${userId}:${kind}:${inviteId}`;
             try {
               localStorage.setItem(
                 resumeKey,
                 JSON.stringify({
-                  id: res.id,
+                  id: invite.callLogId,
                   lastFlushedAt: new Date().toISOString(),
                   sessionToken: sessionTokenRef.current,
                 }),
@@ -296,9 +295,6 @@ function CallScreen() {
                   (fresh.profile.free_seconds_remaining ?? 0) === 0;
               }
             } catch { /* ignore profile refresh failure */ }
-            if (res.resumed) {
-              toast.info("Reconnected to your previous call — no duplicate charges.");
-            }
           } catch { /* ignore log start failure */ }
         }, 1200);
       } catch (e: any) {
@@ -317,7 +313,7 @@ function CallScreen() {
         (s.session as { leave: () => Promise<void> }).leave().catch(() => {});
       }
     };
-  }, [kind, navigate, myId, userId, permReady]);
+  }, [kind, navigate, myId, userId, permReady, inviteId, inviteStatusFn]);
 
 
   useEffect(() => {
