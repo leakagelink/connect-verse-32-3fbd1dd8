@@ -19,10 +19,13 @@ export type NotificationPrefs = {
   follows: boolean;
   system: boolean;
   marketing: boolean;
+  online_followers: boolean;
+  online_creators: boolean;
 };
 
 const DEFAULT_PREFS: NotificationPrefs = {
   chat: true, calls: true, gifts: true, follows: true, system: true, marketing: false,
+  online_followers: true, online_creators: true,
 };
 
 export const listMyNotifications = createServerFn({ method: "GET" })
