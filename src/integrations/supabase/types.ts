@@ -156,6 +156,7 @@ export type Database = {
           callee_id: string
           caller_id: string
           cancelled_at: string | null
+          client_attempt_id: string | null
           created_at: string
           delivered_at: string | null
           expires_at: string
@@ -171,6 +172,7 @@ export type Database = {
           callee_id: string
           caller_id: string
           cancelled_at?: string | null
+          client_attempt_id?: string | null
           created_at?: string
           delivered_at?: string | null
           expires_at?: string
@@ -186,6 +188,7 @@ export type Database = {
           callee_id?: string
           caller_id?: string
           cancelled_at?: string | null
+          client_attempt_id?: string | null
           created_at?: string
           delivered_at?: string | null
           expires_at?: string
