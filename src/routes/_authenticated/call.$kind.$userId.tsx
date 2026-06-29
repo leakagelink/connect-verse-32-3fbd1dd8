@@ -19,6 +19,9 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { MysteryPanel } from "@/components/mystery-panel";
 import { InCallRecharge } from "@/components/in-call-recharge";
 import { GiftPanel } from "@/components/gift-panel";
+import { listGifts, sendGift } from "@/lib/gifts.functions";
+import { getWallet } from "@/lib/wallet.functions";
+
 import { GiftFloater } from "@/components/gift-floater";
 import { SosButton } from "@/components/sos-button";
 import { SafetyTipOverlay } from "@/components/safety-tip-overlay";
