@@ -72,7 +72,7 @@ export class HmsSession {
           this.wasConnected = true;
         } else if (this.wasConnected) {
           this.disconnects += 1;
-          this.events.onDisconnected?.();
+          this.events.onDisconnected?.("unknown");
         }
       }, mod.selectIsConnectedToRoom),
     );
@@ -87,7 +87,7 @@ export class HmsSession {
             this.tryAttachRemote(remote.videoTrack);
           }
         } else if (this.wasConnected) {
-          this.events.onRemoteLeft?.();
+          this.events.onRemoteLeft?.("unknown");
           this.attachedRemoteTrackId = null;
         }
         const local = peers.find((p) => p.isLocal);
