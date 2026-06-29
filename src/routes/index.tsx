@@ -1,4 +1,4 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, Navigate, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -7,7 +7,26 @@ import { APP_NAME } from "@/lib/constants";
 import { supabase } from "@/integrations/supabase/client";
 import talkoraLogo from "@/assets/talkora-logo.png.asset.json";
 
+const SB_STORAGE_KEY = `sb-${import.meta.env.VITE_SUPABASE_PROJECT_ID}-auth-token`;
+
+function hasStoredSession(): boolean {
+  if (typeof window === "undefined") return false;
+  try {
+    const raw = window.localStorage.getItem(SB_STORAGE_KEY);
+    if (!raw) return false;
+    const parsed = JSON.parse(raw);
+    const token = parsed?.access_token ?? parsed?.currentSession?.access_token;
+    const expiresAt = parsed?.expires_at ?? parsed?.currentSession?.expires_at;
+    if (!token) return false;
+    if (typeof expiresAt === "number" && expiresAt * 1000 < Date.now()) return false;
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export const Route = createFileRoute("/")({
+  ssr: false,
   head: () => ({
     meta: [
       { title: `${APP_NAME} — Voice Chat & Live Rooms` },
@@ -21,33 +40,29 @@ export const Route = createFileRoute("/")({
 
 function Landing() {
   const navigate = useNavigate();
-  const [checking, setChecking] = useState(true);
+  // Synchronous check on first render — avoids landing-page flash for signed-in users.
+  const [authed, setAuthed] = useState<boolean>(() => hasStoredSession());
 
   useEffect(() => {
+    // Confirm with Supabase (handles refresh + edge cases).
     let active = true;
     supabase.auth.getSession().then(({ data }) => {
       if (!active) return;
-      if (data.session) {
-        navigate({ to: "/home", replace: true });
-      } else {
-        setChecking(false);
-      }
+      setAuthed(!!data.session);
     });
     const { data: sub } = supabase.auth.onAuthStateChange((_e, session) => {
+      setAuthed(!!session);
       if (session) navigate({ to: "/home", replace: true });
     });
     return () => { active = false; sub.subscription.unsubscribe(); };
   }, [navigate]);
 
-  if (checking) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="size-8 rounded-full border-2 border-primary border-t-transparent animate-spin" />
-      </div>
-    );
+  if (authed) {
+    return <Navigate to="/home" replace />;
   }
 
   return (
+
 
     <div className="min-h-screen">
       <header className="mx-auto flex max-w-6xl items-center justify-between px-6 py-5">
