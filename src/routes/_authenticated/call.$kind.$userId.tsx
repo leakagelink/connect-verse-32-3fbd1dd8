@@ -984,6 +984,146 @@ function CallScreen() {
     }
   }
 
+  // Failure-path E2E suite. Verifies that sendGift correctly REJECTS:
+  //   1) insufficient coins   — sender balance < gift cost
+  //   2) invalid receiver     — self-send (proxy for receiver-side rejection)
+  //   3) duplicate send       — two parallel sends must not double-debit beyond cost*2,
+  //                             and the wallet must remain consistent (no negative, no skipped debit)
+  // For each case we log PASS when the expected failure/behavior is observed,
+  // FAIL when the server unexpectedly accepts a bad request or state diverges.
+  async function runGiftE2EFailures() {
+    if (e2eRunning) return;
+    setE2eRunning(true);
+    const tag = "[gift-e2e-fail]";
+    const t0 = Date.now();
+    const results: Array<{ name: string; pass: boolean; note: string; detail: Record<string, unknown> }> = [];
+
+    const safeSend = async (payload: { giftId: string; receiverId: string }) => {
+      try {
+        const r = await sendGiftFn({ data: { ...payload, callLogId: callLogIdRef.current ?? null } });
+        return { ok: true as const, res: r };
+      } catch (e) {
+        return { ok: false as const, error: e instanceof Error ? e.message : String(e) };
+      }
+    };
+
+    try {
+      const [catalog, walletPre] = await Promise.all([listGiftsFn(), getWalletFn()]);
+      const serverPre = walletPre.balance;
+      const sorted = (catalog ?? [])
+        .map((g) => ({ id: g.id, name: g.name, emoji: g.emoji, cost: Number(g.coin_cost) }))
+        .filter((g) => g.cost > 0)
+        .sort((a, b) => a.cost - b.cost);
+      console.log(`${tag} start`, { serverPre, catalogSize: sorted.length });
+
+      // ── Case 1: insufficient coins ───────────────────────────────────────────
+      const expensive = [...sorted].reverse().find((g) => g.cost > serverPre);
+      if (!expensive) {
+        results.push({
+          name: "insufficient_coins",
+          pass: false,
+          note: "skipped — no gift in catalog costs more than current balance",
+          detail: { serverPre, maxCost: sorted.at(-1)?.cost ?? 0 },
+        });
+      } else {
+        const r = await safeSend({ giftId: expensive.id, receiverId: userId });
+        const rejected = !r.ok && /need|coin|insufficient|balance/i.test(r.ok === false ? r.error : "");
+        results.push({
+          name: "insufficient_coins",
+          pass: rejected,
+          note: r.ok ? "server accepted overspend (FAIL)" : `rejected: ${r.error}`,
+          detail: { gift: expensive, serverPre, response: r },
+        });
+      }
+
+      // ── Case 2: invalid receiver (self-send) ─────────────────────────────────
+      const cheap = sorted[0];
+      if (!cheap) {
+        results.push({ name: "invalid_receiver", pass: false, note: "skipped — empty gift catalog", detail: {} });
+      } else {
+        const r = await safeSend({ giftId: cheap.id, receiverId: myId || userId });
+        // If myId is not the receiver of the call (it shouldn't be, userId is the peer), use a synthetic self id.
+        const isSelf = (myId || "") === userId;
+        const tryId = isSelf ? userId : myId;
+        const r2 = isSelf ? r : await safeSend({ giftId: cheap.id, receiverId: tryId });
+        const rejected = !r2.ok && /yourself|self/i.test(r2.ok === false ? r2.error : "");
+        results.push({
+          name: "invalid_receiver",
+          pass: rejected,
+          note: r2.ok ? "server accepted self-send (FAIL)" : `rejected: ${r2.error}`,
+          detail: { gift: cheap, attemptedReceiver: tryId, response: r2 },
+        });
+      }
+
+      // ── Case 3: duplicate / concurrent send ──────────────────────────────────
+      // We need enough balance to cover the cheapest gift twice; otherwise one of the two
+      // is expected to fail with insufficient funds — that's still a valid consistency check.
+      const walletBeforeDup = await getWalletFn();
+      const dupPre = walletBeforeDup.balance;
+      if (!cheap) {
+        results.push({ name: "duplicate_send", pass: false, note: "skipped — empty gift catalog", detail: {} });
+      } else if (dupPre < cheap.cost) {
+        results.push({
+          name: "duplicate_send",
+          pass: false,
+          note: "skipped — balance too low for even one cheap gift",
+          detail: { dupPre, cheapCost: cheap.cost },
+        });
+      } else {
+        const [a, b] = await Promise.all([
+          safeSend({ giftId: cheap.id, receiverId: userId }),
+          safeSend({ giftId: cheap.id, receiverId: userId }),
+        ]);
+        const walletAfterDup = await getWalletFn();
+        const dupPost = walletAfterDup.balance;
+        const successCount = [a, b].filter((r) => r.ok).length;
+        const expectedSpend = successCount * cheap.cost;
+        const actualSpend = dupPre - dupPost;
+        const consistent = actualSpend === expectedSpend && dupPost >= 0;
+        // We accept any successCount (server may serialize both); we only FAIL when the
+        // wallet ledger drifts from the count of successful sends, i.e. silent double-debit
+        // or a "successful" send that didn't actually debit.
+        results.push({
+          name: "duplicate_send",
+          pass: consistent,
+          note: consistent
+            ? `consistent: ${successCount}/2 succeeded, spent ${actualSpend}`
+            : `LEDGER DRIFT: ${successCount} succeeded but spent ${actualSpend} (expected ${expectedSpend})`,
+          detail: { cheap, dupPre, dupPost, a, b, successCount, expectedSpend, actualSpend },
+        });
+        // Refresh UI baseline so coinsLeft tracks server reality after the dup test.
+        setCoinStart(dupPost + coinsConsumed);
+      }
+
+      const allPass = results.every((r) => r.pass);
+      const summary = results
+        .map((r) => `${r.pass ? "✓" : "✗"} ${r.name}`)
+        .join(" · ");
+      console.log(`${tag} ${allPass ? "ALL PASS" : "SOME FAIL"}`, {
+        totalMs: Date.now() - t0,
+        results,
+      });
+      setE2eResult({
+        ok: allPass,
+        summary: `Failures: ${summary}`,
+        details: { results },
+        at: Date.now(),
+      });
+      toast[allPass ? "success" : "error"](
+        `Failure E2E ${allPass ? "passed" : "failed"} — check console`
+      );
+      qc.invalidateQueries({ queryKey: ["me"] });
+      qc.invalidateQueries({ queryKey: ["wallet"] });
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      console.error(`${tag} ERROR`, msg);
+      setE2eResult({ ok: false, summary: `ERROR · ${msg}`, details: { error: msg, results }, at: Date.now() });
+      toast.error(`Failure E2E error: ${msg}`);
+    } finally {
+      setE2eRunning(false);
+    }
+  }
+
 
 
 
