@@ -943,9 +943,19 @@ function CallScreen() {
     };
   }, []);
 
-  function toggleMic() {
+  async function toggleMic() {
     const t = streamRef.current?.getAudioTracks()[0];
-    if (t) { t.enabled = !t.enabled; setMuted(!t.enabled); }
+    const next = t ? !t.enabled : !muted;
+    if (t) t.enabled = !next ? true : false;
+    // Some SDKs publish their own track; also notify the session if available.
+    const sess: any = sessionRef.current?.session;
+    try {
+      if (typeof sess?.setMicrophoneMuted === "function") await sess.setMicrophoneMuted(next);
+      else if (typeof sess?.muteAudio === "function") await sess.muteAudio(next);
+      else if (typeof sess?.setMuted === "function") await sess.setMuted(next);
+    } catch { /* ignore */ }
+    setMuted(next);
+    toast.message(next ? "Microphone muted" : "Microphone unmuted");
   }
   function toggleCam() {
     const t = streamRef.current?.getVideoTracks()[0];
