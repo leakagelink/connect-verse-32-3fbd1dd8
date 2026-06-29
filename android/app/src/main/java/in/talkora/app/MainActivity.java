@@ -12,6 +12,7 @@ public class MainActivity extends BridgeActivity {
         registerPlugin(CallPermissionsPlugin.class);
         registerPlugin(SpeakerModePlugin.class);
         registerPlugin(FullScreenIntentPlugin.class);
+        registerPlugin(BackgroundReliabilityPlugin.class);
         super.onCreate(savedInstanceState);
         // Register every notification channel up-front so FCM messages that
         // arrive with a `channel_id` (incoming_calls, missed_calls, messages,
