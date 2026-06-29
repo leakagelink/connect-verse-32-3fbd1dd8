@@ -91,6 +91,9 @@ export function InCallPeerProfileSheet({ userId, open, onOpenChange }: Props) {
 
   const p = data?.profile;
   const outgoing = data?.outgoing ?? null; // null | 'pending' | 'accepted'
+  const incoming = data?.incoming ?? null; // null | 'pending' | 'accepted'
+  const requestPending = outgoing === "pending";
+  const mutating = followMut.isPending || unfollowMut.isPending;
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
