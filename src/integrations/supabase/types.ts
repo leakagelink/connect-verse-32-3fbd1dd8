@@ -2010,6 +2010,8 @@ export type Database = {
         | "referral_bonus"
         | "fan_club_spend"
         | "fan_club_income"
+        | "admin_credit"
+        | "admin_debit"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -2169,6 +2171,8 @@ export const Constants = {
         "referral_bonus",
         "fan_club_spend",
         "fan_club_income",
+        "admin_credit",
+        "admin_debit",
       ],
     },
   },
