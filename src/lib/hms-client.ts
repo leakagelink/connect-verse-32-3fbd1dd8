@@ -13,9 +13,9 @@
  */
 export type HmsEvents = {
   onRemoteJoined?: () => void;
-  onRemoteLeft?: () => void;
+  onRemoteLeft?: (reason: "quit" | "timeout" | "audience" | "unknown") => void;
   onQuality?: (q: number) => void;
-  onDisconnected?: () => void;
+  onDisconnected?: (reason: "network" | "interrupt" | "leave" | "server" | "unknown") => void;
   onReconnected?: () => void;
   onVideoFallback?: () => void;
 };
