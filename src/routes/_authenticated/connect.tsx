@@ -6,6 +6,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { heartbeat, listOnlineCreators } from "@/lib/presence.functions";
 import { getAppSettings } from "@/lib/settings.functions";
 import { AppShell } from "@/components/app-shell";
+import { useAvatarPrefetch } from "@/lib/avatar-prefetch";
 import { Card } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
