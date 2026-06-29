@@ -274,11 +274,34 @@ function CallScreen() {
           partnerUserId: userId,
           kind: kind as "voice" | "video",
           events: {
-            onRemoteJoined: () => mounted && setRemoteJoined(true),
-            onRemoteLeft: () => mounted && setRemoteJoined(false),
+            onRemoteJoined: () => {
+              if (!mounted) return;
+              setRemoteJoined(true);
+              peerLeaveReasonRef.current = null;
+              if (peerGraceTimerRef.current) {
+                clearTimeout(peerGraceTimerRef.current);
+                peerGraceTimerRef.current = null;
+                toast.success("Peer reconnected");
+              }
+            },
+            onRemoteLeft: (reason) => {
+              if (!mounted) return;
+              peerLeaveReasonRef.current = reason ?? "unknown";
+              setRemoteJoined(false);
+            },
             onQuality: (q) => mounted && setNetworkQ(q),
-            onDisconnected: () => mounted && toast.warning("Network unstable — reconnecting…"),
-            onReconnected: () => mounted && toast.success("Reconnected"),
+            onDisconnected: (reason) => {
+              if (!mounted) return;
+              localDropReasonRef.current = reason ?? "unknown";
+              if (reason === "network" || reason === "interrupt") {
+                toast.warning("Network unstable — reconnecting…");
+              }
+            },
+            onReconnected: () => {
+              if (!mounted) return;
+              localDropReasonRef.current = null;
+              toast.success("Reconnected");
+            },
             onVideoFallback: () => {
               if (!mounted) return;
               setCamOff(true);
