@@ -141,11 +141,7 @@ export const sendMessage = createServerFn({ method: "POST" })
       err.category = contactCat;
       throw err;
     }
-      const err: any = new Error(`CONTACT_SHARE_BLOCKED:${contactCat}:${contactShareWarning(contactCat)}`);
-      err.code = "CONTACT_SHARE_BLOCKED";
-      err.category = contactCat;
-      throw err;
-    }
+
 
     // Male senders pay coins per message; females are free
     const { data: senderProfile } = await supabase
