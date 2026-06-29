@@ -5,6 +5,7 @@ import { useServerFn } from "@tanstack/react-start";
 import {
   adminStats, adminListUsers, adminListReports, adminBanUser, adminUnbanUser,
   adminUpdateReport, adminListTransactions, adminAdjustWallet,
+  adminListUserCoinAdjustments,
 } from "@/lib/admin.functions";
 import { getAppSettings, setAppSetting } from "@/lib/settings.functions";
 import { adminGetPaymentConfig, adminSavePaymentConfig } from "@/lib/payments.functions";
@@ -1472,11 +1473,19 @@ function FcmTab() {
 function AdjustCoinsDialog({ userId, username }: { userId: string; username: string }) {
   const qc = useQueryClient();
   const adjustFn = useServerFn(adminAdjustWallet);
+  const historyFn = useServerFn(adminListUserCoinAdjustments);
   const [open, setOpen] = useState(false);
   const [action, setAction] = useState<"credit" | "debit">("credit");
   const [coins, setCoins] = useState<string>("");
   const [reason, setReason] = useState("");
   const [busy, setBusy] = useState(false);
+
+  const historyQ = useQuery({
+    queryKey: ["admin", "user-coin-adjustments", userId],
+    queryFn: () => historyFn({ data: { userId, limit: 50 } }),
+    enabled: open,
+    staleTime: 15_000,
+  });
 
   async function submit() {
     const n = Math.floor(Number(coins));
@@ -1497,7 +1506,7 @@ function AdjustCoinsDialog({ userId, username }: { userId: string; username: str
           : `Debited ${Math.abs(res.delta)} coins. New balance: ${res.balance}`,
       );
       qc.invalidateQueries({ queryKey: ["admin"] });
-      setOpen(false);
+      historyQ.refetch();
       setCoins(""); setReason(""); setAction("credit");
     } catch (e: any) {
       toast.error(e?.message ?? "Adjustment failed");
@@ -1513,7 +1522,8 @@ function AdjustCoinsDialog({ userId, username }: { userId: string; username: str
           <WalletIcon className="size-3.5 mr-1" /> Coins
         </Button>
       </DialogTrigger>
-      <DialogContent>
+      <DialogContent className="max-w-lg">
+
         <DialogHeader>
           <DialogTitle>Adjust coins · {username}</DialogTitle>
         </DialogHeader>
@@ -1547,7 +1557,52 @@ function AdjustCoinsDialog({ userId, username }: { userId: string; username: str
             Debits clamp at 0 — balance can't go negative. Action is recorded as
             an <code>admin_credit</code> / <code>admin_debit</code> transaction.
           </p>
+
+          <div className="pt-2 border-t">
+            <div className="flex items-center justify-between mb-2">
+              <h4 className="text-sm font-semibold">Adjustment history</h4>
+              <Badge variant="outline" className="text-[10px]">
+                {historyQ.data?.length ?? 0} entries
+              </Badge>
+            </div>
+            <div className="max-h-64 overflow-y-auto space-y-2 pr-1">
+              {historyQ.isLoading && (
+                <p className="text-xs text-muted-foreground">Loading…</p>
+              )}
+              {historyQ.isError && (
+                <p className="text-xs text-destructive">Failed to load history</p>
+              )}
+              {!historyQ.isLoading && !historyQ.isError && (historyQ.data?.length ?? 0) === 0 && (
+                <p className="text-xs text-muted-foreground">No admin adjustments yet.</p>
+              )}
+              {historyQ.data?.map((row) => {
+                const credit = row.type === "admin_credit";
+                return (
+                  <div key={row.id} className="rounded-md border p-2 text-xs space-y-1">
+                    <div className="flex items-center justify-between gap-2">
+                      <Badge variant={credit ? "default" : "destructive"} className="text-[10px]">
+                        {credit ? "Credit" : "Debit"} {credit ? "+" : ""}{row.coinsDelta}
+                      </Badge>
+                      <span className="text-muted-foreground">
+                        {format(new Date(row.createdAt), "dd MMM yyyy, HH:mm")}
+                      </span>
+                    </div>
+                    {row.reason && (
+                      <p className="text-foreground/90">“{row.reason}”</p>
+                    )}
+                    <div className="flex items-center justify-between text-muted-foreground text-[11px]">
+                      <span>by {row.adminUsername ?? "admin"}</span>
+                      {row.newBalance !== null && (
+                        <span>balance → {row.newBalance}</span>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
         </div>
+
         <DialogFooter>
           <Button variant="ghost" onClick={() => setOpen(false)} disabled={busy}>Cancel</Button>
           <Button onClick={submit} disabled={busy}>

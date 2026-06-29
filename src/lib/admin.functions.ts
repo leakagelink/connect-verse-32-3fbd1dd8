@@ -205,3 +205,53 @@ export const adminAdjustWallet = createServerFn({ method: "POST" })
 
     return { ok: true, previous: current, balance: newBalance, delta };
   });
+
+// List admin-initiated wallet adjustments (credit/debit) for a specific user.
+// Returns most recent first; used by the per-user audit panel in admin UI.
+export const adminListUserCoinAdjustments = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((d: unknown) => z.object({
+    userId: z.string().uuid(),
+    limit: z.number().int().min(1).max(200).optional(),
+  }).parse(d))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: rows, error } = await supabaseAdmin
+      .from("transactions")
+      .select("id, type, coins_delta, created_at, metadata")
+      .eq("user_id", data.userId)
+      .in("type", ["admin_credit", "admin_debit"])
+      .order("created_at", { ascending: false })
+      .limit(data.limit ?? 50);
+    if (error) throw new Error(error.message);
+
+    const adminIds = Array.from(new Set(
+      (rows ?? [])
+        .map((r) => (r.metadata as any)?.admin_id)
+        .filter((x): x is string => typeof x === "string"),
+    ));
+    let adminMap = new Map<string, string>();
+    if (adminIds.length) {
+      const { data: admins } = await supabaseAdmin
+        .from("profiles").select("id, username").in("id", adminIds);
+      adminMap = new Map((admins ?? []).map((p) => [p.id, p.username ?? "admin"]));
+    }
+
+    return (rows ?? []).map((r) => {
+      const meta = (r.metadata ?? {}) as Record<string, any>;
+      return {
+        id: r.id as string,
+        type: r.type as "admin_credit" | "admin_debit",
+        coinsDelta: Number(r.coins_delta ?? 0),
+        createdAt: r.created_at as string,
+        reason: typeof meta.reason === "string" ? meta.reason : null,
+        adminId: typeof meta.admin_id === "string" ? meta.admin_id : null,
+        adminUsername: typeof meta.admin_id === "string"
+          ? (adminMap.get(meta.admin_id) ?? "admin")
+          : null,
+        previousBalance: typeof meta.previous_balance === "number" ? meta.previous_balance : null,
+        newBalance: typeof meta.new_balance === "number" ? meta.new_balance : null,
+      };
+    });
+  });
