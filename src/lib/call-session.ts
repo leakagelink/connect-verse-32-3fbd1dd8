@@ -18,6 +18,7 @@ export type SessionEvents = {
   onDisconnected?: () => void;
   onReconnected?: () => void;
   onVideoFallback?: () => void;
+  onAudioBlocked?: () => void;
 };
 
 export type ConnectedAgora = {
