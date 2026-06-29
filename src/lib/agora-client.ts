@@ -40,6 +40,8 @@ export class AgoraSession {
   private kind: "voice" | "video" = "video";
   private channel = "";
   private events: AgoraEvents = {};
+  /** Remote audio tracks whose autoplay was blocked, kept so retryAudio() can play them. */
+  private pendingAudio: Array<{ play: () => void }> = [];
 
   async join(opts: {
     appId: string;
