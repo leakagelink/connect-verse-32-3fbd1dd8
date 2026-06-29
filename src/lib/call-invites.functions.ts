@@ -401,17 +401,21 @@ export const getCallParticipantProfile = createServerFn({ method: "POST" })
 // (faking another user as caller) and run the missed-call push pipeline. Returns FCM result.
 export const diagSelfMissedCall = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .handler(async ({ context }) => {
+  .validator((d: unknown) => z.object({ targetUserId: z.string().uuid().optional() }).parse(d ?? {}))
+  .handler(async ({ context, data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const db = supabaseAdmin as any;
     const { data: isAdmin } = await context.supabase.rpc("has_role", { _user_id: context.userId, _role: "admin" });
     if (!isAdmin) throw new Error("Forbidden");
 
+    // target callee = explicit arg, else self
+    const calleeId = data.targetUserId ?? context.userId;
+
     // pick any other onboarded user as the fake caller
     const { data: other } = await db
       .from("profiles")
       .select("id, username")
-      .neq("id", context.userId)
+      .neq("id", calleeId)
       .eq("is_banned", false)
       .eq("onboarded", true)
       .is("deleted_at", null)
@@ -424,7 +428,7 @@ export const diagSelfMissedCall = createServerFn({ method: "POST" })
       .from("call_invites")
       .insert({
         caller_id: other.id,
-        callee_id: context.userId,
+        callee_id: calleeId,
         kind: "voice",
         status: "pending",
         expires_at: pastIso,
@@ -450,11 +454,11 @@ export const diagSelfMissedCall = createServerFn({ method: "POST" })
     const name = caller?.username ?? "Someone";
 
     // tokens snapshot
-    const { data: tokens } = await db.from("device_tokens").select("token, platform").eq("user_id", context.userId);
+    const { data: tokens } = await db.from("device_tokens").select("token, platform").eq("user_id", calleeId);
 
     const { notifyUser: notify } = await import("./push.functions");
     const pushResult = await notify({
-      userId: context.userId,
+      userId: calleeId,
       kind: "calls",
       title: `Missed audio call`,
       body: `${name} tried to call you.`,
@@ -463,7 +467,7 @@ export const diagSelfMissedCall = createServerFn({ method: "POST" })
 
     return {
       ok: true,
-      calleeId: context.userId,
+      calleeId,
       fakeCallerId: invite.caller_id,
       fakeCallerName: name,
       inviteId: invite.id,
