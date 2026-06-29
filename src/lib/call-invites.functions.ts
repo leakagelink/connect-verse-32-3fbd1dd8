@@ -269,22 +269,37 @@ async function recordMissedCallLog(
   }
 }
 
-function statusDto(invite: any, userId: string, log?: any) {
+function statusDto(
+  invite: any,
+  userId: string,
+  log?: any,
+  parties?: { payerRole: "caller" | "callee"; earnerRole: "caller" | "callee"; payerId: string; earnerId: string },
+) {
+  const role = invite.caller_id === userId ? "caller" : "callee";
   return {
     id: invite.id as string,
     kind: invite.kind as "voice" | "video",
     status: invite.status as "pending" | "accepted" | "rejected" | "missed" | "cancelled" | "expired",
     callerId: invite.caller_id as string,
     calleeId: invite.callee_id as string,
-    role: invite.caller_id === userId ? "caller" : "callee",
+    role,
     callLogId: (invite.call_log_id ?? log?.id ?? null) as string | null,
     expiresAt: invite.expires_at as string,
     deliveredAt: (invite.delivered_at ?? null) as string | null,
     baselineDurationSeconds: Number(log?.duration_seconds ?? 0),
     baselineFreeSecondsUsed: Number(log?.free_seconds_used ?? 0),
     baselineCoinsSpent: Number(log?.coins_spent ?? 0),
+    // Billing direction: which side pays / earns coins for this call.
+    // Null when the server hasn't resolved it yet — client falls back to
+    // legacy behaviour (caller = payer).
+    payerRole: (parties?.payerRole ?? null) as "caller" | "callee" | null,
+    earnerRole: (parties?.earnerRole ?? null) as "caller" | "callee" | null,
+    payerId: (parties?.payerId ?? null) as string | null,
+    earnerId: (parties?.earnerId ?? null) as string | null,
+    amPayer: parties ? userId === parties.payerId : null,
   };
 }
+
 
 
 export const createCallInvite = createServerFn({ method: "POST" })
