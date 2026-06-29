@@ -382,13 +382,19 @@ export const rejectCallInvite = createServerFn({ method: "POST" })
     const db = supabaseAdmin as any;
     const { data: invite } = await db.from("call_invites").select("*").eq("id", data.inviteId).maybeSingle();
     if (!invite || invite.callee_id !== context.userId) throw new Error("Call invite not found.");
-    await db
+    const { data: rejected } = await db
       .from("call_invites")
       .update({ status: "rejected", rejected_at: new Date().toISOString() })
       .eq("id", data.inviteId)
-      .eq("status", "pending");
+      .eq("status", "pending")
+      .select("*")
+      .maybeSingle();
     // Dismiss the lock-screen UI on the callee's other devices.
     await notifyCallEnded({ calleeId: invite.callee_id, inviteId: invite.id }).catch(() => ({ pushed: 0 }));
+    // Log a missed-call history entry tagged with the rejection reason.
+    if (rejected) {
+      await recordMissedCallLog(db, rejected, "callee_rejected").catch(() => {});
+    }
     return { ok: true };
   });
 
@@ -411,6 +417,7 @@ export const cancelCallInvite = createServerFn({ method: "POST" })
     await notifyCallEnded({ calleeId: invite.callee_id, inviteId: invite.id }).catch(() => ({ pushed: 0 }));
     // If the ring actually reached the callee's device, surface it as a missed call.
     if (cancelled && invite.delivered_at) {
+      await recordMissedCallLog(db, cancelled, "caller_cancelled").catch(() => {});
       await sendMissedCallNotification(db, cancelled).catch(() => {});
     }
     return { ok: true };
