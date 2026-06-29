@@ -68,6 +68,14 @@ function CallScreen() {
   const [networkQ, setNetworkQ] = useState<number>(0); // 0=unknown,1=excellent..6=down
   const [remoteJoined, setRemoteJoined] = useState(false);
   const [audioBlocked, setAudioBlocked] = useState(false);
+  const [mirrorSelf, setMirrorSelf] = useState<boolean>(() => {
+    try { return localStorage.getItem("call:mirrorSelf") !== "0"; } catch { return true; }
+  });
+  const toggleMirror = () => setMirrorSelf((v) => {
+    const next = !v;
+    try { localStorage.setItem("call:mirrorSelf", next ? "1" : "0"); } catch { /* ignore */ }
+    return next;
+  });
   // Structured join failure so we can show actionable retry UI instead of a
   // toast + redirect away from the call.
   const [joinError, setJoinError] = useState<{
