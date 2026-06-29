@@ -112,6 +112,7 @@ function CallScreen() {
   const endLogFn = useServerFn(endCallLog);
   const applyUsageFn = useServerFn(applyCallUsage);
   const inviteStatusFn = useServerFn(getCallInviteStatus);
+  const acceptInviteFn = useServerFn(acceptCallInvite);
   // Tracks how much we've already persisted to the server (server is the
   // source of truth across refresh / reconnect).
   const syncedFreeRef = useRef(0);
