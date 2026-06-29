@@ -255,3 +255,28 @@ export const adminListUserCoinAdjustments = createServerFn({ method: "POST" })
       };
     });
   });
+
+/**
+ * One-off diagnostic: returns the project_id parsed from the
+ * FCM_SERVICE_ACCOUNT_JSON secret so we can confirm it matches the
+ * project_id in android/app/google-services.json (talkora-6eec0).
+ * Admin-only.
+ */
+export const adminFcmProjectInfo = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const raw = process.env.FCM_SERVICE_ACCOUNT_JSON;
+    if (!raw) return { ok: false, reason: "FCM_SERVICE_ACCOUNT_JSON not set" as const };
+    try {
+      const parsed = JSON.parse(raw);
+      return {
+        ok: true as const,
+        project_id: parsed.project_id ?? null,
+        client_email: parsed.client_email ?? null,
+        type: parsed.type ?? null,
+      };
+    } catch (e: any) {
+      return { ok: false as const, reason: "JSON parse failed: " + (e?.message ?? "unknown") };
+    }
+  });
