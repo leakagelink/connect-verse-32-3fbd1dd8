@@ -21,6 +21,7 @@ import { FanClubSpotlight } from "@/components/fan-club-spotlight";
 import { RecentlyPlayedSection } from "@/components/recently-played-section";
 import { ForYouSection } from "@/components/for-you-section";
 import { TrustBadgesFooter } from "@/components/trust-badges-footer";
+import { CallInviteDialog } from "@/components/call-invite-dialog";
 
 import { Card } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -150,6 +151,7 @@ function Home() {
   }, [me, navigate]);
 
   const [preview, setPreview] = useState<{ userId: string; kind: "voice" | "video" } | null>(null);
+  const [callInvite, setCallInvite] = useState<{ userId: string; kind: "voice" | "video" } | null>(null);
 
   async function openChat(otherId: string) {
     try {
@@ -377,7 +379,7 @@ function Home() {
         onConfirm={(uid) => {
           const kind = preview?.kind ?? "voice";
           setPreview(null);
-          navigate({ to: "/call/$kind/$userId", params: { kind, userId: uid } });
+          setCallInvite({ kind, userId: uid });
         }}
         onFindAnother={async () => {
           const kind = preview?.kind ?? "voice";
@@ -395,6 +397,7 @@ function Home() {
           setPreview({ userId: pick.id, kind });
         }}
       />
+      <CallInviteDialog pendingCall={callInvite} onClose={() => setCallInvite(null)} />
     </AppShell>
   );
 }

@@ -36,6 +36,7 @@ import {
 } from "@/lib/constants";
 import { COUNTRIES, STATES_BY_COUNTRY } from "@/lib/locations";
 import { PrecallPermissionDialog } from "@/components/precall-permission-dialog";
+import { CallInviteDialog } from "@/components/call-invite-dialog";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/connect")({
@@ -162,6 +163,7 @@ function ConnectScreen() {
   }, [all, me, language, country, state, activeOnly, filtersVisible]);
 
   const [pendingCall, setPendingCall] = useState<{ kind: "voice" | "video"; userId: string } | null>(null);
+  const [callInvite, setCallInvite] = useState<{ kind: "voice" | "video"; userId: string } | null>(null);
 
   function startCall(kind: "voice" | "video", userId: string) {
     // Open the pre-call permission dialog so the user can see mic/camera
@@ -427,9 +429,10 @@ function ConnectScreen() {
         onReady={() => {
           const p = pendingCall;
           setPendingCall(null);
-          if (p) navigate({ to: "/call/$kind/$userId", params: { kind: p.kind, userId: p.userId } });
+          if (p) setCallInvite(p);
         }}
       />
+      <CallInviteDialog pendingCall={callInvite} onClose={() => setCallInvite(null)} />
     </AppShell>
   );
 }

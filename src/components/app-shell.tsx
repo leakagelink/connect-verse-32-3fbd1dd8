@@ -12,6 +12,7 @@ import { NotificationsBell } from "@/components/notifications-bell";
 import { applyChromeForApp } from "@/lib/native";
 import { installDeepLinkHandler } from "@/lib/deep-links";
 import { useT, syncStoredLocale, type Locale } from "@/lib/i18n";
+import { IncomingCallDialog } from "@/components/incoming-call-dialog";
 
 
 
@@ -122,6 +123,7 @@ export function AppShell({ children, isAdmin }: { children: ReactNode; isAdmin?:
 
       <main className="mx-auto max-w-3xl px-4 pt-4">{children}</main>
       <SafetySignalsProbe />
+      <IncomingCallDialog disabled={pathname.startsWith("/call/")} />
 
       <nav className="fixed inset-x-0 bottom-0 z-50 glass border-t safe-bottom">
         <div className="mx-auto flex max-w-3xl items-stretch justify-around gap-0.5 px-1 relative">
