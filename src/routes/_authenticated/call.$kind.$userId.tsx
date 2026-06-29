@@ -8,8 +8,9 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Mic, MicOff, Video as VideoIcon, VideoOff, PhoneOff, Coins, Search, Gift, ShieldAlert, Volume2, VolumeX } from "lucide-react";
+import { Mic, MicOff, Video as VideoIcon, VideoOff, PhoneOff, Coins, Search, Gift, ShieldAlert, Volume2, VolumeX, UserCircle2 } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
+import { InCallPeerProfileSheet } from "@/components/in-call-peer-profile-sheet";
 import { toast } from "sonner";
 import { VOICE_CALL_COINS_PER_MINUTE, VIDEO_CALL_COINS_PER_MINUTE } from "@/lib/constants";
 import { endCallLog, applyCallUsage, getCallPeerWallets } from "@/lib/calls.functions";
@@ -77,6 +78,13 @@ function CallScreen() {
   const [elapsed, setElapsed] = useState(0);
   const [connected, setConnected] = useState(false);
   const [confirmEnd, setConfirmEnd] = useState(false);
+  // Two-step end-call confirmation. Tap red button (1) → AlertDialog asks
+  // "End this call?" → tap "End call" (2) → final "Yes, disconnect now" (3).
+  // Three deliberate taps eliminate accidental hangups mid-conversation.
+  const [endStep, setEndStep] = useState<1 | 2>(1);
+  // Peer profile sheet — opens *inside* the call screen so the WebRTC
+  // session keeps running while the user follows / sends a friend request.
+  const [peerProfileOpen, setPeerProfileOpen] = useState(false);
   const [lowBalanceOpen, setLowBalanceOpen] = useState(false);
   const [rechargeOpen, setRechargeOpen] = useState(false);
   const [giftOpen, setGiftOpen] = useState(false);
@@ -1387,9 +1395,14 @@ function CallScreen() {
   }
 
   return (
-    <AppShell>
+    // Fullscreen call surface — bypasses AppShell on purpose so the bottom
+    // nav and top header are hidden for the duration of the call. The user
+    // cannot navigate to any other screen until they explicitly end the
+    // call (or open the in-call peer profile sheet, which keeps the call
+    // session mounted).
+    <div className="fixed inset-0 z-[60] bg-black flex flex-col overflow-y-auto safe-top safe-bottom">
       <SafetyTipOverlay />
-      <Card className="glass overflow-hidden p-0">
+      <Card className="glass overflow-hidden p-0 flex-1 rounded-none border-0">
         {paused && (
           <div className="bg-amber-500/90 text-black text-xs font-semibold text-center px-3 py-2">
             Paused — another call window is now active. Close this tab or reload to take over.
@@ -1446,8 +1459,19 @@ function CallScreen() {
                 <NetworkBars q={networkQ} />
               )}
             </div>
-            <div className="px-2.5 py-1 rounded-full bg-coin/80 text-xs font-semibold flex items-center gap-1">
-              <Coins className="size-3" /> {perMin} / min
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setPeerProfileOpen(true)}
+                className="px-2.5 py-1 rounded-full bg-black/50 text-xs font-medium flex items-center gap-1 hover:bg-black/70 active:scale-95 transition"
+                aria-label="View profile"
+                title="View profile (call stays connected)"
+              >
+                <UserCircle2 className="size-3.5" /> Profile
+              </button>
+              <div className="px-2.5 py-1 rounded-full bg-coin/80 text-xs font-semibold flex items-center gap-1">
+                <Coins className="size-3" /> {perMin} / min
+              </div>
             </div>
           </div>
           {/* Low-time warning — escalates in last 60s */}
@@ -1737,20 +1761,55 @@ function CallScreen() {
 
 
 
-      <AlertDialog open={confirmEnd} onOpenChange={setConfirmEnd}>
+      <InCallPeerProfileSheet
+        userId={userId}
+        open={peerProfileOpen}
+        onOpenChange={setPeerProfileOpen}
+      />
+
+      <AlertDialog
+        open={confirmEnd}
+        onOpenChange={(v) => {
+          setConfirmEnd(v);
+          if (!v) setEndStep(1); // reset two-step state when dialog closes
+        }}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>End this call?</AlertDialogTitle>
+            <AlertDialogTitle>
+              {endStep === 1 ? "End this call?" : "Are you really sure?"}
+            </AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to disconnect? You will be charged for {Math.max(1, Math.ceil(elapsed / 60))} minute(s)
-              at {perMin} coins/min.
+              {endStep === 1 ? (
+                <>
+                  You will be charged for {Math.max(1, Math.ceil(elapsed / 60))} minute(s) at {perMin} coins/min.
+                  Tap “End call” to continue — we will ask once more before disconnecting.
+                </>
+              ) : (
+                <>
+                  This will disconnect the call immediately. Tap “Yes, disconnect now” to hang up,
+                  or “Stay on call” to keep talking.
+                </>
+              )}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Stay on call</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmEndCall} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-              Yes, end call
-            </AlertDialogAction>
+            <AlertDialogCancel onClick={() => setEndStep(1)}>Stay on call</AlertDialogCancel>
+            {endStep === 1 ? (
+              <Button
+                onClick={() => setEndStep(2)}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                End call
+              </Button>
+            ) : (
+              <AlertDialogAction
+                onClick={() => { setEndStep(1); confirmEndCall(); }}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                Yes, disconnect now
+              </AlertDialogAction>
+            )}
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
@@ -2001,7 +2060,7 @@ function CallScreen() {
           </div>
         );
       })()}
-    </AppShell>
+    </div>
 
 
 
