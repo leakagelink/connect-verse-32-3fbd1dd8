@@ -12,8 +12,7 @@ export function prefetchAvatar(url: string | null | undefined): void {
   // Detached <img> triggers the browser's image cache without rendering.
   const img = new Image();
   img.decoding = "async";
-  // @ts-expect-error - fetchPriority is supported in modern Chromium/Safari.
-  img.fetchPriority = "low";
+  (img as HTMLImageElement & { fetchPriority?: string }).fetchPriority = "low";
   img.src = url;
 }
 
