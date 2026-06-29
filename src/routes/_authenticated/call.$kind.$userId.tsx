@@ -682,6 +682,7 @@ function CallScreen() {
     } catch { /* ignore */ }
   }
   function confirmEndCall() {
+    if (endedRef.current) return;
     endedRef.current = true;
     streamRef.current?.getTracks().forEach((t) => t.stop());
     setConfirmEnd(false);
