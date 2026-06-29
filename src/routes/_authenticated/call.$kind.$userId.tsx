@@ -514,6 +514,7 @@ function CallScreen() {
   const usingFree = freeLeftSec > 0;
   const isPayer = callRoleRef.current !== "callee";
   const outOfFunds = connected && isPayer && totalSecondsLeft <= 0;
+  const criticalTime = isPayer && perMin > 0 && totalSecondsLeft > 0 && totalSecondsLeft <= 60;
 
   // Seed live ledger snapshots the moment the profile is available — so the
   // "5:00 free" countdown is visible from the very start of the call screen.
