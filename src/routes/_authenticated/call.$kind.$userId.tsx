@@ -311,15 +311,30 @@ function CallScreen() {
       } catch (e: any) {
         if (!mounted) return;
         const msg = String(e?.message ?? e ?? "");
-        // Classify so we can show the right call-to-action.
+        const name = String(e?.name ?? "");
+        const blob = `${name} ${msg}`;
+        // Classify so we can show the right call-to-action. Kind-aware:
+        // for video calls we bias ambiguous failures toward "camera" so the
+        // user gets actionable camera guidance instead of a generic media error.
         let kindOfErr: "mic" | "camera" | "media" | "in-use" | "other" = "other";
-        if (/NotReadableError|in use|busy/i.test(msg)) kindOfErr = "in-use";
-        else if (/camera/i.test(msg) && /(NotAllowed|Permission|denied|NotFound)/i.test(msg)) kindOfErr = "camera";
-        else if (/(NotAllowed|Permission|denied)/i.test(msg) && /(mic|audio)/i.test(msg)) kindOfErr = "mic";
-        else if (/NotAllowedError|Permission/i.test(msg)) kindOfErr = kind === "video" ? "media" : "mic";
-        else if (/NotFoundError/i.test(msg)) kindOfErr = kind === "video" ? "media" : "mic";
-        else if (/getUserMedia|media|camera|mic/i.test(msg)) kindOfErr = "media";
-        setJoinError({ kind: kindOfErr, message: msg || "Unknown error" });
+        const mentionsCamera = /camera|video|OverconstrainedError|getUserMedia.*video/i.test(blob);
+        const mentionsMic = /mic|microphone|audio/i.test(blob);
+        const isInUse = /NotReadableError|TrackStartError|in use|busy|already in use/i.test(blob);
+        const isPerm = /NotAllowedError|Permission|denied|SecurityError/i.test(blob);
+        const isNotFound = /NotFoundError|DevicesNotFoundError|Requested device not found/i.test(blob);
+        const isOverconstrained = /OverconstrainedError|ConstraintNotSatisfied/i.test(blob);
+        if (isInUse) {
+          kindOfErr = "in-use";
+        } else if (mentionsCamera && !mentionsMic && (isPerm || isNotFound || isOverconstrained)) {
+          kindOfErr = "camera";
+        } else if (mentionsMic && !mentionsCamera && (isPerm || isNotFound)) {
+          kindOfErr = "mic";
+        } else if (isPerm || isNotFound || isOverconstrained) {
+          kindOfErr = kind === "video" ? (mentionsCamera ? "camera" : "media") : "mic";
+        } else if (/getUserMedia|MediaStream|track/i.test(blob)) {
+          kindOfErr = kind === "video" ? "camera" : "mic";
+        }
+        setJoinError({ kind: kindOfErr, message: msg || name || "Unknown error" });
         setRetrying(false);
       }
     }
@@ -642,28 +657,35 @@ function CallScreen() {
   }
 
   if (joinError) {
-    const titles: Record<typeof joinError.kind, string> = {
+    const err = joinError;
+    const titles: Record<typeof err.kind, string> = {
       mic: "Microphone unavailable",
       camera: "Camera unavailable",
       media: "Camera or microphone unavailable",
       "in-use": "Mic / camera is busy",
       other: "Couldn't start the call",
     };
-    const tips: Record<typeof joinError.kind, string> = {
+    const tips: Record<typeof err.kind, string> = {
       mic: "We couldn't capture your microphone. Make sure mic permission is granted and no other app is using it.",
-      camera: "We couldn't capture your camera. Grant camera permission and make sure no other app is using it.",
-      media: "We couldn't capture your camera or microphone. Grant access and try again.",
+      camera: "We couldn't capture your camera. Grant camera permission, close any other app that might be using it (WhatsApp, Instagram, Zoom, your browser), then retry.",
+      media: "We couldn't capture your camera or microphone. Grant access to both and try again.",
       "in-use": "Another app (like WhatsApp or your browser) is using your mic or camera. Close it and retry.",
       other: "Something went wrong while connecting. Please try again.",
     };
-    const needsPerm = joinError.kind !== "in-use" && joinError.kind !== "other";
+    const needsPerm = err.kind !== "in-use" && err.kind !== "other";
+    // Offer a voice-only fallback when the camera is the blocker on a video call.
+    const canFallbackToVoice =
+      kind === "video" && (err.kind === "camera" || err.kind === "in-use");
 
     async function handleRetry() {
       setRetrying(true);
       try {
         if (needsPerm) {
-          // Re-prompt the OS for permission inside the tap gesture.
-          try { await requestCallPermissions(kind as "voice" | "video"); } catch { /* ignore */ }
+          // Re-prompt the OS for the relevant permission inside the tap gesture.
+          // For camera errors on a video call, ensure we ask for camera too.
+          const askKind: "voice" | "video" =
+            err.kind === "camera" || kind === "video" ? "video" : "voice";
+          try { await requestCallPermissions(askKind); } catch { /* ignore */ }
         }
         setJoinError(null);
         setRemoteJoined(false);
@@ -681,6 +703,16 @@ function CallScreen() {
       if (!ok) toast.info("Open Settings → Apps → Talkora → Permissions and enable Microphone / Camera.");
     }
 
+    function handleSwitchToVoice() {
+      setJoinError(null);
+      navigate({
+        to: "/call/$kind/$userId",
+        params: { kind: "voice", userId },
+        search: { inviteId },
+        replace: true,
+      });
+    }
+
     return (
       <AppShell>
         <Card className="glass p-6 max-w-md mx-auto mt-6 space-y-4 text-center">
@@ -688,17 +720,22 @@ function CallScreen() {
             <ShieldAlert className="size-7" />
           </div>
           <div className="space-y-1">
-            <h2 className="text-lg font-semibold">{titles[joinError.kind]}</h2>
-            <p className="text-sm text-muted-foreground">{tips[joinError.kind]}</p>
+            <h2 className="text-lg font-semibold">{titles[err.kind]}</h2>
+            <p className="text-sm text-muted-foreground">{tips[err.kind]}</p>
           </div>
           <details className="text-left text-xs text-muted-foreground bg-muted/40 rounded-md p-2">
             <summary className="cursor-pointer select-none">Technical details</summary>
-            <p className="mt-1 break-words font-mono">{joinError.message}</p>
+            <p className="mt-1 break-words font-mono">{err.message}</p>
           </details>
           <div className="flex flex-col gap-2">
             <Button onClick={handleRetry} disabled={retrying} className="w-full">
               {retrying ? "Retrying…" : needsPerm ? "Grant access & retry" : "Try again"}
             </Button>
+            {canFallbackToVoice && inviteId && (
+              <Button variant="secondary" onClick={handleSwitchToVoice} className="w-full">
+                Continue as voice call
+              </Button>
+            )}
             {needsPerm && isNative() && (
               <Button variant="outline" onClick={handleOpenSettings} className="w-full">
                 Open app settings
