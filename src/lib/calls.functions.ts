@@ -143,7 +143,7 @@ export const endCallLog = createServerFn({ method: "POST" })
     durationSeconds: number;
     coinsSpent: number;
     status?: "completed" | "cancelled";
-    endReason?: "user_ended" | "peer_left" | "coins_exhausted" | "media_error" | "network" | "unknown";
+    endReason?: "user_ended" | "peer_left" | "coins_exhausted" | "media_error" | "network" | "background_lost" | "unknown";
   }) => input)
   .handler(async ({ data, context }) => {
     const { userId } = context;

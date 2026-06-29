@@ -290,7 +290,7 @@ export const adminListCallEndAudit = createServerFn({ method: "POST" })
   .validator((d: unknown) => z.object({
     reason: z.enum([
       "all", "user_ended", "peer_left", "coins_exhausted",
-      "media_error", "network", "admin", "unknown",
+      "media_error", "network", "background_lost", "admin", "unknown",
     ]).default("all"),
     limit: z.number().int().min(1).max(200).default(50),
   }).parse(d))

@@ -138,7 +138,7 @@ function CallScreen() {
   // Audit reason for why this side ended the call. Set by the trigger
   // (out-of-coins / peer-left / media error) before invoking endCallNowRef;
   // sent to endCallLog so the admin panel can audit who disconnected and why.
-  const endReasonRef = useRef<"user_ended" | "peer_left" | "coins_exhausted" | "media_error" | "network" | "unknown">("user_ended");
+  const endReasonRef = useRef<"user_ended" | "peer_left" | "coins_exhausted" | "media_error" | "network" | "background_lost" | "unknown">("user_ended");
 
   // Distinguishing real hangup vs network drop:
   // - peerLeaveReasonRef: why the remote peer left ("quit" = intentional hangup,
@@ -697,6 +697,69 @@ function CallScreen() {
     }, 1200);
     return () => clearTimeout(t);
   }, [connected, remoteJoined]);
+
+  // ---- Background / foreground reconnection -----------------------------
+  // Mobile OSes routinely suspend WebRTC tracks when the tab/app is hidden.
+  // Agora & 100ms SDKs auto-reconnect on resume, but the OS can also kill
+  // the socket entirely. Strategy: when the app goes hidden mid-call we
+  // remember the moment; when it comes back we give the SDK a grace window
+  // to fire `onReconnected`. If it doesn't, we end the call with a clear
+  // `background_lost` reason instead of leaving the user staring at a
+  // frozen UI.
+  const BG_RECONNECT_GRACE_MS = 15_000;
+  const bgHiddenAtRef = useRef<number | null>(null);
+  const bgGraceTimerRef = useRef<number | null>(null);
+  useEffect(() => {
+    if (!connected) return;
+    const onVisibility = () => {
+      if (endedRef.current) return;
+      if (document.visibilityState === "hidden") {
+        bgHiddenAtRef.current = Date.now();
+        return;
+      }
+      // Returned to foreground.
+      const hiddenAt = bgHiddenAtRef.current;
+      bgHiddenAtRef.current = null;
+      if (hiddenAt == null) return;
+      const awayMs = Date.now() - hiddenAt;
+
+      // SDK reports a healthy session AND remote still present → just a
+      // brief background trip; surface a soft "back online" hint and exit.
+      if (!localDropReasonRef.current && remoteJoined) {
+        if (awayMs > 4000) toast.success("Back online — call still connected");
+        return;
+      }
+
+      // Otherwise: socket likely dropped while suspended. Give the SDK a
+      // grace window to auto-reconnect. `onReconnected` clears
+      // localDropReasonRef and `onRemoteJoined` flips remoteJoined back on
+      // — both are checked when the timer fires.
+      toast.warning("Reconnecting call…", { duration: BG_RECONNECT_GRACE_MS });
+      if (bgGraceTimerRef.current) clearTimeout(bgGraceTimerRef.current);
+      bgGraceTimerRef.current = window.setTimeout(() => {
+        bgGraceTimerRef.current = null;
+        if (endedRef.current) return;
+        const healthy = !localDropReasonRef.current && remoteJoined;
+        if (healthy) {
+          toast.success("Call resumed");
+          return;
+        }
+        toast.error("Couldn't reconnect after returning — ending call.");
+        endReasonRef.current = "background_lost";
+        endCallNowRef.current();
+      }, BG_RECONNECT_GRACE_MS);
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => {
+      document.removeEventListener("visibilitychange", onVisibility);
+      if (bgGraceTimerRef.current) {
+        clearTimeout(bgGraceTimerRef.current);
+        bgGraceTimerRef.current = null;
+      }
+    };
+  }, [connected, remoteJoined]);
+
+
 
 
 
