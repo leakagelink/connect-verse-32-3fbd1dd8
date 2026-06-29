@@ -8,7 +8,7 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Mic, MicOff, Video as VideoIcon, VideoOff, PhoneOff, Coins, Search, Gift, ShieldAlert, Volume2, VolumeX, UserCircle2 } from "lucide-react";
+import { Mic, MicOff, Video as VideoIcon, VideoOff, PhoneOff, Coins, Search, Gift, ShieldAlert, Volume2, VolumeX, UserCircle2, FlipHorizontal2 } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
 import { InCallPeerProfileSheet } from "@/components/in-call-peer-profile-sheet";
 import { toast } from "sonner";
@@ -68,6 +68,14 @@ function CallScreen() {
   const [networkQ, setNetworkQ] = useState<number>(0); // 0=unknown,1=excellent..6=down
   const [remoteJoined, setRemoteJoined] = useState(false);
   const [audioBlocked, setAudioBlocked] = useState(false);
+  const [mirrorSelf, setMirrorSelf] = useState<boolean>(() => {
+    try { return localStorage.getItem("call:mirrorSelf") !== "0"; } catch { return true; }
+  });
+  const toggleMirror = () => setMirrorSelf((v) => {
+    const next = !v;
+    try { localStorage.setItem("call:mirrorSelf", next ? "1" : "0"); } catch { /* ignore */ }
+    return next;
+  });
   // Structured join failure so we can show actionable retry UI instead of a
   // toast + redirect away from the call.
   const [joinError, setJoinError] = useState<{
@@ -1563,8 +1571,8 @@ function CallScreen() {
                 ref={videoRef}
                 className={
                   remoteJoined
-                    ? "absolute bottom-24 right-3 w-24 h-32 sm:w-28 sm:h-36 object-cover rounded-lg border-2 border-white/50 z-10 -scale-x-100 bg-black"
-                    : "absolute inset-0 size-full object-contain -scale-x-100 bg-black"
+                    ? `absolute bottom-24 right-3 w-24 h-32 sm:w-28 sm:h-36 object-cover rounded-lg border-2 border-white/50 z-10 bg-black ${mirrorSelf ? "-scale-x-100" : ""}`
+                    : `absolute inset-0 size-full object-contain bg-black ${mirrorSelf ? "-scale-x-100" : ""}`
                 }
                 muted
                 playsInline
@@ -1723,6 +1731,17 @@ function CallScreen() {
               title={criticalTime ? "Disabled — last 60 seconds" : undefined}
             >
               {camOff ? <VideoOff className="size-5" /> : <VideoIcon className="size-5" />}
+            </Button>
+          )}
+          {kind === "video" && (
+            <Button
+              size="icon"
+              variant={mirrorSelf ? "default" : "secondary"}
+              onClick={toggleMirror}
+              aria-label={mirrorSelf ? "Self-view mirrored" : "Self-view not mirrored"}
+              title={mirrorSelf ? "Mirror on — tap to turn off" : "Mirror off — tap to turn on"}
+            >
+              <FlipHorizontal2 className="size-5" />
             </Button>
           )}
           <Button
