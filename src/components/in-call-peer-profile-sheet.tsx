@@ -35,6 +35,8 @@ import {
   Clock,
   ArrowLeft,
   Loader2,
+  Send,
+  Inbox,
 } from "lucide-react";
 
 type ConfirmKind = null | "follow-request" | "unfollow";
