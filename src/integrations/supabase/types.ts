@@ -274,7 +274,9 @@ export type Database = {
           credential_id: string | null
           disconnects: number
           duration_seconds: number
+          end_reason: string | null
           ended_at: string | null
+          ended_by: string | null
           failover_chain: Json | null
           free_seconds_used: number
           id: string
@@ -295,7 +297,9 @@ export type Database = {
           credential_id?: string | null
           disconnects?: number
           duration_seconds?: number
+          end_reason?: string | null
           ended_at?: string | null
+          ended_by?: string | null
           failover_chain?: Json | null
           free_seconds_used?: number
           id?: string
@@ -316,7 +320,9 @@ export type Database = {
           credential_id?: string | null
           disconnects?: number
           duration_seconds?: number
+          end_reason?: string | null
           ended_at?: string | null
+          ended_by?: string | null
           failover_chain?: Json | null
           free_seconds_used?: number
           id?: string

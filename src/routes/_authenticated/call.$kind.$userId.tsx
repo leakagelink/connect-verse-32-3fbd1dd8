@@ -85,6 +85,11 @@ function CallScreen() {
   // Ref bridge so auto-end effects (out-of-coins / peer-left) can invoke
   // confirmEndCall before it's defined later in the component.
   const endCallNowRef = useRef<() => void>(() => {});
+  // Audit reason for why this side ended the call. Set by the trigger
+  // (out-of-coins / peer-left / media error) before invoking endCallNowRef;
+  // sent to endCallLog so the admin panel can audit who disconnected and why.
+  const endReasonRef = useRef<"user_ended" | "peer_left" | "coins_exhausted" | "media_error" | "network" | "unknown">("user_ended");
+
 
   // Single-active-session enforcement: every mount mints a unique token and
   // writes it into the active_call localStorage slot. A newer tab claiming
@@ -500,10 +505,12 @@ function CallScreen() {
     if (outOfFunds && !outOfFundsTriggeredRef.current) {
       outOfFundsTriggeredRef.current = true;
       toast.error("Coins exhausted — ending call.", { duration: 6000 });
+      endReasonRef.current = "coins_exhausted";
       window.setTimeout(() => {
         if (!endedRef.current) endCallNowRef.current();
       }, 900);
     }
+
   }, [connected, outOfFunds, paused]);
 
   // Auto-end when the remote peer leaves the channel. Agora fires `user-left`
@@ -518,11 +525,13 @@ function CallScreen() {
     if (!connected || !wasJoinedRef.current || remoteJoined) return;
     if (endedRef.current) return;
     toast.warning("Other person ended the call.");
+    endReasonRef.current = "peer_left";
     const t = window.setTimeout(() => {
       if (!endedRef.current) endCallNowRef.current();
     }, 1200);
     return () => clearTimeout(t);
   }, [connected, remoteJoined]);
+
 
 
   // ---- Persistence: keep server-side free_seconds_remaining and coin balance
@@ -705,8 +714,10 @@ function CallScreen() {
           durationSeconds: totalSeconds,
           coinsSpent: totalCoins,
           status: totalSeconds > 0 ? "completed" : "cancelled",
+          endReason: endReasonRef.current,
         },
       }).catch(() => {});
+
       // Persist call quality + provider + credential for analytics / quota.
       recordCallMetrics({
         data: {

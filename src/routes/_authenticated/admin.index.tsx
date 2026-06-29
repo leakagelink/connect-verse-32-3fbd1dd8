@@ -26,6 +26,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Users, Flag, Ban, IndianRupee, Radio, ShieldAlert, Settings as SettingsIcon, ShieldCheck, Wallet as WalletIcon, Bot, Siren, Phone, Activity } from "lucide-react";
 import { PerformanceTab } from "@/components/admin/PerformanceTab";
+import { CallAuditTab } from "@/components/admin/CallAuditTab";
+
 import { adminListKyc, adminReviewKyc, adminListWithdrawals, adminProcessWithdrawal, getKycDocUrl, adminListKycPurgeLog } from "@/lib/kyc.functions";
 import {
   adminListModerationQueue, adminReviewModerationEvent,
@@ -98,6 +100,8 @@ function AdminPanel() {
           <TabsTrigger value="transactions">Transactions</TabsTrigger>
           <TabsTrigger value="payments">Payments</TabsTrigger>
           <TabsTrigger value="calling">Calling</TabsTrigger>
+          <TabsTrigger value="call-audit"><Phone className="size-3.5 mr-1" />Call Audit</TabsTrigger>
+
           <TabsTrigger value="broadcast">Broadcast</TabsTrigger>
           <TabsTrigger value="fcm">Push (FCM)</TabsTrigger>
           <TabsTrigger value="performance"><Activity className="size-3.5 mr-1" />Performance</TabsTrigger>
@@ -107,6 +111,11 @@ function AdminPanel() {
         <TabsContent value="performance" className="space-y-3">
           <PerformanceTab />
         </TabsContent>
+
+        <TabsContent value="call-audit" className="space-y-3">
+          <CallAuditTab />
+        </TabsContent>
+
 
         <TabsContent value="users" className="space-y-3">
           <div className="flex gap-2">

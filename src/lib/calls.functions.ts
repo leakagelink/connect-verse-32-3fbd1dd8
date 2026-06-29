@@ -142,6 +142,7 @@ export const endCallLog = createServerFn({ method: "POST" })
     durationSeconds: number;
     coinsSpent: number;
     status?: "completed" | "cancelled";
+    endReason?: "user_ended" | "peer_left" | "coins_exhausted" | "media_error" | "network" | "unknown";
   }) => input)
   .handler(async ({ data, context }) => {
     const { userId } = context;
@@ -149,24 +150,41 @@ export const endCallLog = createServerFn({ method: "POST" })
     // Verify ownership: only the caller or callee can end their own call.
     const { data: log } = await supabaseAdmin
       .from("call_logs")
-      .select("caller_id, callee_id")
+      .select("caller_id, callee_id, end_reason, ended_by")
       .eq("id", data.id)
       .maybeSingle();
     if (!log || (log.caller_id !== userId && log.callee_id !== userId)) {
       throw new Error("Not authorized to end this call.");
     }
+    // Don't overwrite an already-recorded end_reason (first side to report wins,
+    // so "peer_left" from the survivor doesn't clobber "coins_exhausted" from
+    // the payer who actually triggered the disconnect).
+    const patch: {
+      ended_at: string;
+      duration_seconds: number;
+      coins_spent: number;
+      status: string;
+      end_reason?: string;
+      ended_by?: string;
+    } = {
+      ended_at: new Date().toISOString(),
+      duration_seconds: data.durationSeconds,
+      coins_spent: data.coinsSpent,
+      status: data.status ?? "completed",
+    };
+    if (!log.end_reason && data.endReason) {
+      patch.end_reason = data.endReason;
+      patch.ended_by = userId;
+    }
     const { error } = await supabaseAdmin
       .from("call_logs")
-      .update({
-        ended_at: new Date().toISOString(),
-        duration_seconds: data.durationSeconds,
-        coins_spent: data.coinsSpent,
-        status: data.status ?? "completed",
-      })
+      .update(patch)
       .eq("id", data.id);
+
     if (error) throw error;
     return { ok: true };
   });
+
 
 
 // Periodic heartbeat from the active call screen: persist the seconds-of-free-time
