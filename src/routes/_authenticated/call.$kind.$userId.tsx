@@ -1459,8 +1459,19 @@ function CallScreen() {
                 <NetworkBars q={networkQ} />
               )}
             </div>
-            <div className="px-2.5 py-1 rounded-full bg-coin/80 text-xs font-semibold flex items-center gap-1">
-              <Coins className="size-3" /> {perMin} / min
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setPeerProfileOpen(true)}
+                className="px-2.5 py-1 rounded-full bg-black/50 text-xs font-medium flex items-center gap-1 hover:bg-black/70 active:scale-95 transition"
+                aria-label="View profile"
+                title="View profile (call stays connected)"
+              >
+                <UserCircle2 className="size-3.5" /> Profile
+              </button>
+              <div className="px-2.5 py-1 rounded-full bg-coin/80 text-xs font-semibold flex items-center gap-1">
+                <Coins className="size-3" /> {perMin} / min
+              </div>
             </div>
           </div>
           {/* Low-time warning — escalates in last 60s */}
