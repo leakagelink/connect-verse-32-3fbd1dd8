@@ -1336,13 +1336,19 @@ function CallScreen() {
         // Highlight plans that at minimum cover the next minute of this call
         // (or the mystery case cost, whichever is larger).
         requiredCoins={Math.max(perMin, CASE_GENERATION_COIN_COST)}
-        onRecharged={(newBalance) => {
+        onRecharged={(newBalance, meta) => {
           // Re-baseline the live ledger so the user keeps talking with the
           // newly added coins (without resetting elapsed time).
+          const baselinedAt = Date.now();
           setCoinStart(newBalance + coinsConsumed);
           outOfFundsTriggeredRef.current = false;
           lowTimeWarnedRef.current = false;
           qc.invalidateQueries({ queryKey: ["me"] });
+          if (meta) {
+            setRechargeEvents((prev) =>
+              [{ ...meta, uiRefreshedAt: baselinedAt }, ...prev].slice(0, 5),
+            );
+          }
           if (newBalance >= CASE_GENERATION_COIN_COST) {
             toast.success("Coins added — call continues. Tap Host Mystery Case anytime.");
           } else {
