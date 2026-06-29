@@ -154,3 +154,54 @@ export const adminListTransactions = createServerFn({ method: "GET" })
     const m = new Map((profs ?? []).map((p) => [p.id, p.username]));
     return data.map((t) => ({ ...t, username: m.get(t.user_id) ?? "—" }));
   });
+
+// Manually credit or debit coins to a user's wallet. Logged as a
+// `admin_credit` / `admin_debit` transaction with the acting admin's id in
+// metadata for the audit trail. Debit clamps to 0 — never goes negative.
+export const adminAdjustWallet = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((d: unknown) => z.object({
+    userId: z.string().uuid(),
+    action: z.enum(["credit", "debit"]),
+    coins: z.number().int().min(1).max(10_000_000),
+    reason: z.string().trim().min(2).max(200),
+  }).parse(d))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    const { data: wallet, error: wErr } = await supabaseAdmin
+      .from("wallets")
+      .select("user_id, coin_balance")
+      .eq("user_id", data.userId)
+      .maybeSingle();
+    if (wErr) throw new Error(wErr.message);
+    if (!wallet) throw new Error("Wallet not found for this user");
+
+    const current = Number(wallet.coin_balance ?? 0);
+    const delta = data.action === "credit" ? data.coins : -Math.min(data.coins, current);
+    const newBalance = current + delta;
+
+    const { error: uErr } = await supabaseAdmin
+      .from("wallets")
+      .update({ coin_balance: newBalance, updated_at: new Date().toISOString() })
+      .eq("user_id", data.userId);
+    if (uErr) throw new Error(uErr.message);
+
+    const { error: tErr } = await supabaseAdmin.from("transactions").insert({
+      user_id: data.userId,
+      type: data.action === "credit" ? "admin_credit" : "admin_debit",
+      coins_delta: delta,
+      inr_amount: 0,
+      metadata: {
+        admin_id: context.userId,
+        reason: data.reason,
+        previous_balance: current,
+        new_balance: newBalance,
+        requested_coins: data.coins,
+      },
+    });
+    if (tErr) throw new Error(tErr.message);
+
+    return { ok: true, previous: current, balance: newBalance, delta };
+  });
