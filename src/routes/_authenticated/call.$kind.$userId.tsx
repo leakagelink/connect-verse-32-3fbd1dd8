@@ -2091,3 +2091,87 @@ function NetworkBars({ q }: { q: number }) {
     </span>
   );
 }
+
+/**
+ * Headless visual contract used by the Call Fullscreen E2E.
+ *
+ * Mounts the same fullscreen container + the real three-click end-call
+ * AlertDialog so the iframe-driven E2E can assert: (a) no AppShell chrome
+ * leaks into the call surface, (b) the end-call button opens a two-step
+ * confirmation, and (c) the surface refuses to leave the call route while
+ * the dialog is active. Skips Agora / billing / invite effects on purpose.
+ */
+function CallFullscreenE2EMock() {
+  const [open, setOpen] = useState(false);
+  const [step, setStep] = useState<1 | 2>(1);
+  const [ended, setEnded] = useState(false);
+
+  // Block back-navigation just like the real call screen.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    window.history.pushState({ inCallE2E: true }, "");
+    const onPop = () => {
+      window.history.pushState({ inCallE2E: true }, "");
+      setOpen(true);
+    };
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
+  }, []);
+
+  return (
+    <div
+      data-testid="call-fullscreen"
+      data-e2e-ready="1"
+      data-e2e-ended={ended ? "1" : "0"}
+      className="fixed inset-0 z-[60] bg-black flex flex-col items-center justify-end p-6 safe-top safe-bottom"
+    >
+      <div className="text-white/80 text-sm mb-4">Call E2E dry-run</div>
+      <Button
+        data-testid="end-call-btn"
+        size="lg"
+        variant="destructive"
+        onClick={() => setOpen(true)}
+      >
+        End
+      </Button>
+
+      <AlertDialog
+        open={open}
+        onOpenChange={(v) => { setOpen(v); if (!v) setStep(1); }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {step === 1 ? "End this call?" : "Are you really sure?"}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Three deliberate taps to disconnect.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel data-testid="end-stay" onClick={() => setStep(1)}>
+              Stay on call
+            </AlertDialogCancel>
+            {step === 1 ? (
+              <Button
+                data-testid="end-confirm-step1"
+                onClick={() => setStep(2)}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                End call
+              </Button>
+            ) : (
+              <AlertDialogAction
+                data-testid="end-confirm-step2"
+                onClick={() => { setStep(1); setOpen(false); setEnded(true); }}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                Yes, disconnect now
+              </AlertDialogAction>
+            )}
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
+  );
+}
