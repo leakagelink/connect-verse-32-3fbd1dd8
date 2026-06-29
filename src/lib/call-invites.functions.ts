@@ -475,7 +475,17 @@ export const acceptCallInvite = createServerFn({ method: "POST" })
       .eq("status", "pending")
       .select("*")
       .single();
-    if (error) throw new Error(error.message);
+    if (error) {
+      // Concurrent accept lost the race against the partial-unique index
+      // `call_invites_one_accepted_per_callee`. Roll back the log we just
+      // created so we don't leak an orphan call_logs row.
+      const msg = String(error.message ?? "");
+      if (error.code === "23505" || /call_invites_one_accepted_per_callee|duplicate key/i.test(msg)) {
+        await db.from("call_logs").delete().eq("id", log.id);
+        throw new Error("This creator just picked up another call.");
+      }
+      throw new Error(msg);
+    }
     return statusDto(accepted, context.userId, log);
   });
 
