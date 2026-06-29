@@ -15,16 +15,38 @@ import type {
   NetworkQuality,
 } from "agora-rtc-sdk-ng";
 
+/** Why the remote peer left the channel. */
+export type RemoteLeaveReason = "quit" | "timeout" | "audience" | "unknown";
+/** Why the local connection dropped. "network"/"interrupt" = transient drop. */
+export type DisconnectReason = "network" | "interrupt" | "leave" | "server" | "unknown";
+
 export type AgoraEvents = {
   onRemoteUser?: (user: IAgoraRTCRemoteUser, mediaType: "audio" | "video") => void;
-  onRemoteLeft?: (user: IAgoraRTCRemoteUser) => void;
+  onRemoteLeft?: (user: IAgoraRTCRemoteUser, reason: RemoteLeaveReason) => void;
   onQuality?: (q: NetworkQuality) => void;
-  onDisconnected?: () => void;
+  onDisconnected?: (reason: DisconnectReason) => void;
   onReconnected?: () => void;
   onVideoFallback?: () => void;
   /** Fired when a remote audio track was subscribed but autoplay was blocked. */
   onAudioBlocked?: () => void;
 };
+
+function mapLeaveReason(raw: unknown): RemoteLeaveReason {
+  const r = String(raw ?? "").toLowerCase();
+  if (r === "quit") return "quit";
+  if (r === "servertimeout" || r === "server_timeout") return "timeout";
+  if (r === "becomeaudience" || r === "become_audience") return "audience";
+  return "unknown";
+}
+
+function mapDisconnectReason(raw: unknown): DisconnectReason {
+  const r = String(raw ?? "").toUpperCase();
+  if (r.includes("NETWORK")) return "network";
+  if (r.includes("INTERRUPT")) return "interrupt";
+  if (r.includes("LEAVE")) return "leave";
+  if (r.includes("SERVER")) return "server";
+  return "unknown";
+}
 
 const FALLBACK_AFTER_BAD_SAMPLES = 4; // ≈8 seconds of poor uplink
 
