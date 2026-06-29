@@ -37,6 +37,10 @@ export function CallInviteDialog({
   const cancelFn = useServerFn(cancelCallInvite);
   const [invite, setInvite] = useState<InviteStatus | null>(null);
   const [message, setMessage] = useState("Sending call request…");
+  const [deliveryAttempt, setDeliveryAttempt] = useState(1);
+
+  const DELIVERY_TIMEOUT_MS = 8000;
+  const MAX_DELIVERY_ATTEMPTS = 3;
 
   const [endState, setEndState] = useState<null | { tone: "busy" | "rejected" | "timeout" | "cancelled"; title: string; body: string }>(null);
 
@@ -44,7 +48,9 @@ export function CallInviteDialog({
     mutationFn: (p: NonNullable<PendingCall>) => createInviteFn({ data: { calleeId: p.userId, kind: p.kind } }),
     onSuccess: (res) => {
       setInvite(res as InviteStatus);
-      setMessage("Ringing… waiting for creator to answer");
+      setMessage(deliveryAttempt > 1
+        ? `Retrying delivery… (attempt ${deliveryAttempt}/${MAX_DELIVERY_ATTEMPTS})`
+        : "Ringing… waiting for creator to answer");
       qc.invalidateQueries({ queryKey: ["notifications"] });
     },
     onError: (e: any) => {
@@ -70,10 +76,44 @@ export function CallInviteDialog({
   useEffect(() => {
     setInvite(null);
     setEndState(null);
+    setDeliveryAttempt(1);
     setMessage("Sending call request…");
     if (pendingCall) createMut.mutate(pendingCall);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pendingCall?.kind, pendingCall?.userId]);
+
+  // Delivery-ack timeout: if creator's device doesn't ack within DELIVERY_TIMEOUT_MS,
+  // silently cancel the current invite and re-initiate to the same creator.
+  // Stops after MAX_DELIVERY_ATTEMPTS and shows an end-state.
+  useEffect(() => {
+    if (!pendingCall) return;
+    if (!invite?.id) return;
+    if (invite.status !== "pending") return;
+    if (invite.deliveredAt) return;
+    if (endState) return;
+
+    const inviteId = invite.id;
+    const t = setTimeout(async () => {
+      if (deliveryAttempt >= MAX_DELIVERY_ATTEMPTS) {
+        try { await cancelFn({ data: { inviteId } }); } catch { /* ignore */ }
+        setEndState({
+          tone: "timeout",
+          title: "Couldn't reach creator's device",
+          body: "Their app didn't acknowledge the call. They may be offline. Try again in a moment or pick another creator.",
+        });
+        return;
+      }
+      try { await cancelFn({ data: { inviteId } }); } catch { /* ignore */ }
+      setInvite(null);
+      const next = deliveryAttempt + 1;
+      setDeliveryAttempt(next);
+      setMessage(`Retrying delivery… (attempt ${next}/${MAX_DELIVERY_ATTEMPTS})`);
+      createMut.mutate(pendingCall);
+    }, DELIVERY_TIMEOUT_MS);
+
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [invite?.id, invite?.status, invite?.deliveredAt, endState, deliveryAttempt, pendingCall?.kind, pendingCall?.userId]);
 
   useEffect(() => {
     if (!invite?.id || invite.status !== "pending") return;
@@ -209,6 +249,7 @@ export function CallInviteDialog({
                 onClick={() => {
                   setInvite(null);
                   setEndState(null);
+                  setDeliveryAttempt(1);
                   setMessage("Sending call request…");
                   if (pendingCall) createMut.mutate(pendingCall);
                 }}
