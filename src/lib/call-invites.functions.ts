@@ -511,7 +511,8 @@ export const getCallInviteStatus = createServerFn({ method: "POST" })
         .maybeSingle();
       log = row;
     }
-    return statusDto(invite, context.userId, log);
+    const parties = await resolveCallParties(db, invite.caller_id, invite.callee_id);
+    return statusDto(invite, context.userId, log, parties);
   });
 
 /**
