@@ -193,12 +193,10 @@ async function kickPushRegister(): Promise<void> {
   try {
     const { PushNotifications } = await import('@capacitor/push-notifications');
     const perm = await PushNotifications.checkPermissions();
-    let state = perm.receive;
-    if (state !== 'granted') {
-      const req = await PushNotifications.requestPermissions();
-      state = req.receive;
-    }
-    if (state !== 'granted') return;
+    // Only auto-register when the user has already granted permission.
+    // The first-run prompt is owned by <PushPermissionGate> so it can show
+    // an explainer (and inline guidance on deny) instead of a silent OS popup.
+    if (perm.receive !== 'granted') return;
     await PushNotifications.register();
   } catch (e) {
     console.warn('[push] kick register failed', e);
@@ -209,6 +207,54 @@ async function kickPushRegister(): Promise<void> {
  *  re-registers the same physical token under their own account. */
 export function resetPushAutoRegisterCache(): void {
   lastSentToken = null;
+}
+
+/**
+ * Read current push-notification permission state without prompting.
+ * Used by <PushPermissionGate> to decide between explainer, request, or
+ * inline "denied" guidance.
+ */
+export async function getPushPermissionState(): Promise<PermState> {
+  if (!isNative()) {
+    if (typeof Notification === 'undefined') return 'unknown';
+    const p = Notification.permission;
+    return p === 'granted' ? 'granted' : p === 'denied' ? 'denied' : 'prompt';
+  }
+  try {
+    const { PushNotifications } = await import('@capacitor/push-notifications');
+    const perm = await PushNotifications.checkPermissions();
+    return normalizeNativePerm(perm.receive);
+  } catch {
+    return 'unknown';
+  }
+}
+
+/**
+ * Trigger the OS push-notification permission dialog (Android 13+ /
+ * iOS). On grant, immediately register so the FCM token rotates to the
+ * server right away. Returns the resulting permission state.
+ */
+export async function requestPushPermission(): Promise<PermState> {
+  if (!isNative()) {
+    if (typeof Notification === 'undefined') return 'unknown';
+    try {
+      const r = await Notification.requestPermission();
+      return r === 'granted' ? 'granted' : r === 'denied' ? 'denied' : 'prompt';
+    } catch {
+      return 'unknown';
+    }
+  }
+  try {
+    const { PushNotifications } = await import('@capacitor/push-notifications');
+    const req = await PushNotifications.requestPermissions();
+    const state = normalizeNativePerm(req.receive);
+    if (state === 'granted') {
+      try { await PushNotifications.register(); } catch { /* ignore */ }
+    }
+    return state;
+  } catch {
+    return 'unknown';
+  }
 }
 
 /* ---------------- Call permissions (mic / camera) ---------------- */
