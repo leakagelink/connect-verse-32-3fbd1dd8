@@ -67,32 +67,15 @@ Open `android/app/src/main/AndroidManifest.xml` and add inside `<manifest>`:
 <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
 <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
 <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
-<uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
-<uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />
-<uses-permission android:name="android.permission.FOREGROUND_SERVICE_CAMERA" />
 
 <uses-feature android:name="android.hardware.camera" android:required="false" />
-<uses-feature android:name="android.hardware.microphone" android:required="true" />
+<uses-feature android:name="android.hardware.microphone" android:required="false" />
 ```
 
 Inside `<application>`:
 
 ```xml
 android:usesCleartextTraffic="false"
-android:networkSecurityConfig="@xml/network_security_config"
-```
-
-Create `android/app/src/main/res/xml/network_security_config.xml`:
-
-```xml
-<?xml version="1.0" encoding="utf-8"?>
-<network-security-config>
-  <base-config cleartextTrafficPermitted="false">
-    <trust-anchors>
-      <certificates src="system" />
-    </trust-anchors>
-  </base-config>
-</network-security-config>
 ```
 
 ---
