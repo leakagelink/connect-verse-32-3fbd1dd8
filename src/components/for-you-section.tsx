@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Sparkles, Phone, Video } from "lucide-react";
 import { listForYouCreators } from "@/lib/discovery.functions";
 import { useAvatarPrefetch } from "@/lib/avatar-prefetch";
+import { useFollowStatusMap } from "@/lib/use-follow-status";
+import { FollowStatusPill } from "@/components/follow-status-pill";
 
 export function ForYouSection({
   onCall,
@@ -23,6 +25,7 @@ export function ForYouSection({
 
   const list = (data ?? []).slice(0, 6);
   useAvatarPrefetch(list.map((u: any) => u.avatar_url));
+  const { data: statusMap } = useFollowStatusMap(list.map((u: any) => u.id));
 
   if (!data?.length) return null;
 
@@ -52,6 +55,9 @@ export function ForYouSection({
               <p className="text-[11px] text-muted-foreground truncate">
                 {[u.country, u.language].filter(Boolean).join(" · ")}
               </p>
+              <div className="mt-1">
+                <FollowStatusPill status={statusMap?.[u.id] ?? null} size="xs" />
+              </div>
             </div>
             <div className="flex gap-1">
               <Button size="icon" variant="secondary" className="size-8" onClick={() => onCall(u.id, "voice")}>

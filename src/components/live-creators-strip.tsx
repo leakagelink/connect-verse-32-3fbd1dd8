@@ -4,6 +4,8 @@ import { Card } from "@/components/ui/card";
 import { Phone, Video, Coins, Sparkles } from "lucide-react";
 import { VOICE_CALL_COINS_PER_MINUTE, VIDEO_CALL_COINS_PER_MINUTE } from "@/lib/constants";
 import { useAvatarPrefetch } from "@/lib/avatar-prefetch";
+import { useFollowStatusMap } from "@/lib/use-follow-status";
+import { FollowStatusPill } from "@/components/follow-status-pill";
 
 type Creator = {
   id: string;
@@ -25,6 +27,7 @@ export function LiveCreatorsStrip({
   onCall: (userId: string, kind: "voice" | "video") => void;
 }) {
   useAvatarPrefetch(users.map((u) => u.avatar_url));
+  const { data: statusMap } = useFollowStatusMap(users.map((u) => u.id));
   if (loading) {
     return (
       <div className="flex gap-3 overflow-hidden pb-2">
@@ -76,6 +79,9 @@ export function LiveCreatorsStrip({
             <p className="text-[10px] text-muted-foreground truncate">
               {[u.country, u.language].filter(Boolean).join(" · ") || "Online"}
             </p>
+            <div className="mt-1.5">
+              <FollowStatusPill status={statusMap?.[u.id] ?? null} size="xs" />
+            </div>
             <div className="mt-2 grid grid-cols-2 gap-1.5">
               <button
                 onClick={() => onCall(u.id, "voice")}
