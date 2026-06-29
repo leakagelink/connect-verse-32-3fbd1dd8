@@ -1610,7 +1610,7 @@ function CallScreen() {
           >
             <Gift className="size-5 text-pink-500" />
           </Button>
-          <Button size="icon" variant="destructive" onClick={() => setConfirmEnd(true)}>
+          <Button data-testid="end-call-btn" size="icon" variant="destructive" onClick={() => setConfirmEnd(true)}>
             <PhoneOff className="size-5" />
           </Button>
         </div>
