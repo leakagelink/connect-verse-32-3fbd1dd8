@@ -1733,6 +1733,17 @@ function CallScreen() {
               {camOff ? <VideoOff className="size-5" /> : <VideoIcon className="size-5" />}
             </Button>
           )}
+          {kind === "video" && (
+            <Button
+              size="icon"
+              variant={mirrorSelf ? "default" : "secondary"}
+              onClick={toggleMirror}
+              aria-label={mirrorSelf ? "Self-view mirrored" : "Self-view not mirrored"}
+              title={mirrorSelf ? "Mirror on — tap to turn off" : "Mirror off — tap to turn on"}
+            >
+              <FlipHorizontal2 className="size-5" />
+            </Button>
+          )}
           <Button
             size="icon"
             variant={speakerOn ? "default" : "secondary"}
