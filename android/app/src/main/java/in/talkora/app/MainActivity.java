@@ -11,6 +11,10 @@ public class MainActivity extends BridgeActivity {
     public void onCreate(Bundle savedInstanceState) {
         registerPlugin(CallPermissionsPlugin.class);
         super.onCreate(savedInstanceState);
+        // Register every notification channel up-front so FCM messages that
+        // arrive with a `channel_id` (incoming_calls, missed_calls, messages,
+        // general) route to the right importance/sound. Cheap + idempotent.
+        NotificationChannels.ensureAll(getApplicationContext());
         prepareTalkoraWebView();
     }
 
