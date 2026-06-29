@@ -19,7 +19,9 @@ type InviteStatus = {
   callerId: string;
   calleeId: string;
   expiresAt: string;
+  deliveredAt: string | null;
 };
+
 
 export function CallInviteDialog({
   pendingCall,
@@ -87,6 +89,8 @@ export function CallInviteDialog({
       callerId: raw.callerId ?? raw.caller_id,
       calleeId: raw.calleeId ?? raw.callee_id,
       expiresAt: raw.expiresAt ?? raw.expires_at,
+      deliveredAt: raw.deliveredAt ?? raw.delivered_at ?? null,
+
     });
     const applyStatus = (next: InviteStatus) => {
       if (done) return;
@@ -232,8 +236,21 @@ export function CallInviteDialog({
                 {createMut.isPending ? <Loader2 className="size-4 animate-spin" /> : <span className="size-2 rounded-full bg-emerald-500 animate-pulse" />}
                 {createMut.isPending ? "Sending…" : `Ringing${secondsLeft ? ` · ${secondsLeft}s` : ""}`}
               </div>
-              <p className="mt-1 text-xs text-muted-foreground">Auto-cancels in {secondsLeft}s if no answer.</p>
+              <div className="mt-2 flex items-center justify-center gap-1.5 text-[11px]">
+                {invite?.deliveredAt ? (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-0.5 text-emerald-600">
+                    <svg viewBox="0 0 24 24" className="size-3" fill="none" stroke="currentColor" strokeWidth="3"><path d="M3 12l5 5L21 4" /></svg>
+                    Delivered to creator's device
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/10 px-2 py-0.5 text-amber-600">
+                    <Loader2 className="size-3 animate-spin" /> Waiting for device acknowledgement…
+                  </span>
+                )}
+              </div>
+              <p className="mt-1 text-center text-xs text-muted-foreground">Auto-cancels in {secondsLeft}s if no answer.</p>
             </div>
+
             <Button
               variant="destructive"
               className="w-full gap-2"

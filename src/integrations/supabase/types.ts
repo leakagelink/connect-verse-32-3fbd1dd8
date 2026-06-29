@@ -157,6 +157,7 @@ export type Database = {
           caller_id: string
           cancelled_at: string | null
           created_at: string
+          delivered_at: string | null
           expires_at: string
           id: string
           kind: string
@@ -171,6 +172,7 @@ export type Database = {
           caller_id: string
           cancelled_at?: string | null
           created_at?: string
+          delivered_at?: string | null
           expires_at?: string
           id?: string
           kind: string
@@ -185,6 +187,7 @@ export type Database = {
           caller_id?: string
           cancelled_at?: string | null
           created_at?: string
+          delivered_at?: string | null
           expires_at?: string
           id?: string
           kind?: string

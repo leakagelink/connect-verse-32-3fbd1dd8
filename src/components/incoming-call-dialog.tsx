@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -10,12 +10,13 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { PrecallPermissionDialog } from "@/components/precall-permission-dialog";
 import { supabase } from "@/integrations/supabase/client";
-import { acceptCallInvite, listIncomingCallInvites, rejectCallInvite } from "@/lib/call-invites.functions";
+import { acceptCallInvite, listIncomingCallInvites, markCallInviteDelivered, rejectCallInvite } from "@/lib/call-invites.functions";
 
 type IncomingInvite = {
   id: string;
   kind: "voice" | "video";
   expiresAt: string;
+  deliveredAt: string | null;
   caller: {
     id: string;
     username: string | null;
@@ -26,13 +27,17 @@ type IncomingInvite = {
   };
 };
 
+
 export function IncomingCallDialog({ disabled }: { disabled?: boolean }) {
   const navigate = useNavigate();
   const qc = useQueryClient();
   const listFn = useServerFn(listIncomingCallInvites);
   const acceptFn = useServerFn(acceptCallInvite);
   const rejectFn = useServerFn(rejectCallInvite);
+  const ackFn = useServerFn(markCallInviteDelivered);
   const [permissionFor, setPermissionFor] = useState<IncomingInvite | null>(null);
+  const ackedRef = useRef<Set<string>>(new Set());
+
 
   const { data } = useQuery({
     queryKey: ["incoming-call-invites"],
@@ -98,7 +103,20 @@ export function IncomingCallDialog({ disabled }: { disabled?: boolean }) {
   }, [disabled, qc]);
 
 
+  // Send delivery acknowledgement so the caller instantly sees "Delivered ✓".
+  useEffect(() => {
+    const fresh = (data ?? []).filter((i: any) => !i.deliveredAt && !ackedRef.current.has(i.id));
+    if (!fresh.length) return;
+    for (const inv of fresh) {
+      ackedRef.current.add(inv.id);
+      ackFn({ data: { inviteId: inv.id } }).catch(() => {
+        ackedRef.current.delete(inv.id);
+      });
+    }
+  }, [data, ackFn]);
+
   // Ringtone + vibration when an invite arrives
+
   useEffect(() => {
     const first = (data ?? [])[0];
     if (!first) return;
