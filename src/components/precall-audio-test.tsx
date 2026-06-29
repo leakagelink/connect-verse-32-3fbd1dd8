@@ -1,6 +1,13 @@
 import { useEffect, useRef, useState } from "react";
-import { Mic, Volume2, CheckCircle2, AlertCircle, Loader2, RefreshCw } from "lucide-react";
+import { Mic, Volume2, CheckCircle2, AlertCircle, Loader2, RefreshCw, Headphones } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 type MicStatus = "idle" | "starting" | "ok" | "silent" | "error";
 type ToneStatus = "idle" | "playing" | "played" | "blocked";
@@ -11,23 +18,32 @@ interface Props {
   onCancel: () => void;
 }
 
+const LS_MIC_KEY = "talkora.audio.micDeviceId";
+const LS_SPK_KEY = "talkora.audio.spkDeviceId";
+
+type AudioElementWithSink = HTMLAudioElement & {
+  setSinkId?: (id: string) => Promise<void>;
+};
+
 /**
  * Verifies microphone capture and speaker playback BEFORE joining a call.
- * Shows actionable errors so users can fix problems instead of joining a
- * silent call.
- *
- *   1. Requests a mic MediaStream and renders a live VU meter (proves the
- *      OS-level mic permission is real and the device is actually capturing).
- *   2. Plays a short test tone via Web Audio (proves the speaker works AND
- *      unlocks autoplay so Agora's remote audio plays automatically on join).
- *   3. Requires the user to confirm they heard the tone before continuing.
+ * Lets users pick which input/output device to use and persists the choice
+ * in localStorage so the call screen can pick the same devices on join.
  */
 export function PreCallAudioTest({ onPassed, onCancel }: Props) {
   const [micStatus, setMicStatus] = useState<MicStatus>("idle");
   const [micError, setMicError] = useState<string>("");
-  const [level, setLevel] = useState(0); // 0..1
+  const [level, setLevel] = useState(0);
   const [toneStatus, setToneStatus] = useState<ToneStatus>("idle");
   const [toneError, setToneError] = useState<string>("");
+
+  const [mics, setMics] = useState<MediaDeviceInfo[]>([]);
+  const [speakers, setSpeakers] = useState<MediaDeviceInfo[]>([]);
+  const [micId, setMicId] = useState<string>(() => localStorage.getItem(LS_MIC_KEY) || "");
+  const [spkId, setSpkId] = useState<string>(() => localStorage.getItem(LS_SPK_KEY) || "");
+  const supportsSinkId =
+    typeof document !== "undefined" &&
+    typeof (document.createElement("audio") as AudioElementWithSink).setSinkId === "function";
 
   const streamRef = useRef<MediaStream | null>(null);
   const audioCtxRef = useRef<AudioContext | null>(null);
@@ -35,17 +51,46 @@ export function PreCallAudioTest({ onPassed, onCancel }: Props) {
   const rafRef = useRef<number | null>(null);
   const silenceTimerRef = useRef<number | null>(null);
   const peakRef = useRef(0);
+  const toneElRef = useRef<AudioElementWithSink | null>(null);
 
-  async function startMic() {
+  async function refreshDevices() {
+    try {
+      const list = await navigator.mediaDevices.enumerateDevices();
+      setMics(list.filter((d) => d.kind === "audioinput"));
+      setSpeakers(list.filter((d) => d.kind === "audiooutput"));
+    } catch {
+      /* ignore */
+    }
+  }
+
+  async function startMic(deviceId?: string) {
     setMicStatus("starting");
     setMicError("");
     peakRef.current = 0;
+    setLevel(0);
     try {
+      const id = deviceId ?? micId;
       const stream = await navigator.mediaDevices.getUserMedia({
-        audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+          ...(id ? { deviceId: { exact: id } } : {}),
+        },
         video: false,
       });
       streamRef.current = stream;
+
+      // Once permission is granted, device labels populate — refresh.
+      void refreshDevices();
+
+      // If no mic was preselected, snap to the actually chosen device.
+      const trackId = stream.getAudioTracks()[0]?.getSettings().deviceId;
+      if (!id && trackId) {
+        setMicId(trackId);
+        localStorage.setItem(LS_MIC_KEY, trackId);
+      }
+
       const AC: typeof AudioContext =
         (window.AudioContext ?? (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext);
       const ctx = new AC();
@@ -61,7 +106,6 @@ export function PreCallAudioTest({ onPassed, onCancel }: Props) {
       const tick = () => {
         if (!analyserRef.current) return;
         analyserRef.current.getByteTimeDomainData(buf);
-        // Compute peak deviation from 128 (silence) → 0..1
         let peak = 0;
         for (let i = 0; i < buf.length; i++) {
           const v = Math.abs(buf[i] - 128) / 128;
@@ -75,7 +119,6 @@ export function PreCallAudioTest({ onPassed, onCancel }: Props) {
 
       setMicStatus("ok");
 
-      // Watch for total silence — likely a muted hardware switch or wrong device.
       if (silenceTimerRef.current) window.clearTimeout(silenceTimerRef.current);
       silenceTimerRef.current = window.setTimeout(() => {
         if (peakRef.current < 0.02) setMicStatus("silent");
@@ -86,7 +129,7 @@ export function PreCallAudioTest({ onPassed, onCancel }: Props) {
       if (name === "NotAllowedError" || name === "SecurityError") {
         setMicError("Microphone permission was denied. Enable it in your device settings and try again.");
       } else if (name === "NotFoundError" || name === "OverconstrainedError") {
-        setMicError("No microphone was found on this device.");
+        setMicError("Selected microphone isn't available. Pick a different one and retry.");
       } else if (name === "NotReadableError") {
         setMicError("Microphone is being used by another app. Close other call apps and retry.");
       } else {
@@ -96,33 +139,7 @@ export function PreCallAudioTest({ onPassed, onCancel }: Props) {
     }
   }
 
-  async function playTone() {
-    setToneError("");
-    setToneStatus("playing");
-    try {
-      const ctx = audioCtxRef.current;
-      if (!ctx) throw new Error("Audio engine not ready. Allow microphone first.");
-      try { await ctx.resume(); } catch { /* ignore */ }
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.type = "sine";
-      osc.frequency.value = 660;
-      const now = ctx.currentTime;
-      gain.gain.setValueAtTime(0.0001, now);
-      gain.gain.exponentialRampToValueAtTime(0.25, now + 0.05);
-      gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.85);
-      osc.connect(gain).connect(ctx.destination);
-      osc.start(now);
-      osc.stop(now + 0.9);
-      window.setTimeout(() => setToneStatus("played"), 950);
-    } catch (err) {
-      const msg = (err as Error)?.message || "Couldn't play the test tone.";
-      setToneError(msg);
-      setToneStatus("blocked");
-    }
-  }
-
-  function cleanup() {
+  function stopMic() {
     if (rafRef.current) cancelAnimationFrame(rafRef.current);
     rafRef.current = null;
     if (silenceTimerRef.current) window.clearTimeout(silenceTimerRef.current);
@@ -135,14 +152,109 @@ export function PreCallAudioTest({ onPassed, onCancel }: Props) {
     audioCtxRef.current = null;
   }
 
+  async function playTone() {
+    setToneError("");
+    setToneStatus("playing");
+    try {
+      // Build a short sine-wave WAV in-memory so we can route it through an
+      // <audio> element and use setSinkId() to honour the chosen speaker.
+      const sampleRate = 44100;
+      const duration = 0.9;
+      const freq = 660;
+      const total = Math.floor(sampleRate * duration);
+      const buffer = new ArrayBuffer(44 + total * 2);
+      const view = new DataView(buffer);
+      const writeStr = (off: number, s: string) => {
+        for (let i = 0; i < s.length; i++) view.setUint8(off + i, s.charCodeAt(i));
+      };
+      writeStr(0, "RIFF");
+      view.setUint32(4, 36 + total * 2, true);
+      writeStr(8, "WAVE");
+      writeStr(12, "fmt ");
+      view.setUint32(16, 16, true);
+      view.setUint16(20, 1, true);
+      view.setUint16(22, 1, true);
+      view.setUint32(24, sampleRate, true);
+      view.setUint32(28, sampleRate * 2, true);
+      view.setUint16(32, 2, true);
+      view.setUint16(34, 16, true);
+      writeStr(36, "data");
+      view.setUint32(40, total * 2, true);
+      for (let i = 0; i < total; i++) {
+        const t = i / sampleRate;
+        // Quick attack/decay envelope to avoid clicks.
+        const env = Math.min(1, t / 0.05) * Math.min(1, (duration - t) / 0.1);
+        const sample = Math.sin(2 * Math.PI * freq * t) * env * 0.3;
+        view.setInt16(44 + i * 2, Math.max(-1, Math.min(1, sample)) * 0x7fff, true);
+      }
+      const blob = new Blob([buffer], { type: "audio/wav" });
+      const url = URL.createObjectURL(blob);
+
+      const el = (toneElRef.current ?? document.createElement("audio")) as AudioElementWithSink;
+      toneElRef.current = el;
+      el.src = url;
+      el.preload = "auto";
+
+      if (spkId && supportsSinkId && el.setSinkId) {
+        try {
+          await el.setSinkId(spkId);
+        } catch (err) {
+          // Non-fatal: fall back to default device.
+          console.warn("setSinkId failed", err);
+        }
+      }
+
+      await el.play();
+      window.setTimeout(() => {
+        URL.revokeObjectURL(url);
+        setToneStatus("played");
+      }, duration * 1000 + 50);
+    } catch (err) {
+      const msg = (err as Error)?.message || "Couldn't play the test tone.";
+      setToneError(msg);
+      setToneStatus("blocked");
+    }
+  }
+
+  function cleanup() {
+    stopMic();
+    if (toneElRef.current) {
+      try { toneElRef.current.pause(); } catch { /* ignore */ }
+      toneElRef.current.src = "";
+      toneElRef.current = null;
+    }
+  }
+
   useEffect(() => {
+    void refreshDevices();
     void startMic();
-    return cleanup;
+    const onChange = () => { void refreshDevices(); };
+    navigator.mediaDevices?.addEventListener?.("devicechange", onChange);
+    return () => {
+      navigator.mediaDevices?.removeEventListener?.("devicechange", onChange);
+      cleanup();
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  async function handleMicChange(value: string) {
+    setMicId(value);
+    localStorage.setItem(LS_MIC_KEY, value);
+    stopMic();
+    await startMic(value);
+  }
+
+  async function handleSpkChange(value: string) {
+    setSpkId(value);
+    localStorage.setItem(LS_SPK_KEY, value);
+    // If the user has already played the tone, replay it through the new device.
+    if (toneStatus === "played" || toneStatus === "blocked") {
+      setToneStatus("idle");
+    }
+  }
+
   function handleRetryMic() {
-    cleanup();
+    stopMic();
     setLevel(0);
     void startMic();
   }
@@ -153,12 +265,15 @@ export function PreCallAudioTest({ onPassed, onCancel }: Props) {
 
   const levelPct = Math.min(100, Math.round(level * 140));
 
+  const micLabel = (d: MediaDeviceInfo, i: number) => d.label || `Microphone ${i + 1}`;
+  const spkLabel = (d: MediaDeviceInfo, i: number) => d.label || `Speaker ${i + 1}`;
+
   return (
     <div className="space-y-4">
       <div>
         <h3 className="text-base font-semibold">Audio check</h3>
         <p className="text-xs text-muted-foreground">
-          Let's make sure your mic and speaker work before connecting.
+          Pick your mic and speaker, then run the checks before connecting.
         </p>
       </div>
 
@@ -191,6 +306,22 @@ export function PreCallAudioTest({ onPassed, onCancel }: Props) {
           )}
         </div>
 
+        <Select value={micId || undefined} onValueChange={handleMicChange}>
+          <SelectTrigger className="h-9 text-xs">
+            <SelectValue placeholder={mics.length ? "Choose microphone" : "Waiting for permission…"} />
+          </SelectTrigger>
+          <SelectContent>
+            {mics.map((d, i) => (
+              <SelectItem key={d.deviceId || `mic-${i}`} value={d.deviceId || `mic-${i}`}>
+                {micLabel(d, i)}
+              </SelectItem>
+            ))}
+            {mics.length === 0 && (
+              <div className="px-2 py-1.5 text-xs text-muted-foreground">No microphones found</div>
+            )}
+          </SelectContent>
+        </Select>
+
         <div className="h-2 w-full overflow-hidden rounded bg-muted">
           <div
             className={`h-full transition-[width] duration-75 ${
@@ -213,8 +344,8 @@ export function PreCallAudioTest({ onPassed, onCancel }: Props) {
           <div className="flex gap-2 rounded-md border border-amber-500/30 bg-amber-500/10 p-2 text-xs text-amber-700 dark:text-amber-300">
             <AlertCircle className="size-4 shrink-0 mt-0.5" />
             <span>
-              We're not hearing anything. Check that the right mic is selected and not
-              muted at the hardware level, then retry.
+              We're not hearing anything. Try a different mic above, or unmute your hardware
+              switch, then retry.
             </span>
           </div>
         )}
@@ -229,7 +360,7 @@ export function PreCallAudioTest({ onPassed, onCancel }: Props) {
       <div className="rounded-lg border bg-card p-3 space-y-2">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2 text-sm font-medium">
-            <Volume2 className="size-4" />
+            <Headphones className="size-4" />
             <span>Speaker</span>
           </div>
           {tonePass && (
@@ -243,8 +374,37 @@ export function PreCallAudioTest({ onPassed, onCancel }: Props) {
             </span>
           )}
         </div>
+
+        <Select
+          value={spkId || undefined}
+          onValueChange={handleSpkChange}
+          disabled={!supportsSinkId || speakers.length === 0}
+        >
+          <SelectTrigger className="h-9 text-xs">
+            <SelectValue
+              placeholder={
+                !supportsSinkId
+                  ? "System default (selection not supported on this device)"
+                  : speakers.length
+                    ? "Choose speaker"
+                    : "Waiting for permission…"
+              }
+            />
+          </SelectTrigger>
+          <SelectContent>
+            {speakers.map((d, i) => (
+              <SelectItem key={d.deviceId || `spk-${i}`} value={d.deviceId || `spk-${i}`}>
+                {spkLabel(d, i)}
+              </SelectItem>
+            ))}
+            {speakers.length === 0 && (
+              <div className="px-2 py-1.5 text-xs text-muted-foreground">No speakers found</div>
+            )}
+          </SelectContent>
+        </Select>
+
         <p className="text-[11px] text-muted-foreground">
-          Tap Play tone and listen. If you don't hear it, raise the volume and try again.
+          Tap Play tone and listen. If you don't hear it, switch device or raise the volume.
         </p>
         <div className="flex gap-2">
           <Button
