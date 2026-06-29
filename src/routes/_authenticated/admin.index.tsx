@@ -575,7 +575,56 @@ function CallingCredentialsTab() {
         </p>
       </Card>
 
+      {/* Per-provider monthly quota rollup — at-a-glance how many minutes
+          are left across every active credential of each provider. */}
+      {providerRollup.length > 0 && (
+        <Card className="glass p-4">
+          <div className="flex items-center gap-2 mb-3">
+            <Activity className="size-4 text-primary" />
+            <h3 className="font-semibold text-sm">Monthly minutes remaining</h3>
+            <span className="text-[11px] text-muted-foreground">· resets at provider's billing cycle</span>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            {providerRollup.map((g) => {
+              const pct = g.quota > 0 ? Math.min(100, Math.round((g.used / g.quota) * 100)) : 0;
+              const tone = pct >= 90 ? "text-destructive" : pct >= 75 ? "text-amber-500" : "text-foreground";
+              return (
+                <div key={g.provider} className="rounded-md border border-border/40 p-3 space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <span className="font-semibold text-sm">{g.provider.toUpperCase()}</span>
+                    <span className="text-[11px] text-muted-foreground">{g.count} active</span>
+                  </div>
+                  {g.quota > 0 ? (
+                    <>
+                      <Progress value={pct} className="h-2" />
+                      <div className="flex justify-between text-[11px]">
+                        <span className={tone}>
+                          {g.remaining.toLocaleString()} min left
+                        </span>
+                        <span className="text-muted-foreground">
+                          {g.used.toLocaleString()} / {g.quota.toLocaleString()} min
+                        </span>
+                      </div>
+                    </>
+                  ) : (
+                    <p className="text-[11px] text-muted-foreground">
+                      {g.used.toLocaleString()} min used · no quota set (unlimited)
+                    </p>
+                  )}
+                  {g.unlimited > 0 && g.quota > 0 && (
+                    <p className="text-[10px] text-muted-foreground">
+                      + {g.unlimited} credential{g.unlimited === 1 ? "" : "s"} without a quota cap
+                    </p>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </Card>
+      )}
+
       {isLoading && <p className="text-sm text-muted-foreground">Loading…</p>}
+
 
       <div className="space-y-2">
         {creds.map((c: any) => {
