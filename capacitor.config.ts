@@ -7,10 +7,9 @@ import type { CapacitorConfig } from '@capacitor/cli';
  *   - appId: in.talkora.app   (final id will be reserved on Play Console)
  *   - appName: Talkora
  *
- * The Android shell ships the bundled web build from `.output/public`.
- * Keep `server.url` disabled so the APK cannot accidentally load an old
- * or unrelated hosted site. Re-run `bun run build` + `npx cap sync android`
- * after web changes before building the APK/AAB.
+ * The Android shell loads the published Talkora deployment so server-backed
+ * features (presence, creators, calls, wallets) behave exactly like the web app.
+ * Re-run `bunx cap sync android` after native/config changes before building.
  */
 const config: CapacitorConfig = {
   appId: 'in.talkora.app',
@@ -27,7 +26,7 @@ const config: CapacitorConfig = {
     url: 'https://connect-verse-32.lovable.app',
     cleartext: false,
     androidScheme: 'https',
-    allowNavigation: ['*.lovable.app', 'talkora.app', '*.talkora.app'],
+    allowNavigation: ['connect-verse-32.lovable.app', '*.lovable.app', 'talkora.app', '*.talkora.app'],
   },
   android: {
     allowMixedContent: false,

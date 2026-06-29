@@ -140,7 +140,7 @@ adb uninstall in.talkora.app
 adb install "android\app\build\outputs\apk\debug\app-debug.apk"
 ```
 
-This project intentionally does **not** set `server.url` in `capacitor.config.ts`; the APK loads the freshly bundled `.output/public` build instead of any old hosted URL.
+This project **does** set `server.url` to the live Talkora web app. That is required because creators, presence, calls, wallet, gifts and server functions need the live backend. If the APK acts static/empty, verify `android/app/src/main/assets/capacitor.config.json` contains `https://connect-verse-32.lovable.app`, then uninstall the old app and reinstall.
 
 ---
 
