@@ -82,6 +82,10 @@ function CallScreen() {
   const [freeStart, setFreeStart] = useState<number | null>(null);
   const [coinStart, setCoinStart] = useState<number | null>(null);
   const outOfFundsTriggeredRef = useRef(false);
+  // Ref bridge so auto-end effects (out-of-coins / peer-left) can invoke
+  // confirmEndCall before it's defined later in the component.
+  const endCallNowRef = useRef<() => void>(() => {});
+
   // Single-active-session enforcement: every mount mints a unique token and
   // writes it into the active_call localStorage slot. A newer tab claiming
   // ownership overwrites the token; older tabs notice via the `storage` event
@@ -488,19 +492,38 @@ function CallScreen() {
   }, [connected, freeStart, freeAvail, freeLeftSec]);
 
 
-  // When the user runs out of free time AND can't afford the next minute,
-  // auto-open the recharge sheet with all offers. Call stays connected.
+  // When payer runs out of free time + coins, end the call on this side.
+  // Leaving Agora triggers `user-left` on the peer, which auto-ends them too.
   useEffect(() => {
     if (!connected) return;
     if (pausedRef.current) return;
-    if (outOfFunds && !outOfFundsTriggeredRef.current && !rechargeOpen) {
+    if (outOfFunds && !outOfFundsTriggeredRef.current) {
       outOfFundsTriggeredRef.current = true;
-      toast.error("You're out of free minutes & coins — recharge to keep talking.", {
-        duration: 8000,
-      });
-      setRechargeOpen(true);
+      toast.error("Coins exhausted — ending call.", { duration: 6000 });
+      window.setTimeout(() => {
+        if (!endedRef.current) endCallNowRef.current();
+      }, 900);
     }
-  }, [connected, outOfFunds, rechargeOpen, paused]);
+  }, [connected, outOfFunds, paused]);
+
+  // Auto-end when the remote peer leaves the channel. Agora fires `user-left`
+  // on an intentional leave or after the ~20s connection timeout, so this is
+  // a reliable "peer is gone" signal (vs transient network blips, which
+  // surface as user-unpublished/onDisconnected and recover automatically).
+  const wasJoinedRef = useRef(false);
+  useEffect(() => {
+    if (remoteJoined) wasJoinedRef.current = true;
+  }, [remoteJoined]);
+  useEffect(() => {
+    if (!connected || !wasJoinedRef.current || remoteJoined) return;
+    if (endedRef.current) return;
+    toast.warning("Other person ended the call.");
+    const t = window.setTimeout(() => {
+      if (!endedRef.current) endCallNowRef.current();
+    }, 1200);
+    return () => clearTimeout(t);
+  }, [connected, remoteJoined]);
+
 
   // ---- Persistence: keep server-side free_seconds_remaining and coin balance
   // in sync so the countdown / "Free minutes used" state survives refresh,
@@ -659,6 +682,7 @@ function CallScreen() {
     } catch { /* ignore */ }
   }
   function confirmEndCall() {
+    if (endedRef.current) return;
     endedRef.current = true;
     streamRef.current?.getTracks().forEach((t) => t.stop());
     setConfirmEnd(false);
@@ -701,6 +725,9 @@ function CallScreen() {
     try { localStorage.removeItem(`active_call:${userId}:${kind}:${inviteId ?? "direct"}`); } catch { /* ignore */ }
     navigate({ to: "/recents" });
   }
+  // Keep the ref pointing at the latest closure so auto-end effects work.
+  endCallNowRef.current = confirmEndCall;
+
 
 
   const totalElapsed = sessionStartElapsedRef.current + elapsed;
