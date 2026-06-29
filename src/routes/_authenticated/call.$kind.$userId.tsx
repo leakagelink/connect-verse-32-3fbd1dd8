@@ -505,10 +505,12 @@ function CallScreen() {
     if (outOfFunds && !outOfFundsTriggeredRef.current) {
       outOfFundsTriggeredRef.current = true;
       toast.error("Coins exhausted — ending call.", { duration: 6000 });
+      endReasonRef.current = "coins_exhausted";
       window.setTimeout(() => {
         if (!endedRef.current) endCallNowRef.current();
       }, 900);
     }
+
   }, [connected, outOfFunds, paused]);
 
   // Auto-end when the remote peer leaves the channel. Agora fires `user-left`
