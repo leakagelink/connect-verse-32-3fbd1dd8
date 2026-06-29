@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
@@ -14,6 +15,16 @@ import {
   SheetDescription,
   SheetFooter,
 } from "@/components/ui/sheet";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -25,6 +36,8 @@ import {
   ArrowLeft,
   Loader2,
 } from "lucide-react";
+
+type ConfirmKind = null | "follow-request" | "unfollow";
 
 type Props = {
   userId: string | null;
@@ -45,6 +58,7 @@ export function InCallPeerProfileSheet({ userId, open, onOpenChange }: Props) {
   const follow = useServerFn(sendFollowRequest);
   const unfollow = useServerFn(unfollowUser);
   const qc = useQueryClient();
+  const [confirm, setConfirm] = useState<ConfirmKind>(null);
 
   const { data, isLoading } = useQuery({
     queryKey: ["in-call-peer", userId],
@@ -60,6 +74,7 @@ export function InCallPeerProfileSheet({ userId, open, onOpenChange }: Props) {
       qc.invalidateQueries({ queryKey: ["in-call-peer", userId] });
     },
     onError: (e: any) => toast.error(e?.message ?? "Could not send request"),
+    onSettled: () => setConfirm(null),
   });
 
   const unfollowMut = useMutation({
@@ -69,6 +84,7 @@ export function InCallPeerProfileSheet({ userId, open, onOpenChange }: Props) {
       qc.invalidateQueries({ queryKey: ["in-call-peer", userId] });
     },
     onError: (e: any) => toast.error(e?.message ?? "Could not unfollow"),
+    onSettled: () => setConfirm(null),
   });
 
   const p = data?.profile;
@@ -144,9 +160,10 @@ export function InCallPeerProfileSheet({ userId, open, onOpenChange }: Props) {
             <div className="flex gap-2">
               {outgoing === "accepted" ? (
                 <Button
+                  data-testid="in-call-unfollow-btn"
                   variant="secondary"
                   className="flex-1"
-                  onClick={() => unfollowMut.mutate()}
+                  onClick={() => setConfirm("unfollow")}
                   disabled={unfollowMut.isPending}
                 >
                   <UserCheck className="size-4 mr-2" /> Following
@@ -157,8 +174,9 @@ export function InCallPeerProfileSheet({ userId, open, onOpenChange }: Props) {
                 </Button>
               ) : (
                 <Button
+                  data-testid="in-call-follow-btn"
                   className="flex-1"
-                  onClick={() => followMut.mutate()}
+                  onClick={() => setConfirm("follow-request")}
                   disabled={followMut.isPending}
                 >
                   <UserPlus className="size-4 mr-2" />
@@ -178,6 +196,66 @@ export function InCallPeerProfileSheet({ userId, open, onOpenChange }: Props) {
             <ArrowLeft className="size-4 mr-2" /> Back to call
           </Button>
         </SheetFooter>
+
+        {/*
+          Confirmation gate. The call's WebRTC tracks live in the parent call
+          screen, not this sheet — opening / closing an AlertDialog here only
+          mounts UI inside the same React tree, so audio/video keep flowing
+          uninterrupted. We never navigate, never tear down the session, and
+          the mutation only fires after an explicit confirm tap so a misclick
+          on "Send friend request" or "Following" can't spam the peer.
+        */}
+        <AlertDialog
+          open={confirm !== null}
+          onOpenChange={(v) => {
+            if (!v && !followMut.isPending && !unfollowMut.isPending) setConfirm(null);
+          }}
+        >
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>
+                {confirm === "unfollow"
+                  ? `Unfollow ${p?.username ?? "this user"}?`
+                  : `Send friend request to ${p?.username ?? "this user"}?`}
+              </AlertDialogTitle>
+              <AlertDialogDescription>
+                {confirm === "unfollow"
+                  ? "Aap unhe unfollow kar denge. Call abhi bhi chalu rahegi."
+                  : "Hum unhe ek friend request bhejenge. Call disturb nahi hogi."}
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel
+                data-testid="in-call-confirm-cancel"
+                disabled={followMut.isPending || unfollowMut.isPending}
+              >
+                Cancel
+              </AlertDialogCancel>
+              <AlertDialogAction
+                data-testid="in-call-confirm-action"
+                disabled={followMut.isPending || unfollowMut.isPending}
+                onClick={(e) => {
+                  // Prevent the dialog from auto-closing before the mutation
+                  // settles — onSettled clears the confirm state for us.
+                  e.preventDefault();
+                  if (confirm === "unfollow") unfollowMut.mutate();
+                  else if (confirm === "follow-request") followMut.mutate();
+                }}
+              >
+                {followMut.isPending || unfollowMut.isPending ? (
+                  <span className="inline-flex items-center gap-2">
+                    <Loader2 className="size-4 animate-spin" />
+                    {confirm === "unfollow" ? "Unfollowing…" : "Sending…"}
+                  </span>
+                ) : confirm === "unfollow" ? (
+                  "Unfollow"
+                ) : (
+                  "Send request"
+                )}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </SheetContent>
     </Sheet>
   );
