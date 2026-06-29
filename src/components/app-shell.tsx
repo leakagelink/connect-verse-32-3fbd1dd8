@@ -137,6 +137,7 @@ export function AppShell({ children, isAdmin }: { children: ReactNode; isAdmin?:
       </header>
 
 
+      {me?.profile?.id && <PushPermissionGate />}
       <main className="mx-auto max-w-3xl px-4 pt-4">{children}</main>
       <SafetySignalsProbe />
       <IncomingCallDialog disabled={pathname.startsWith("/call/")} />
