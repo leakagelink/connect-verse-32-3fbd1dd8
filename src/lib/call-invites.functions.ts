@@ -16,6 +16,78 @@ async function hiddenAdminIds(db: any): Promise<Set<string>> {
   return new Set((data ?? []).map((r: any) => r.user_id));
 }
 
+/**
+ * One-time stale-state reconciliation for a callee. Cleans up rows that would
+ * make the creator look "busy" even though they're actually free:
+ *   - pending invites past their expires_at      → mark expired
+ *   - accepted invites whose call_log has ended  → mark cancelled
+ *   - profile.availability stuck on "busy"/"in_call" with no live call
+ *     and no live ring                           → reset to "online"
+ * Returns true if anything was changed (so caller can re-read state).
+ */
+async function refreshStaleBusy(db: any, calleeId: string): Promise<boolean> {
+  let changed = false;
+  const nowIso = new Date().toISOString();
+
+  // 1) Expire timed-out pending invites
+  const { data: expired } = await db
+    .from("call_invites")
+    .update({ status: "expired", cancelled_at: nowIso })
+    .eq("callee_id", calleeId)
+    .eq("status", "pending")
+    .lte("expires_at", nowIso)
+    .select("id, caller_id, callee_id, kind, created_at, call_log_id");
+  if (expired && expired.length > 0) {
+    changed = true;
+    for (const inv of expired) {
+      await recordMissedCallLog(db, inv, "expired").catch(() => {});
+      await sendMissedCallNotification(db, inv).catch(() => {});
+    }
+  }
+
+  // 2) Cancel "accepted" invites whose underlying call already ended
+  const { data: acceptedRows } = await db
+    .from("call_invites")
+    .select("id, call_log_id, call_logs:call_log_id(ended_at)")
+    .eq("callee_id", calleeId)
+    .eq("status", "accepted");
+  const staleIds = (acceptedRows ?? [])
+    .filter((r: any) => r.call_logs?.ended_at)
+    .map((r: any) => r.id);
+  if (staleIds.length > 0) {
+    await db
+      .from("call_invites")
+      .update({ status: "cancelled", cancelled_at: nowIso, ended_at: nowIso })
+      .in("id", staleIds);
+    changed = true;
+  }
+
+  // 3) Reset availability stuck on busy/in_call if nothing is actually live
+  const { data: liveRows } = await db
+    .from("call_invites")
+    .select("id, status, expires_at, call_logs:call_log_id(ended_at)")
+    .eq("callee_id", calleeId)
+    .in("status", ["pending", "accepted"]);
+  const hasLive = (liveRows ?? []).some((r: any) => {
+    if (r.status === "accepted") return !r.call_logs?.ended_at;
+    if (r.status === "pending") return r.expires_at && new Date(r.expires_at).getTime() > Date.now();
+    return false;
+  });
+  if (!hasLive) {
+    const { data: prof } = await db
+      .from("profiles")
+      .select("availability")
+      .eq("id", calleeId)
+      .maybeSingle();
+    if (prof?.availability && ["busy", "in_call"].includes(prof.availability)) {
+      await db.from("profiles").update({ availability: "online" }).eq("id", calleeId);
+      changed = true;
+    }
+  }
+
+  return changed;
+}
+
 async function assertCallable(db: any, callerId: string, calleeId: string) {
   const [{ data: caller }, { data: callee }, admins] = await Promise.all([
     db
@@ -38,7 +110,25 @@ async function assertCallable(db: any, callerId: string, calleeId: string) {
     throw new Error("This creator isn't available right now.");
   }
   if (callee.availability && callee.availability !== "online") {
-    throw new Error(callee.availability === "dnd" ? "This creator is on Do Not Disturb." : "This creator is busy right now.");
+    // Stale-busy auto-refresh: if availability is non-online but no live
+    // invite/call exists, reset and re-read once before failing.
+    if (["busy", "in_call"].includes(callee.availability)) {
+      const changed = await refreshStaleBusy(db, calleeId);
+      if (changed) {
+        const { data: refreshed } = await db
+          .from("profiles")
+          .select("availability")
+          .eq("id", calleeId)
+          .maybeSingle();
+        if (refreshed?.availability && refreshed.availability !== "online") {
+          throw new Error("This creator is busy right now.");
+        }
+      } else {
+        throw new Error("This creator is busy right now.");
+      }
+    } else {
+      throw new Error(callee.availability === "dnd" ? "This creator is on Do Not Disturb." : "This creator is busy right now.");
+    }
   }
 
   const blockedCountries: string[] = callee.blocked_countries ?? [];
@@ -52,6 +142,7 @@ async function assertCallable(db: any, callerId: string, calleeId: string) {
 
   return { caller, callee };
 }
+
 
 function isExpired(invite: any) {
   return invite?.status === "pending" && invite?.expires_at && new Date(invite.expires_at).getTime() <= Date.now();
@@ -189,24 +280,32 @@ export const createCallInvite = createServerFn({ method: "POST" })
     // We JOIN to call_logs so an "accepted" invite whose call already ended
     // (ended_at IS NOT NULL) is NOT treated as busy — otherwise stale rows
     // would brick the creator's inbox forever.
-    const { data: busyRows } = await db
-      .from("call_invites")
-      .select("id, status, caller_id, expires_at, accepted_at, call_log_id, call_logs:call_log_id(ended_at)")
-      .eq("callee_id", data.calleeId)
-      .in("status", ["pending", "accepted"])
-      .order("created_at", { ascending: false })
-      .limit(5);
-    const isBusy = (busyRows ?? []).some((r: any) => {
-      if (r.caller_id === callerId) return false;
-      if (r.status === "accepted") {
-        // accepted but the underlying call has already ended → not busy
-        if (r.call_logs?.ended_at) return false;
-        return true;
-      }
-      if (r.status === "pending" && r.expires_at && new Date(r.expires_at).getTime() > Date.now()) return true;
-      return false;
-    });
+    const computeBusy = async () => {
+      const { data: busyRows } = await db
+        .from("call_invites")
+        .select("id, status, caller_id, expires_at, accepted_at, call_log_id, call_logs:call_log_id(ended_at)")
+        .eq("callee_id", data.calleeId)
+        .in("status", ["pending", "accepted"])
+        .order("created_at", { ascending: false })
+        .limit(5);
+      return (busyRows ?? []).some((r: any) => {
+        if (r.caller_id === callerId) return false;
+        if (r.status === "accepted") {
+          if (r.call_logs?.ended_at) return false;
+          return true;
+        }
+        if (r.status === "pending" && r.expires_at && new Date(r.expires_at).getTime() > Date.now()) return true;
+        return false;
+      });
+    };
+    let isBusy = await computeBusy();
+    if (isBusy) {
+      // One-time stale-busy reconciliation + retry
+      const changed = await refreshStaleBusy(db, data.calleeId);
+      if (changed) isBusy = await computeBusy();
+    }
     if (isBusy) throw new Error("BUSY: This creator is on another call right now.");
+
 
     await db
       .from("call_invites")
