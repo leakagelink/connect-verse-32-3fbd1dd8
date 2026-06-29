@@ -468,7 +468,12 @@ function CallScreen() {
 
 
   useEffect(() => {
-    if (!connected) return;
+    // Only start counting once BOTH peers are actually in the channel.
+    // Previously the timer started as soon as the local Agora join completed,
+    // which meant the caller's "Connected · mm:ss" began ticking while the
+    // creator was still answering — making the two sides show different
+    // elapsed times. Gating on `remoteJoined` keeps both sides in sync.
+    if (!connected || !remoteJoined) return;
     const i = setInterval(() => {
       // Paused tabs (a newer session has claimed ownership) freeze the timer
       // so no double-counting happens against the authoritative session.
@@ -480,7 +485,7 @@ function CallScreen() {
       });
     }, 1000);
     return () => clearInterval(i);
-  }, [connected]);
+  }, [connected, remoteJoined]);
 
   // Listen for ownership changes from other tabs. If another mount of the
   // call screen overwrites the active_call slot with a different
@@ -1000,7 +1005,7 @@ function CallScreen() {
           )}
           <div className="absolute top-3 left-3 right-3 flex items-center justify-between text-white">
             <div className="px-2.5 py-1 rounded-full bg-black/50 text-xs flex items-center gap-1.5">
-              {connected ? `Connected · ${mm}:${ss}` : "Connecting…"}
+              {connected && remoteJoined ? `Connected · ${mm}:${ss}` : (connected ? "Ringing…" : "Connecting…")}
               {provider === "agora" && networkQ > 0 && (
                 <NetworkBars q={networkQ} />
               )}
