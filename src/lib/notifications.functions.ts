@@ -78,7 +78,7 @@ export const getNotificationPrefs = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     const { data } = await context.supabase
       .from("notification_prefs")
-      .select("chat, calls, gifts, follows, system, marketing")
+      .select("chat, calls, gifts, follows, system, marketing, online_followers, online_creators")
       .eq("user_id", context.userId)
       .maybeSingle();
     return (data ?? DEFAULT_PREFS) as NotificationPrefs;
@@ -87,6 +87,7 @@ export const getNotificationPrefs = createServerFn({ method: "GET" })
 const PrefsSchema = z.object({
   chat: z.boolean(), calls: z.boolean(), gifts: z.boolean(),
   follows: z.boolean(), system: z.boolean(), marketing: z.boolean(),
+  online_followers: z.boolean(), online_creators: z.boolean(),
 });
 
 export const saveNotificationPrefs = createServerFn({ method: "POST" })
