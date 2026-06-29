@@ -62,8 +62,23 @@ export class AgoraSession {
     this.client.on("user-published", async (user, mediaType) => {
       if (!this.client) return;
       if (mediaType !== "audio" && mediaType !== "video") return;
-      await this.client.subscribe(user, mediaType);
-      if (mediaType === "audio") user.audioTrack?.play();
+      try {
+        await this.client.subscribe(user, mediaType);
+      } catch (err) {
+        // eslint-disable-next-line no-console
+        console.warn("[agora] subscribe failed", mediaType, err);
+        return;
+      }
+      if (mediaType === "audio" && user.audioTrack) {
+        try {
+          user.audioTrack.play();
+        } catch (err) {
+          // eslint-disable-next-line no-console
+          console.warn("[agora] remote audio autoplay blocked", err);
+          this.pendingAudio.push(user.audioTrack);
+          this.events.onAudioBlocked?.();
+        }
+      }
       this.events.onRemoteUser?.(user, mediaType);
     });
     this.client.on("user-left", (user) => this.events.onRemoteLeft?.(user));
