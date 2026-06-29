@@ -45,7 +45,7 @@ export const Route = createFileRoute("/_authenticated/call/$kind/$userId")({
 
 function CallScreen() {
   const { kind, userId } = useParams({ from: "/_authenticated/call/$kind/$userId" });
-  const { inviteId } = Route.useSearch();
+  const { inviteId, autoAccept } = Route.useSearch();
   const navigate = useNavigate();
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const remoteContainerRef = useRef<HTMLDivElement | null>(null);
