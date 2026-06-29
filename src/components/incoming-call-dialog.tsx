@@ -101,7 +101,20 @@ export function IncomingCallDialog({ disabled }: { disabled?: boolean }) {
   }, [disabled, qc]);
 
 
+  // Send delivery acknowledgement so the caller instantly sees "Delivered ✓".
+  useEffect(() => {
+    const fresh = (data ?? []).filter((i: any) => !i.deliveredAt && !ackedRef.current.has(i.id));
+    if (!fresh.length) return;
+    for (const inv of fresh) {
+      ackedRef.current.add(inv.id);
+      ackFn({ data: { inviteId: inv.id } }).catch(() => {
+        ackedRef.current.delete(inv.id);
+      });
+    }
+  }, [data, ackFn]);
+
   // Ringtone + vibration when an invite arrives
+
   useEffect(() => {
     const first = (data ?? [])[0];
     if (!first) return;
