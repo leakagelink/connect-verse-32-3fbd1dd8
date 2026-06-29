@@ -709,6 +709,8 @@ function CallScreen() {
   const BG_RECONNECT_GRACE_MS = 15_000;
   const bgHiddenAtRef = useRef<number | null>(null);
   const bgGraceTimerRef = useRef<number | null>(null);
+  const bgResumedClearTimerRef = useRef<number | null>(null);
+  const [bgState, setBgState] = useState<null | "reconnecting" | "resumed" | "lost">(null);
   useEffect(() => {
     if (!connected) return;
     const onVisibility = () => {
@@ -726,7 +728,11 @@ function CallScreen() {
       // SDK reports a healthy session AND remote still present → just a
       // brief background trip; surface a soft "back online" hint and exit.
       if (!localDropReasonRef.current && remoteJoined) {
-        if (awayMs > 4000) toast.success("Back online — call still connected");
+        if (awayMs > 4000) {
+          setBgState("resumed");
+          if (bgResumedClearTimerRef.current) clearTimeout(bgResumedClearTimerRef.current);
+          bgResumedClearTimerRef.current = window.setTimeout(() => setBgState(null), 3500);
+        }
         return;
       }
 
@@ -734,19 +740,27 @@ function CallScreen() {
       // grace window to auto-reconnect. `onReconnected` clears
       // localDropReasonRef and `onRemoteJoined` flips remoteJoined back on
       // — both are checked when the timer fires.
-      toast.warning("Reconnecting call…", { duration: BG_RECONNECT_GRACE_MS });
+      setBgState("reconnecting");
       if (bgGraceTimerRef.current) clearTimeout(bgGraceTimerRef.current);
       bgGraceTimerRef.current = window.setTimeout(() => {
         bgGraceTimerRef.current = null;
         if (endedRef.current) return;
         const healthy = !localDropReasonRef.current && remoteJoined;
         if (healthy) {
-          toast.success("Call resumed");
+          setBgState("resumed");
+          if (bgResumedClearTimerRef.current) clearTimeout(bgResumedClearTimerRef.current);
+          bgResumedClearTimerRef.current = window.setTimeout(() => setBgState(null), 3500);
           return;
         }
-        toast.error("Couldn't reconnect after returning — ending call.");
+        // Mark call as lost-due-to-background. We keep the banner visible
+        // so the user understands why the call is ending; tapping "Return
+        // to lobby" runs the standard end-call flow (cleanup + nav). If
+        // they don't tap, we auto-end after a short window.
+        setBgState("lost");
         endReasonRef.current = "background_lost";
-        endCallNowRef.current();
+        window.setTimeout(() => {
+          if (!endedRef.current) endCallNowRef.current();
+        }, 6000);
       }, BG_RECONNECT_GRACE_MS);
     };
     document.addEventListener("visibilitychange", onVisibility);
@@ -756,8 +770,23 @@ function CallScreen() {
         clearTimeout(bgGraceTimerRef.current);
         bgGraceTimerRef.current = null;
       }
+      if (bgResumedClearTimerRef.current) {
+        clearTimeout(bgResumedClearTimerRef.current);
+        bgResumedClearTimerRef.current = null;
+      }
     };
   }, [connected, remoteJoined]);
+
+  // Clear the "reconnecting" banner the moment the SDK actually reconnects.
+  useEffect(() => {
+    if (bgState !== "reconnecting") return;
+    if (!localDropReasonRef.current && remoteJoined) {
+      setBgState("resumed");
+      if (bgResumedClearTimerRef.current) clearTimeout(bgResumedClearTimerRef.current);
+      bgResumedClearTimerRef.current = window.setTimeout(() => setBgState(null), 3500);
+    }
+  }, [bgState, remoteJoined, networkQ]);
+
 
 
 
@@ -1476,6 +1505,49 @@ function CallScreen() {
         {paused && (
           <div className="bg-amber-500/90 text-black text-xs font-semibold text-center px-3 py-2">
             Paused — another call window is now active. Close this tab or reload to take over.
+          </div>
+        )}
+        {bgState && (
+          <div
+            role="status"
+            aria-live="polite"
+            className={`flex items-center gap-3 px-3 py-2 text-xs font-semibold ${
+              bgState === "reconnecting"
+                ? "bg-amber-500/90 text-black"
+                : bgState === "resumed"
+                ? "bg-emerald-500/90 text-black"
+                : "bg-destructive text-destructive-foreground"
+            }`}
+          >
+            <span
+              aria-hidden
+              className={`inline-block size-2 rounded-full ${
+                bgState === "reconnecting"
+                  ? "bg-black animate-pulse"
+                  : bgState === "resumed"
+                  ? "bg-black"
+                  : "bg-white"
+              }`}
+            />
+            <span className="flex-1 min-w-0">
+              {bgState === "reconnecting" &&
+                "Reconnecting call after returning from background…"}
+              {bgState === "resumed" && "Call resumed — you're back online."}
+              {bgState === "lost" &&
+                "Connection lost while the app was in background. Ending call."}
+            </span>
+            {bgState === "lost" && (
+              <button
+                type="button"
+                onClick={() => {
+                  if (!endedRef.current) endCallNowRef.current();
+                  navigate({ to: "/connect" });
+                }}
+                className="rounded-md bg-white/95 text-destructive px-2.5 py-1 text-xs font-semibold whitespace-nowrap"
+              >
+                Return to lobby
+              </button>
+            )}
           </div>
         )}
         <div className="relative aspect-[3/4] sm:aspect-video bg-black flex items-center justify-center">
