@@ -182,6 +182,17 @@ export const endCallLog = createServerFn({ method: "POST" })
       .eq("id", data.id);
 
     if (error) throw error;
+
+    // Also flip any still-"accepted" call_invite tied to this call so the
+    // callee stops appearing as busy to future callers. Without this, a
+    // stale "accepted" invite makes the creator look like they're on
+    // another call long after both sides hung up.
+    await supabaseAdmin
+      .from("call_invites")
+      .update({ status: "cancelled", cancelled_at: new Date().toISOString() })
+      .eq("call_log_id", data.id)
+      .in("status", ["accepted", "pending"]);
+
     return { ok: true };
   });
 
