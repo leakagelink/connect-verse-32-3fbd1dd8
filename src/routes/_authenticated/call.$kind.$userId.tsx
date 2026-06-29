@@ -334,6 +334,27 @@ function CallScreen() {
         } else if (/getUserMedia|MediaStream|track/i.test(blob)) {
           kindOfErr = kind === "video" ? "camera" : "mic";
         }
+        // Auto-fallback: if this is a video call and the failure is camera-
+        // specific (or a "device in use" error that's almost always the
+        // camera being held by another app), silently downgrade to a voice
+        // call once instead of dead-ending on the error card. The audio
+        // pipeline still works, so the user keeps the conversation going.
+        const cameraSpecific = kindOfErr === "camera" || (kindOfErr === "in-use" && mentionsCamera);
+        const alreadyFellBack =
+          typeof sessionStorage !== "undefined" && inviteId
+            ? sessionStorage.getItem(`call:cam-fallback:${inviteId}`) === "1"
+            : false;
+        if (kind === "video" && cameraSpecific && inviteId && !alreadyFellBack) {
+          try { sessionStorage.setItem(`call:cam-fallback:${inviteId}`, "1"); } catch { /* ignore */ }
+          toast.warning("Camera unavailable — continuing as voice call.");
+          navigate({
+            to: "/call/$kind/$userId",
+            params: { kind: "voice", userId },
+            search: { inviteId },
+            replace: true,
+          });
+          return;
+        }
         setJoinError({ kind: kindOfErr, message: msg || name || "Unknown error" });
         setRetrying(false);
       }
