@@ -638,6 +638,14 @@ function CallScreen() {
     const t = streamRef.current?.getVideoTracks()[0];
     if (t) { t.enabled = !t.enabled; setCamOff(!t.enabled); }
   }
+  async function toggleSpeaker() {
+    const next = !speakerOn;
+    setSpeakerOn(next);
+    const sess: any = sessionRef.current?.session;
+    try {
+      await sess?.setSpeakerMode?.(next);
+    } catch { /* ignore */ }
+  }
   function confirmEndCall() {
     endedRef.current = true;
     streamRef.current?.getTracks().forEach((t) => t.stop());
