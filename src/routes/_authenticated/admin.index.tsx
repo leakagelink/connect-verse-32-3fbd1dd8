@@ -1473,11 +1473,19 @@ function FcmTab() {
 function AdjustCoinsDialog({ userId, username }: { userId: string; username: string }) {
   const qc = useQueryClient();
   const adjustFn = useServerFn(adminAdjustWallet);
+  const historyFn = useServerFn(adminListUserCoinAdjustments);
   const [open, setOpen] = useState(false);
   const [action, setAction] = useState<"credit" | "debit">("credit");
   const [coins, setCoins] = useState<string>("");
   const [reason, setReason] = useState("");
   const [busy, setBusy] = useState(false);
+
+  const historyQ = useQuery({
+    queryKey: ["admin", "user-coin-adjustments", userId],
+    queryFn: () => historyFn({ data: { userId, limit: 50 } }),
+    enabled: open,
+    staleTime: 15_000,
+  });
 
   async function submit() {
     const n = Math.floor(Number(coins));
@@ -1498,7 +1506,7 @@ function AdjustCoinsDialog({ userId, username }: { userId: string; username: str
           : `Debited ${Math.abs(res.delta)} coins. New balance: ${res.balance}`,
       );
       qc.invalidateQueries({ queryKey: ["admin"] });
-      setOpen(false);
+      historyQ.refetch();
       setCoins(""); setReason(""); setAction("credit");
     } catch (e: any) {
       toast.error(e?.message ?? "Adjustment failed");
@@ -1514,7 +1522,8 @@ function AdjustCoinsDialog({ userId, username }: { userId: string; username: str
           <WalletIcon className="size-3.5 mr-1" /> Coins
         </Button>
       </DialogTrigger>
-      <DialogContent>
+      <DialogContent className="max-w-lg">
+
         <DialogHeader>
           <DialogTitle>Adjust coins · {username}</DialogTitle>
         </DialogHeader>
