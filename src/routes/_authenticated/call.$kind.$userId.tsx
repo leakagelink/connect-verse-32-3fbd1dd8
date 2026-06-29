@@ -561,6 +561,33 @@ function CallScreen() {
   useEffect(() => {
     if (!connected || !wasJoinedRef.current || remoteJoined) return;
     if (endedRef.current) return;
+
+    const reason = peerLeaveReasonRef.current;
+
+    // Network drop on the peer's side: Agora signals "timeout" (or unknown
+    // when the remote SDK crashed without a clean leave). Keep the call up
+    // for a grace window so they can reconnect; only end if they don't.
+    if (reason === "timeout" || reason === "unknown") {
+      toast.warning("Peer disconnected — waiting for reconnect…", {
+        duration: PEER_RECONNECT_GRACE_MS,
+      });
+      if (peerGraceTimerRef.current) clearTimeout(peerGraceTimerRef.current);
+      peerGraceTimerRef.current = window.setTimeout(() => {
+        peerGraceTimerRef.current = null;
+        if (endedRef.current) return;
+        toast.error("Peer didn't reconnect — ending call.");
+        endReasonRef.current = "network";
+        endCallNowRef.current();
+      }, PEER_RECONNECT_GRACE_MS);
+      return () => {
+        if (peerGraceTimerRef.current) {
+          clearTimeout(peerGraceTimerRef.current);
+          peerGraceTimerRef.current = null;
+        }
+      };
+    }
+
+    // Intentional hangup ("quit") or role change → end immediately.
     toast.warning("Other person ended the call.");
     endReasonRef.current = "peer_left";
     const t = window.setTimeout(() => {
