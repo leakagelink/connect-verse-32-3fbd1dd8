@@ -126,26 +126,9 @@ public class TalkoraMessagingService extends MessagingService {
         sendBroadcast(dismiss);
     }
 
-    private void ensureChannel() {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return;
-        NotificationManager nm = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
-        if (nm == null) return;
-        if (nm.getNotificationChannel(CALL_CHANNEL_ID) != null) return;
-
-        NotificationChannel ch = new NotificationChannel(
-            CALL_CHANNEL_ID, "Incoming calls", NotificationManager.IMPORTANCE_HIGH);
-        ch.setDescription("Ringing for incoming Talkora voice and video calls");
-        ch.enableLights(true);
-        ch.enableVibration(true);
-        ch.setBypassDnd(true);
-        ch.setLockscreenVisibility(android.app.Notification.VISIBILITY_PUBLIC);
-        AudioAttributes audio = new AudioAttributes.Builder()
-            .setUsage(AudioAttributes.USAGE_NOTIFICATION_RINGTONE)
-            .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
-            .build();
-        ch.setSound(RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE), audio);
-        nm.createNotificationChannel(ch);
-    }
+    // Channel creation moved to NotificationChannels.ensureAll(...) so every
+    // channel (incoming_calls, missed_calls, messages, general) is registered
+    // in one place from MainActivity at app launch.
 
     private static String nullSafe(String s) { return s == null ? "" : s; }
 }
