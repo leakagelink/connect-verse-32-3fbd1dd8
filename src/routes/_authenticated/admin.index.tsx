@@ -1469,4 +1469,95 @@ function FcmTab() {
   );
 }
 
+function AdjustCoinsDialog({ userId, username }: { userId: string; username: string }) {
+  const qc = useQueryClient();
+  const adjustFn = useServerFn(adminAdjustWallet);
+  const [open, setOpen] = useState(false);
+  const [action, setAction] = useState<"credit" | "debit">("credit");
+  const [coins, setCoins] = useState<string>("");
+  const [reason, setReason] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  async function submit() {
+    const n = Math.floor(Number(coins));
+    if (!Number.isFinite(n) || n <= 0) {
+      toast.error("Enter a positive coin amount");
+      return;
+    }
+    if (reason.trim().length < 2) {
+      toast.error("Add a short reason for the audit log");
+      return;
+    }
+    setBusy(true);
+    try {
+      const res = await adjustFn({ data: { userId, action, coins: n, reason: reason.trim() } });
+      toast.success(
+        action === "credit"
+          ? `Credited ${n} coins. New balance: ${res.balance}`
+          : `Debited ${Math.abs(res.delta)} coins. New balance: ${res.balance}`,
+      );
+      qc.invalidateQueries({ queryKey: ["admin"] });
+      setOpen(false);
+      setCoins(""); setReason(""); setAction("credit");
+    } catch (e: any) {
+      toast.error(e?.message ?? "Adjustment failed");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button size="sm" variant="secondary">
+          <WalletIcon className="size-3.5 mr-1" /> Coins
+        </Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Adjust coins · {username}</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-3">
+          <div className="space-y-1">
+            <label className="text-xs font-medium">Action</label>
+            <Select value={action} onValueChange={(v) => setAction(v as "credit" | "debit")}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="credit">Credit (add coins)</SelectItem>
+                <SelectItem value="debit">Debit (deduct coins)</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1">
+            <label className="text-xs font-medium">Coins</label>
+            <Input
+              type="number" inputMode="numeric" min={1}
+              placeholder="e.g. 500"
+              value={coins} onChange={(e) => setCoins(e.target.value)}
+            />
+          </div>
+          <div className="space-y-1">
+            <label className="text-xs font-medium">Reason (saved to audit log)</label>
+            <Textarea
+              rows={3} maxLength={200} placeholder="e.g. Compensation for failed call"
+              value={reason} onChange={(e) => setReason(e.target.value)}
+            />
+          </div>
+          <p className="text-[11px] text-muted-foreground">
+            Debits clamp at 0 — balance can't go negative. Action is recorded as
+            an <code>admin_credit</code> / <code>admin_debit</code> transaction.
+          </p>
+        </div>
+        <DialogFooter>
+          <Button variant="ghost" onClick={() => setOpen(false)} disabled={busy}>Cancel</Button>
+          <Button onClick={submit} disabled={busy}>
+            {busy ? "Saving…" : action === "credit" ? "Credit coins" : "Debit coins"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+
 
