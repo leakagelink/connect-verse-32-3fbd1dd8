@@ -269,7 +269,11 @@ export function CallInviteDialog({
                   setEndState(null);
                   setDeliveryAttempt(1);
                   setMessage("Sending call request…");
-                  if (pendingCall) createMut.mutate(pendingCall);
+                  if (pendingCall) {
+                    const id = newAttemptId();
+                    setAttemptId(id);
+                    createMut.mutate({ ...pendingCall, attemptId: id });
+                  }
                 }}
               >
                 <Icon className="size-4" /> Try again
