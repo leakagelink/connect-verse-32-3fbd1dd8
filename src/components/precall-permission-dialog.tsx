@@ -18,6 +18,7 @@ import {
   type PermState,
 } from "@/lib/native";
 import { toast } from "sonner";
+import { PreCallAudioTest } from "@/components/precall-audio-test";
 
 interface Props {
   open: boolean;
