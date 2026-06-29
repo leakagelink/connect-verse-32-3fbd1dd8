@@ -90,6 +90,20 @@ function CallScreen() {
   // sent to endCallLog so the admin panel can audit who disconnected and why.
   const endReasonRef = useRef<"user_ended" | "peer_left" | "coins_exhausted" | "media_error" | "network" | "unknown">("user_ended");
 
+  // Distinguishing real hangup vs network drop:
+  // - peerLeaveReasonRef: why the remote peer left ("quit" = intentional hangup,
+  //   "timeout" = SDK gave up after ~20s of no signal — network drop).
+  // - peerGraceTimerRef: when the cause is a network timeout we DON'T end the
+  //   call immediately; we keep the session up for a grace window so the peer
+  //   can reconnect. If they rejoin (onRemoteJoined) the timer is cleared.
+  // - localDropReasonRef: most recent local connection-state drop reason; used
+  //   to surface "Network unstable…" without ending the call.
+  const peerLeaveReasonRef = useRef<"quit" | "timeout" | "audience" | "unknown" | null>(null);
+  const peerGraceTimerRef = useRef<number | null>(null);
+  const localDropReasonRef = useRef<"network" | "interrupt" | "leave" | "server" | "unknown" | null>(null);
+  const PEER_RECONNECT_GRACE_MS = 25_000;
+
+
 
   // Single-active-session enforcement: every mount mints a unique token and
   // writes it into the active_call localStorage slot. A newer tab claiming
