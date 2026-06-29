@@ -122,6 +122,7 @@ function AdminPanel() {
           <CallEndE2E />
           <ConcurrentCallE2E />
           <CreatorInitiatedCallE2E />
+          <CallFullscreenE2E />
           <CallAuditTab />
         </TabsContent>
 
