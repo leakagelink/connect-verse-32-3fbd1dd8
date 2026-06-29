@@ -582,7 +582,9 @@ function CallScreen() {
   const coinSecondsLeft = Math.floor((coinsLeft * 60) / perMin);
   const totalSecondsLeft = freeLeftSec + coinSecondsLeft;
   const usingFree = freeLeftSec > 0;
-  const isPayer = callRoleRef.current !== "callee";
+  // Server-resolved billing: a creator calling a regular user means the
+  // CALLEE is the payer. We honour amPayerState whenever it has loaded.
+  const isPayer = amPayerState ?? (callRoleRef.current !== "callee");
   const outOfFunds = connected && isPayer && totalSecondsLeft <= 0;
   const criticalTime = isPayer && perMin > 0 && totalSecondsLeft > 0 && totalSecondsLeft <= 60;
 
