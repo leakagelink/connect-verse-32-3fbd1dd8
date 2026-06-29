@@ -19,7 +19,24 @@ type Props = {
   /** Minimum coins required for the action the user is trying to perform. Used to surface a "covers your case" hint. */
   requiredCoins?: number;
   /** Called after a successful recharge so the caller can refresh derived state. */
-  onRecharged?: (newBalance: number) => void;
+  onRecharged?: (newBalance: number, meta?: RechargeMeta) => void;
+};
+
+export type RechargeMeta = {
+  planId: string;
+  /** Mock has no order_id; Razorpay path passes the real one. */
+  orderId?: string;
+  paymentId?: string;
+  source: "mock" | "razorpay";
+  /** Client clock — request fired. */
+  requestedAt: number;
+  /** Client clock — server responded with credited balance. */
+  serverRespondedAt: number;
+  /** Client clock — wallet query refetched + onRecharged delivered. */
+  uiRefreshedAt: number;
+  added: number;
+  bonus: number;
+  newBalance: number;
 };
 
 export function InCallRecharge({ open, onOpenChange, requiredCoins, onRecharged }: Props) {
