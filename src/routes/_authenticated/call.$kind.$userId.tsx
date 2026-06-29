@@ -231,6 +231,7 @@ function CallScreen() {
               setCamOff(true);
               toast.warning("Switched to audio-only due to poor network.");
             },
+            onAudioBlocked: () => mounted && setAudioBlocked(true),
           },
         });
 
