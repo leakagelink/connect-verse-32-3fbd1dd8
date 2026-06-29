@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
+import { useState } from "react";
 import { AppShell } from "@/components/app-shell";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -9,6 +10,7 @@ import {
   Mic, Coins, Clock, History,
 } from "lucide-react";
 import { listRecentCalls } from "@/lib/calls.functions";
+import { InCallPeerProfileSheet } from "@/components/in-call-peer-profile-sheet";
 
 export const Route = createFileRoute("/_authenticated/recents")({
   component: RecentsScreen,
