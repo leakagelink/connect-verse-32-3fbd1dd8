@@ -240,7 +240,43 @@ export function PreCallAudioTest({ onPassed, onCancel }: Props) {
   useEffect(() => {
     void refreshDevices();
     void startMic();
-    const onChange = () => { void refreshDevices(); };
+    const onChange = async () => {
+      try {
+        const list = await navigator.mediaDevices.enumerateDevices();
+        const nextMics = list.filter((d) => d.kind === "audioinput");
+        const nextSpks = list.filter((d) => d.kind === "audiooutput");
+        setMics(nextMics);
+        setSpeakers(nextSpks);
+
+        const curMicId = micIdRef.current;
+        const curSpkId = spkIdRef.current;
+
+        // Mic disconnected → warn, drop selection, re-run with default.
+        if (curMicId && !nextMics.some((d) => d.deviceId === curMicId)) {
+          const prev = micsRef.current.find((d) => d.deviceId === curMicId);
+          const label = prev?.label || "Selected microphone";
+          setLostDevice({ kind: "mic", label });
+          localStorage.removeItem(LS_MIC_KEY);
+          setMicId("");
+          stopMic();
+          setLevel(0);
+          setToneStatus("idle");
+          await startMic("");
+        }
+
+        // Speaker disconnected → warn, drop selection, force a fresh tone test.
+        if (curSpkId && !nextSpks.some((d) => d.deviceId === curSpkId)) {
+          const prev = speakersRef.current.find((d) => d.deviceId === curSpkId);
+          const label = prev?.label || "Selected speaker";
+          setLostDevice({ kind: "speaker", label });
+          localStorage.removeItem(LS_SPK_KEY);
+          setSpkId("");
+          setToneStatus("idle");
+        }
+      } catch {
+        /* ignore */
+      }
+    };
     navigator.mediaDevices?.addEventListener?.("devicechange", onChange);
     return () => {
       navigator.mediaDevices?.removeEventListener?.("devicechange", onChange);
