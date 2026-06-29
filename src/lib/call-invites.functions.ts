@@ -179,15 +179,24 @@ export const createCallInvite = createServerFn({ method: "POST" })
       throw new Error(msg || "Could not create call invite.");
     }
 
+    // In-app notification + standard FCM banner (in case data push is throttled).
     await notifyUser({
       userId: data.calleeId,
       kind: "calls",
       title: `Incoming ${data.kind === "video" ? "video" : "audio"} call`,
       body: `${caller.username ?? "Someone"} is calling you. Tap to answer.`,
-      // Open a normal authenticated screen so the global IncomingCallDialog can
-      // show the ringing UI. Do not deep-link directly into /call; the call
-      // route is now reserved for already-accepted invites only.
       deepLink: `/home`,
+    }).catch(() => ({ pushed: 0 }));
+
+    // High-priority data-only push — wakes Android even from killed state
+    // and triggers full-screen IncomingCallActivity on the native side.
+    await notifyIncomingCall({
+      calleeId: data.calleeId,
+      callerId,
+      callerName: caller.username ?? "Caller",
+      callerAvatar: (caller as any).avatar_url ?? null,
+      inviteId: invite.id,
+      kind: data.kind,
     }).catch(() => ({ pushed: 0 }));
 
     return statusDto(invite, callerId);
