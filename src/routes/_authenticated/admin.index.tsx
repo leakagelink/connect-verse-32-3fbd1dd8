@@ -4,7 +4,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import {
   adminStats, adminListUsers, adminListReports, adminBanUser, adminUnbanUser,
-  adminUpdateReport, adminListTransactions,
+  adminUpdateReport, adminListTransactions, adminAdjustWallet,
 } from "@/lib/admin.functions";
 import { getAppSettings, setAppSetting } from "@/lib/settings.functions";
 import { adminGetPaymentConfig, adminSavePaymentConfig } from "@/lib/payments.functions";
