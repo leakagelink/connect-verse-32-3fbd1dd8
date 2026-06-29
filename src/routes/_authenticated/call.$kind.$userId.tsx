@@ -1557,14 +1557,14 @@ function CallScreen() {
               {/* Remote peer fills the frame when joined (Agora). Local preview moves to a picture-in-picture tile. */}
               <div
                 ref={remoteContainerRef}
-                className={`absolute inset-0 size-full ${remoteJoined ? "block" : "hidden"}`}
+                className={`absolute inset-0 size-full bg-black ${remoteJoined ? "block" : "hidden"} [&_video]:size-full [&_video]:object-contain [&>div]:size-full`}
               />
               <video
                 ref={videoRef}
                 className={
                   remoteJoined
-                    ? "absolute bottom-24 right-3 w-24 h-32 sm:w-32 sm:h-40 object-cover rounded-lg border-2 border-white/50 z-10 -scale-x-100"
-                    : "absolute inset-0 size-full object-cover -scale-x-100"
+                    ? "absolute bottom-24 right-3 w-24 h-32 sm:w-28 sm:h-36 object-cover rounded-lg border-2 border-white/50 z-10 -scale-x-100 bg-black"
+                    : "absolute inset-0 size-full object-contain -scale-x-100 bg-black"
                 }
                 muted
                 playsInline
