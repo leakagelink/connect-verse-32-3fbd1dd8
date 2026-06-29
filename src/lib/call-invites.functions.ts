@@ -89,12 +89,41 @@ function statusDto(invite: any, userId: string, log?: any) {
 
 export const createCallInvite = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .validator((d: unknown) => z.object({ calleeId: z.string().uuid(), kind: KindSchema }).parse(d))
+  .validator((d: unknown) =>
+    z
+      .object({
+        calleeId: z.string().uuid(),
+        kind: KindSchema,
+        // Optional per-attempt idempotency key. Same key from the same caller
+        // always returns the same invite — multiple reconnects / retries can
+        // never create duplicates for the same logical attempt.
+        attemptId: z.string().min(8).max(128).optional(),
+      })
+      .parse(d),
+  )
   .handler(async ({ data, context }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const db = supabaseAdmin as any;
     const callerId = context.userId;
     if (callerId === data.calleeId) throw new Error("You cannot call yourself.");
+
+    // ---------- Idempotent short-circuit ----------
+    // If the caller already created an invite for this attemptId, return it as-is.
+    // This makes retries from flaky networks / double-clicks / reconnect storms safe.
+    if (data.attemptId) {
+      const { data: existing } = await db
+        .from("call_invites")
+        .select("*")
+        .eq("caller_id", callerId)
+        .eq("client_attempt_id", data.attemptId)
+        .maybeSingle();
+      if (existing) {
+        // If it's still pending but expired, mark it expired so the caller sees the truthful state.
+        const reconciled = await expireIfNeeded(db, existing);
+        return statusDto(reconciled, callerId);
+      }
+    }
+
     const { caller } = await assertCallable(db, callerId, data.calleeId);
 
     // Busy detection: callee already ringing with someone else or in an active accepted call.
@@ -129,10 +158,26 @@ export const createCallInvite = createServerFn({ method: "POST" })
         callee_id: data.calleeId,
         kind: data.kind,
         expires_at: new Date(Date.now() + INVITE_TTL_SECONDS * 1000).toISOString(),
+        client_attempt_id: data.attemptId ?? null,
       })
       .select("*")
       .single();
-    if (error) throw new Error(error.message);
+
+    // Race-condition fallback: a concurrent request with the same attemptId
+    // beat us to the unique index. Fetch and return the canonical row.
+    if (error) {
+      const msg = String(error.message ?? "");
+      if (data.attemptId && (error.code === "23505" || /duplicate key/i.test(msg) || /call_invites_caller_attempt_uniq/i.test(msg))) {
+        const { data: existing } = await db
+          .from("call_invites")
+          .select("*")
+          .eq("caller_id", callerId)
+          .eq("client_attempt_id", data.attemptId)
+          .maybeSingle();
+        if (existing) return statusDto(await expireIfNeeded(db, existing), callerId);
+      }
+      throw new Error(msg || "Could not create call invite.");
+    }
 
     await notifyUser({
       userId: data.calleeId,
