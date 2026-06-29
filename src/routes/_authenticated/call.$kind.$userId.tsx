@@ -81,6 +81,19 @@ function CallScreen() {
   // Used to live-display remaining free time / coin time during the call.
   const [freeStart, setFreeStart] = useState<number | null>(null);
   const [coinStart, setCoinStart] = useState<number | null>(null);
+  // Recharge event timeline (debug overlay). Last 5 events kept.
+  const [rechargeEvents, setRechargeEvents] = useState<Array<{
+    planId: string;
+    orderId?: string;
+    paymentId?: string;
+    source: "mock" | "razorpay";
+    requestedAt: number;
+    serverRespondedAt: number;
+    uiRefreshedAt: number;
+    added: number;
+    bonus: number;
+    newBalance: number;
+  }>>([]);
   const outOfFundsTriggeredRef = useRef(false);
   const lowTimeWarnedRef = useRef(false);
   // Ref bridge so auto-end effects (out-of-coins / peer-left) can invoke
