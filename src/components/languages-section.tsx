@@ -92,13 +92,16 @@ export function LanguagesSection({
         )}
       </div>
 
-      {/* Auto-sliding chip rail */}
+      {/* Auto-sliding chip rail. Tap toggles a sticky pause; hover pauses transiently on desktop. */}
       <div
         className="relative overflow-hidden -mx-1 px-1 mb-3"
-        onMouseEnter={() => setPaused(true)}
-        onMouseLeave={() => setPaused(false)}
-        onTouchStart={() => setPaused(true)}
-        onTouchEnd={() => setPaused(false)}
+        onMouseEnter={() => setHoverPaused(true)}
+        onMouseLeave={() => setHoverPaused(false)}
+        onPointerDown={(e) => {
+          // Only toggle when the rail background is tapped, not a chip.
+          if ((e.target as HTMLElement).closest("button")) return;
+          setUserPaused((p) => !p);
+        }}
       >
         <div
           ref={trackRef}
