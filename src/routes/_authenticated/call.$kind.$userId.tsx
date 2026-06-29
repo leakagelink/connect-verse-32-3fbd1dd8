@@ -19,6 +19,9 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { MysteryPanel } from "@/components/mystery-panel";
 import { InCallRecharge } from "@/components/in-call-recharge";
 import { GiftPanel } from "@/components/gift-panel";
+import { listGifts, sendGift } from "@/lib/gifts.functions";
+import { getWallet } from "@/lib/wallet.functions";
+
 import { GiftFloater } from "@/components/gift-floater";
 import { SosButton } from "@/components/sos-button";
 import { SafetyTipOverlay } from "@/components/safety-tip-overlay";
@@ -179,6 +182,17 @@ function CallScreen() {
   const sessionStartElapsedRef = useRef(0);
   const generateCaseFn = useServerFn(generateMysteryCase);
   const profileFn = useServerFn(getMyProfile);
+  // Gift E2E test runners (debug overlay).
+  const listGiftsFn = useServerFn(listGifts);
+  const sendGiftFn = useServerFn(sendGift);
+  const getWalletFn = useServerFn(getWallet);
+  const [e2eRunning, setE2eRunning] = useState(false);
+  const [e2eResult, setE2eResult] = useState<{
+    ok: boolean;
+    summary: string;
+    details: Record<string, unknown>;
+    at: number;
+  } | null>(null);
   const qc = useQueryClient();
   const { data: me } = useQuery({ queryKey: ["me"], queryFn: () => profileFn() });
   const isMale = me?.profile?.gender === "male";
@@ -860,6 +874,117 @@ function CallScreen() {
   const mm = String(Math.floor(totalElapsed / 60)).padStart(2, "0");
   const ss = String(totalElapsed % 60).padStart(2, "0");
 
+  // One-click end-to-end gift verification used by the debug overlay.
+  // Picks the cheapest affordable gift, snapshots UI + server balances,
+  // sends the gift, then re-reads the server wallet and asserts:
+  //   serverPost == serverPre - cost
+  //   sendGift.newBalance == serverPost
+  //   UI coinsLeft drops by cost (≈ within 1 to allow a tick boundary)
+  async function runGiftE2E() {
+    if (e2eRunning) return;
+    setE2eRunning(true);
+    const t0 = Date.now();
+    const tag = "[gift-e2e]";
+    try {
+      // eslint-disable-next-line no-console
+      console.log(`${tag} start`, { coinsLeftUI: coinsLeft, coinsAvail, coinsConsumed });
+      const [catalog, walletPre] = await Promise.all([listGiftsFn(), getWalletFn()]);
+      const serverPre = walletPre.balance;
+      const uiCoinsLeftPre = coinsLeft;
+      const affordable = (catalog ?? [])
+        .map((g) => ({ id: g.id, name: g.name, emoji: g.emoji, cost: Number(g.coin_cost) }))
+        .filter((g) => g.cost > 0 && g.cost <= Math.min(serverPre, uiCoinsLeftPre))
+        .sort((a, b) => a.cost - b.cost);
+      if (affordable.length === 0) {
+        const msg = "No affordable gift in catalog vs current balance";
+        console.warn(`${tag} skip`, { serverPre, uiCoinsLeftPre, catalog: catalog?.length });
+        setE2eResult({ ok: false, summary: msg, details: { serverPre, uiCoinsLeftPre }, at: Date.now() });
+        toast.error(`Gift E2E: ${msg}`);
+        return;
+      }
+      const pick = affordable[0];
+      console.log(`${tag} picked`, pick);
+      const requestedAt = Date.now();
+      const sendRes = await sendGiftFn({
+        data: { giftId: pick.id, receiverId: userId, callLogId: callLogIdRef.current ?? null },
+      });
+      const serverRespondedAt = Date.now();
+      // Reset UI baseline like normal flow does so coinsLeft reflects the server truth.
+      setCoinStart(sendRes.newBalance + coinsConsumed);
+      // Re-read server wallet to independently confirm the debit landed.
+      const walletPost = await getWalletFn();
+      const uiRefreshedAt = Date.now();
+      const serverPost = walletPost.balance;
+      const expectedServer = serverPre - pick.cost;
+      const uiCoinsLeftPost = Math.max(0, sendRes.newBalance - coinsConsumed);
+
+      const checks = {
+        sendOk: sendRes.ok === true,
+        serverDebitedCorrectly: serverPost === expectedServer,
+        returnedBalanceMatchesServer: sendRes.newBalance === serverPost,
+        preBalanceMatches: sendRes.preBalance === serverPre,
+        uiDroppedByCost: Math.abs((uiCoinsLeftPre - uiCoinsLeftPost) - pick.cost) <= 1,
+      };
+      const allOk = Object.values(checks).every(Boolean);
+      const details = {
+        gift: pick,
+        serverPre,
+        serverPost,
+        expectedServer,
+        returnedNewBalance: sendRes.newBalance,
+        returnedPreBalance: sendRes.preBalance,
+        uiCoinsLeftPre,
+        uiCoinsLeftPost,
+        roundtripMs: serverRespondedAt - requestedAt,
+        serverProcessedMs: sendRes.serverProcessedMs,
+        verifyMs: uiRefreshedAt - serverRespondedAt,
+        totalMs: uiRefreshedAt - t0,
+        checks,
+      };
+      // eslint-disable-next-line no-console
+      console.log(`${tag} ${allOk ? "PASS" : "FAIL"}`, details);
+
+      // Surface in the existing GIFT TIMELINE overlay too.
+      setGiftEvents((prev) => [{
+        giftId: pick.id,
+        giftName: `E2E ${pick.name}`,
+        giftEmoji: pick.emoji,
+        cost: pick.cost,
+        requestedAt,
+        serverRespondedAt,
+        uiRefreshedAt,
+        preBalance: sendRes.preBalance ?? serverPre,
+        newBalance: sendRes.newBalance,
+        serverProcessedMs: sendRes.serverProcessedMs,
+        receiverPreBalance: sendRes.receiverPreBalance,
+        receiverNewBalance: sendRes.receiverNewBalance,
+        ok: allOk,
+        error: allOk ? undefined : "verification failed — see console",
+      }, ...prev].slice(0, 8));
+
+      setE2eResult({
+        ok: allOk,
+        summary: allOk
+          ? `PASS · ${pick.emoji} ${pick.name} · -${pick.cost} · srv ${serverPre}→${serverPost}`
+          : `FAIL · see console for checks`,
+        details,
+        at: Date.now(),
+      });
+      toast[allOk ? "success" : "error"](`Gift E2E ${allOk ? "passed" : "failed"} — check console`);
+      qc.invalidateQueries({ queryKey: ["me"] });
+      qc.invalidateQueries({ queryKey: ["wallet"] });
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      // eslint-disable-next-line no-console
+      console.error(`${tag} ERROR`, msg);
+      setE2eResult({ ok: false, summary: `ERROR · ${msg}`, details: { error: msg }, at: Date.now() });
+      toast.error(`Gift E2E error: ${msg}`);
+    } finally {
+      setE2eRunning(false);
+    }
+  }
+
+
 
 
   if (!permReady) {
@@ -1429,6 +1554,38 @@ function CallScreen() {
           </div>
         );
       })()}
+
+      {/* Gift E2E test trigger — clickable; same debug gate */}
+      {(() => {
+        let show = false;
+        try {
+          show =
+            new URLSearchParams(window.location.search).get("debug") === "1" ||
+            localStorage.getItem("callDebug") === "1";
+        } catch { /* ignore */ }
+        if (!show) return null;
+        return (
+          <div className="fixed bottom-2 left-1/2 z-[9999] -translate-x-1/2 rounded-md border border-white/20 bg-black/85 px-2 py-1.5 font-mono text-[10px] text-white shadow-lg backdrop-blur-sm">
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                disabled={e2eRunning}
+                onClick={runGiftE2E}
+                className="rounded bg-fuchsia-600 px-2 py-1 text-[10px] font-semibold text-white hover:bg-fuchsia-500 disabled:opacity-50"
+              >
+                {e2eRunning ? "Running…" : "Run gift E2E"}
+              </button>
+              {e2eResult && (
+                <span className={e2eResult.ok ? "text-emerald-300" : "text-red-300"}>
+                  {e2eResult.summary}
+                </span>
+              )}
+            </div>
+          </div>
+        );
+      })()}
+
+
 
       {/* Recharge timeline overlay — gated by same debug flag */}
       {(() => {
