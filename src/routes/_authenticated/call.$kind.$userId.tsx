@@ -658,24 +658,24 @@ function CallScreen() {
 
   if (joinError) {
     const err = joinError;
-    const titles: Record<typeof joinError.kind, string> = {
+    const titles: Record<typeof err.kind, string> = {
       mic: "Microphone unavailable",
       camera: "Camera unavailable",
       media: "Camera or microphone unavailable",
       "in-use": "Mic / camera is busy",
       other: "Couldn't start the call",
     };
-    const tips: Record<typeof joinError.kind, string> = {
+    const tips: Record<typeof err.kind, string> = {
       mic: "We couldn't capture your microphone. Make sure mic permission is granted and no other app is using it.",
       camera: "We couldn't capture your camera. Grant camera permission, close any other app that might be using it (WhatsApp, Instagram, Zoom, your browser), then retry.",
       media: "We couldn't capture your camera or microphone. Grant access to both and try again.",
       "in-use": "Another app (like WhatsApp or your browser) is using your mic or camera. Close it and retry.",
       other: "Something went wrong while connecting. Please try again.",
     };
-    const needsPerm = joinError.kind !== "in-use" && joinError.kind !== "other";
+    const needsPerm = err.kind !== "in-use" && err.kind !== "other";
     // Offer a voice-only fallback when the camera is the blocker on a video call.
     const canFallbackToVoice =
-      kind === "video" && (joinError.kind === "camera" || joinError.kind === "in-use");
+      kind === "video" && (err.kind === "camera" || err.kind === "in-use");
 
     async function handleRetry() {
       setRetrying(true);
@@ -684,7 +684,7 @@ function CallScreen() {
           // Re-prompt the OS for the relevant permission inside the tap gesture.
           // For camera errors on a video call, ensure we ask for camera too.
           const askKind: "voice" | "video" =
-            joinError.kind === "camera" || kind === "video" ? "video" : "voice";
+            err.kind === "camera" || kind === "video" ? "video" : "voice";
           try { await requestCallPermissions(askKind); } catch { /* ignore */ }
         }
         setJoinError(null);
@@ -720,12 +720,12 @@ function CallScreen() {
             <ShieldAlert className="size-7" />
           </div>
           <div className="space-y-1">
-            <h2 className="text-lg font-semibold">{titles[joinError.kind]}</h2>
-            <p className="text-sm text-muted-foreground">{tips[joinError.kind]}</p>
+            <h2 className="text-lg font-semibold">{titles[err.kind]}</h2>
+            <p className="text-sm text-muted-foreground">{tips[err.kind]}</p>
           </div>
           <details className="text-left text-xs text-muted-foreground bg-muted/40 rounded-md p-2">
             <summary className="cursor-pointer select-none">Technical details</summary>
-            <p className="mt-1 break-words font-mono">{joinError.message}</p>
+            <p className="mt-1 break-words font-mono">{err.message}</p>
           </details>
           <div className="flex flex-col gap-2">
             <Button onClick={handleRetry} disabled={retrying} className="w-full">
