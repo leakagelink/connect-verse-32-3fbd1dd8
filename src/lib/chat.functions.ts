@@ -10,6 +10,26 @@ async function assertNotBanned(supabase: any, userId: string) {
   if (!data?.onboarded) throw new Error("Complete onboarding first");
 }
 
+/** Messaging is only allowed once a friend request has been accepted between the two users (either direction). */
+async function assertFriends(supabase: any, userId: string, otherUserId: string) {
+  const { data: rels } = await supabase
+    .from("follows")
+    .select("follower_id, following_id, status")
+    .or(
+      `and(follower_id.eq.${userId},following_id.eq.${otherUserId}),` +
+      `and(follower_id.eq.${otherUserId},following_id.eq.${userId})`
+    );
+  const accepted = (rels ?? []).some((r: any) => r.status === "accepted");
+  if (accepted) return;
+  const outgoing = (rels ?? []).find(
+    (r: any) => r.follower_id === userId && r.following_id === otherUserId,
+  );
+  if (outgoing?.status === "pending") {
+    throw new Error("REQUEST_PENDING: Waiting for them to accept your friend request before you can message.");
+  }
+  throw new Error("NOT_FRIENDS: Send a friend request and wait for them to accept before messaging.");
+}
+
 export const getOrCreateConversation = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((d: unknown) => z.object({ otherUserId: z.string().uuid() }).parse(d))
@@ -25,6 +45,9 @@ export const getOrCreateConversation = createServerFn({ method: "POST" })
       .or(`and(blocker_id.eq.${userId},blocked_id.eq.${data.otherUserId}),and(blocker_id.eq.${data.otherUserId},blocked_id.eq.${userId})`)
       .maybeSingle();
     if (blockRow) throw new Error("Unable to start chat");
+
+    // Friendship gate: must have an accepted follow in either direction.
+    await assertFriends(supabase, userId, data.otherUserId);
 
     const [a, b] = [userId, data.otherUserId].sort();
     const { data: existing } = await supabase
@@ -81,6 +104,17 @@ export const sendMessage = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
     await assertNotBanned(supabase, userId);
+
+    // Friendship gate: resolve the other party from the conversation and verify accepted follow.
+    const { data: conv } = await supabase
+      .from("conversations")
+      .select("user_a, user_b")
+      .eq("id", data.conversationId)
+      .maybeSingle();
+    if (!conv) throw new Error("Conversation not found");
+    const otherUserId = conv.user_a === userId ? conv.user_b : conv.user_a;
+    if (!otherUserId || otherUserId === userId) throw new Error("Invalid conversation");
+    await assertFriends(supabase, userId, otherUserId);
 
     const blocked = containsBlockedContent(data.body);
     if (blocked) throw new Error(`Message blocked: contains restricted content`);
