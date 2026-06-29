@@ -8,8 +8,9 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Mic, MicOff, Video as VideoIcon, VideoOff, PhoneOff, Coins, Search, Gift, ShieldAlert, Volume2, VolumeX } from "lucide-react";
+import { Mic, MicOff, Video as VideoIcon, VideoOff, PhoneOff, Coins, Search, Gift, ShieldAlert, Volume2, VolumeX, UserCircle2 } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
+import { InCallPeerProfileSheet } from "@/components/in-call-peer-profile-sheet";
 import { toast } from "sonner";
 import { VOICE_CALL_COINS_PER_MINUTE, VIDEO_CALL_COINS_PER_MINUTE } from "@/lib/constants";
 import { endCallLog, applyCallUsage, getCallPeerWallets } from "@/lib/calls.functions";
