@@ -6,6 +6,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { heartbeat, listOnlineCreators } from "@/lib/presence.functions";
 import { getAppSettings } from "@/lib/settings.functions";
 import { AppShell } from "@/components/app-shell";
+import { useAvatarPrefetch } from "@/lib/avatar-prefetch";
 import { Card } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -161,6 +162,10 @@ function ConnectScreen() {
       return (b.last_seen_at ?? "").localeCompare(a.last_seen_at ?? "");
     });
   }, [all, me, language, country, state, activeOnly, filtersVisible]);
+
+  // Warm the browser image cache for the visible creator list so cards
+  // paint instantly while the user scrolls.
+  useAvatarPrefetch(sorted.map((u) => u.avatar_url));
 
   // Pre-call permission dialog removed — permissions are requested silently in startCall.
   const [callInvite, setCallInvite] = useState<{ kind: "voice" | "video"; userId: string } | null>(null);

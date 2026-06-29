@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Sparkles, Phone, Video } from "lucide-react";
 import { listForYouCreators } from "@/lib/discovery.functions";
+import { useAvatarPrefetch } from "@/lib/avatar-prefetch";
 
 export function ForYouSection({
   onCall,
@@ -20,6 +21,9 @@ export function ForYouSection({
     staleTime: 2 * 60_000,
   });
 
+  const list = (data ?? []).slice(0, 6);
+  useAvatarPrefetch(list.map((u: any) => u.avatar_url));
+
   if (!data?.length) return null;
 
   return (
@@ -30,7 +34,7 @@ export function ForYouSection({
         <Badge variant="secondary" className="text-[10px]">Personalized</Badge>
       </div>
       <div className="grid gap-3 sm:grid-cols-2">
-        {data.slice(0, 6).map((u: any) => (
+        {list.map((u: any) => (
           <Card key={u.id} className="glass p-3 flex items-center gap-3">
             <div className="relative">
               <Avatar className="size-11">

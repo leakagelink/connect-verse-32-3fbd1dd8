@@ -3,6 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Phone, Video, Coins, Sparkles } from "lucide-react";
 import { VOICE_CALL_COINS_PER_MINUTE, VIDEO_CALL_COINS_PER_MINUTE } from "@/lib/constants";
+import { useAvatarPrefetch } from "@/lib/avatar-prefetch";
 
 type Creator = {
   id: string;
@@ -23,6 +24,7 @@ export function LiveCreatorsStrip({
   loading: boolean;
   onCall: (userId: string, kind: "voice" | "video") => void;
 }) {
+  useAvatarPrefetch(users.map((u) => u.avatar_url));
   if (loading) {
     return (
       <div className="flex gap-3 overflow-hidden pb-2">
