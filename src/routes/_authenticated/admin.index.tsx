@@ -29,6 +29,7 @@ import { PerformanceTab } from "@/components/admin/PerformanceTab";
 import { CallAuditTab } from "@/components/admin/CallAuditTab";
 import { BusyResetE2E } from "@/components/admin/BusyResetE2E";
 import { CallEndE2E } from "@/components/admin/CallEndE2E";
+import { ConcurrentCallE2E } from "@/components/admin/ConcurrentCallE2E";
 
 import { adminListKyc, adminReviewKyc, adminListWithdrawals, adminProcessWithdrawal, getKycDocUrl, adminListKycPurgeLog } from "@/lib/kyc.functions";
 import {
