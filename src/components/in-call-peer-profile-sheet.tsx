@@ -1,7 +1,9 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import { useSession } from "@/hooks/use-session";
 import {
   getPartnerProfile,
   sendFollowRequest,
@@ -60,6 +62,7 @@ export function InCallPeerProfileSheet({ userId, open, onOpenChange }: Props) {
   const follow = useServerFn(sendFollowRequest);
   const unfollow = useServerFn(unfollowUser);
   const qc = useQueryClient();
+  const { user: me } = useSession();
   const [confirm, setConfirm] = useState<ConfirmKind>(null);
 
   const { data, isLoading } = useQuery({
@@ -68,6 +71,35 @@ export function InCallPeerProfileSheet({ userId, open, onOpenChange }: Props) {
     enabled: !!userId && open,
     staleTime: 15_000,
   });
+
+  // Realtime: refresh pills/buttons the moment the peer accepts, rejects,
+  // or sends a request. Scoped to this user-pair so we don't react to
+  // unrelated follow rows. RLS already restricts what we can see.
+  useEffect(() => {
+    if (!open || !userId || !me?.id) return;
+    const myId = me.id;
+    const peer = userId;
+    const isRelevant = (row: any) =>
+      row &&
+      ((row.follower_id === myId && row.following_id === peer) ||
+        (row.follower_id === peer && row.following_id === myId));
+    const channel = supabase
+      .channel(`in-call-peer-follows:${myId}:${peer}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "follows" },
+        (payload) => {
+          if (isRelevant(payload.new) || isRelevant(payload.old)) {
+            qc.invalidateQueries({ queryKey: ["in-call-peer", peer] });
+          }
+        },
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [open, userId, me?.id, qc]);
+
 
   const followMut = useMutation({
     mutationFn: () => follow({ data: { userId: userId! } }),
