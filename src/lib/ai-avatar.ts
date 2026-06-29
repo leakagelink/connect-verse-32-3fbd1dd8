@@ -132,6 +132,9 @@ export function aiAvatarUrl(
 
 // Server-side helper: backfill `avatar_url` on a profile-like row when the
 // user hasn't uploaded a photo. Safe to use on arrays of profiles too.
+// Keep stable object references so React doesn't see a new prop each render.
+const ROW_CACHE = new WeakMap<object, unknown>();
+
 export function withAiAvatar<T extends {
   id?: string | null;
   avatar_url?: string | null;
@@ -142,7 +145,9 @@ export function withAiAvatar<T extends {
   if (!row) return row;
   if (row.avatar_url) return row;
   if (!row.id) return row;
-  return {
+  const cached = ROW_CACHE.get(row as object);
+  if (cached) return cached as T;
+  const out = {
     ...row,
     avatar_url: aiAvatarUrl(
       row.id,
@@ -151,6 +156,8 @@ export function withAiAvatar<T extends {
       row.is_creator ?? null,
     ),
   };
+  ROW_CACHE.set(row as object, out);
+  return out as T;
 }
 
 export function withAiAvatars<T extends {
