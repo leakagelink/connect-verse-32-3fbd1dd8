@@ -1858,9 +1858,22 @@ function CallScreen() {
               >
                 {e2eRunning ? "Running…" : "Run failure E2E"}
               </button>
+              <button
+                type="button"
+                disabled={e2eRunning}
+                onClick={runCallUsageE2E}
+                className="rounded bg-sky-600 px-2 py-1 text-[10px] font-semibold text-white hover:bg-sky-500 disabled:opacity-50"
+              >
+                {e2eRunning ? "Running…" : "Run call usage E2E"}
+              </button>
               {e2eResult && (
                 <span className={e2eResult.ok ? "text-emerald-300" : "text-red-300"}>
                   {e2eResult.summary}
+                </span>
+              )}
+              {callE2eResult && (
+                <span className={callE2eResult.ok ? "text-sky-300" : "text-red-300"}>
+                  {callE2eResult.summary}
                 </span>
               )}
             </div>
