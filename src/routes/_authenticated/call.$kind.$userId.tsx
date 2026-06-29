@@ -1118,8 +1118,9 @@ function CallScreen() {
             size="icon"
             variant="secondary"
             onClick={() => setGiftOpen(true)}
-            disabled={!connected}
+            disabled={!connected || criticalTime}
             aria-label="Send gift"
+            title={criticalTime ? "Disabled — last 60 seconds" : undefined}
             className="relative"
           >
             <Gift className="size-5 text-pink-500" />
