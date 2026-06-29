@@ -37,10 +37,22 @@ export function AppShell({ children, isAdmin }: { children: ReactNode; isAdmin?:
     } catch (e) {
       console.warn("[native] init failed", e);
     }
-    // Push notification permission is intentionally NOT requested on app
-    // launch. It is now user-triggered from Settings so Android does not show
-    // only the notification dialog before call mic/camera permission, and a
-    // partial Firebase setup cannot crash the first screen.
+    // Push notifications: auto-register on every launch + on every resume.
+    // Picks up FCM token rotations (reinstall / clear-data / 28-day refresh)
+    // and immediately replaces the stale token on the server.
+    if (isNative()) {
+      try {
+        startPushAutoRegister(async ({ token, platform }) => {
+          try {
+            await registerDeviceToken({ data: { token, platform } });
+          } catch (e) {
+            console.warn("[push] registerDeviceToken failed", e);
+          }
+        });
+      } catch (e) {
+        console.warn("[push] auto-register start failed", e);
+      }
+    }
     return dispose;
   }, [router]);
 
