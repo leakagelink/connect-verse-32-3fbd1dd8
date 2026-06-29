@@ -42,6 +42,9 @@ export class AgoraSession {
   private events: AgoraEvents = {};
   /** Remote audio tracks whose autoplay was blocked, kept so retryAudio() can play them. */
   private pendingAudio: Array<{ play: () => void }> = [];
+  /** All currently subscribed remote audio tracks (for volume / speaker routing). */
+  private remoteAudio: Array<{ setVolume: (v: number) => void }> = [];
+  private speakerOn = false;
 
   async join(opts: {
     appId: string;
