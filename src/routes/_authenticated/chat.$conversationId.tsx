@@ -19,7 +19,7 @@ import { CoinBadge } from "@/components/coin-badge";
 import { ReportDialog } from "@/components/report-dialog";
 import { ArrowLeft, Send, Sparkles, UserPlus, UserCheck, UserX, Check, X } from "lucide-react";
 import { toast } from "sonner";
-import { CHAT_COINS_PER_MINUTE, MESSAGE_COIN_COST_MALE } from "@/lib/constants";
+import { CHAT_COINS_PER_MINUTE, MESSAGE_COIN_COST_MALE, detectContactShare, contactShareWarning } from "@/lib/constants";
 
 export const Route = createFileRoute("/_authenticated/chat/$conversationId")({
   component: ChatRoom,
