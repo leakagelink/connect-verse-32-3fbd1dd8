@@ -38,8 +38,9 @@ export function IncomingCallDialog({ disabled }: { disabled?: boolean }) {
     queryKey: ["incoming-call-invites"],
     queryFn: () => listFn(),
     enabled: !disabled,
-    refetchInterval: disabled ? false : 1500,
-    refetchIntervalInBackground: true,
+    // Realtime-driven: no fast polling. Safety net only in case the socket drops.
+    refetchInterval: disabled ? false : 30_000,
+    refetchIntervalInBackground: false,
     refetchOnWindowFocus: true,
     refetchOnReconnect: true,
     staleTime: 0,
@@ -49,8 +50,10 @@ export function IncomingCallDialog({ disabled }: { disabled?: boolean }) {
     if (disabled) return;
     let cancelled = false;
     let channel: ReturnType<typeof supabase.channel> | null = null;
+    let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
     const refresh = () => qc.invalidateQueries({ queryKey: ["incoming-call-invites"] });
-    (async () => {
+
+    const connect = async () => {
       const { data: u } = await supabase.auth.getUser();
       const uid = u.user?.id;
       if (!uid || cancelled) return;
@@ -58,21 +61,42 @@ export function IncomingCallDialog({ disabled }: { disabled?: boolean }) {
         .channel(`rt-call-invites-${uid}`)
         .on(
           "postgres_changes",
-          { event: "*", schema: "public", table: "call_invites", filter: `callee_id=eq.${uid}` },
+          { event: "INSERT", schema: "public", table: "call_invites", filter: `callee_id=eq.${uid}` },
           refresh,
         )
-        .subscribe();
-    })();
+        .on(
+          "postgres_changes",
+          { event: "UPDATE", schema: "public", table: "call_invites", filter: `callee_id=eq.${uid}` },
+          refresh,
+        )
+        .subscribe((status) => {
+          if (status === "SUBSCRIBED") {
+            refresh();
+          } else if (status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED") {
+            // auto-reconnect realtime if it drops
+            if (channel) { try { supabase.removeChannel(channel); } catch {} channel = null; }
+            if (!cancelled) {
+              reconnectTimer = setTimeout(connect, 2000);
+            }
+          }
+        });
+    };
+    connect();
+
     const onVisible = () => { if (document.visibilityState === "visible") refresh(); };
     document.addEventListener("visibilitychange", onVisible);
     window.addEventListener("focus", refresh);
+    window.addEventListener("online", refresh);
     return () => {
       cancelled = true;
+      if (reconnectTimer) clearTimeout(reconnectTimer);
       document.removeEventListener("visibilitychange", onVisible);
       window.removeEventListener("focus", refresh);
+      window.removeEventListener("online", refresh);
       if (channel) supabase.removeChannel(channel);
     };
   }, [disabled, qc]);
+
 
   // Ringtone + vibration when an invite arrives
   useEffect(() => {
