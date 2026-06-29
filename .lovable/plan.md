@@ -1,90 +1,76 @@
-# Multi-Provider Calling Pool with Auto-Failover
 
-Goal: Agora aur 100ms dono parallel chalenge. Aap admin panel se dono ke multiple credential sets daal sakte ho. Jab koi credential error de ya quota khatam ho, system automatically agle healthy credential pe switch ho jayega — user ko call drop nahi dikhega.
+# Background incoming-call wake-up (WhatsApp style)
 
-## 1. Database (new migration)
+Goal: jab koi user/creator app close/background me ho aur koi unhe call kare, to phone ki lock screen pe full-screen incoming-call UI khule with Accept/Reject, aur Accept pe app khulkar call connect ho jaye.
 
-**New table `calling_credentials`:**
-- `id uuid pk`
-- `provider text` — `'agora'` ya `'100ms'`
-- `label text` — admin-friendly naam (e.g. "Agora-Primary", "100ms-Backup-2")
-- `priority int` — chhota number pehle try hoga (1 = highest)
-- `is_active bool` — admin toggle
-- `status text` — `'healthy' | 'degraded' | 'exhausted' | 'disabled'`
-- `credentials jsonb` — Agora: `{app_id, app_certificate}`; 100ms: `{access_key, app_secret, template_id, subdomain}`
-- `monthly_quota_minutes int` (nullable) — soft limit, e.g. 10000 for 100ms free tier
-- `minutes_used_current_month int` — auto-incremented from `call_logs.duration`
-- `quota_reset_at timestamptz` — har month 1st pe reset
-- `consecutive_failures int` — 3+ ho to auto-degraded
-- `last_error text`, `last_error_at timestamptz`, `last_used_at timestamptz`
-- `created_at`, `updated_at`
+## Aapko Firebase me ek-baar ka setup karna hoga
 
-Grants: `service_role` ALL; admin reads/writes via server fn only (no `authenticated` GRANT — credentials sensitive hain).
+Mere paas `FCM_SERVICE_ACCOUNT_JSON` already saved hai (server-side push send karne ke liye), lekin Android app ke liye `google-services.json` aapko Firebase Console se download karke project me daalna hoga. Steps:
 
-**`call_logs` me 2 column add:**
-- `credential_id uuid` (kaunsa credential use hua)
-- `failover_chain jsonb` (agar fallback hua to history)
+1. https://console.firebase.google.com par jao → **Add project** → naam: `Talkora` (ya jo aap chahein).
+2. Project ke andar **Add app → Android** select karo.
+3. **Android package name** dalo exactly: `app.lovable.1f2f31124f554d2fa8de269e271b47a3` (ya jo bhi aapke `capacitor.config.ts` me `appId` hai — main verify karunga).
+4. App nickname: `Talkora`, SHA-1 optional (release signing ke time chahiye).
+5. **Download `google-services.json`** — mujhe is file ka content chat me paste kar do (ya upload karo), main `android/app/google-services.json` me daal dunga.
+6. Firebase console me **Project Settings → Service Accounts → Generate new private key** se JSON download karo — agar pehle wala `FCM_SERVICE_ACCOUNT_JSON` is naye project ka nahi hai, to mujhe bata dena, main update kar dunga. Warna skip.
 
-## 2. Server functions (`src/lib/calling.functions.ts` extend)
+Bas itna manual kaam hai. Baaki sab main code karunga.
 
-- `getCallingConfig` (existing) → ab pool se best healthy credential return karega. Provider + appId/subdomain + credential_id return.
-- `issueAgoraToken` (existing) → `credentialId` accept karega, us specific credential se token sign karega.
-- **New** `issueHmsToken` → 100ms management token sign + room create/join via 100ms API.
-- **New** `reportCallFailure({credentialId, errorCode, errorMessage})` → consecutive_failures++, 3+ pe `status='degraded'`, agla credential mark karega; client retry call kar sakta hai.
-- **New** `recordCallMinutes` → call end pe `minutes_used_current_month` increment, threshold cross ho to `status='exhausted'`.
+## Implementation (mera kaam)
 
-**Admin-only fns:**
-- `adminListCredentials({provider?})` → masked values ke saath list
-- `adminCreateCredential({provider, label, priority, credentials, monthly_quota_minutes?})`
-- `adminUpdateCredential({id, ...patch})`
-- `adminDeleteCredential({id})`
-- `adminResetCredentialStatus({id})` — manual "ye theek hai, retry karo"
+### 1. Device token registration
+- `@capacitor/push-notifications` plugin install.
+- `src/lib/push-register.ts`: app boot pe permission maango, FCM token lo, `device_tokens` table me upsert karo (token + platform + user_id + last_seen).
+- Sign-out pe token delete.
 
-## 3. Failover logic
+### 2. Server-side push trigger
+- `src/lib/call-push.functions.ts` me `sendCallInvitePush` server fn — `requireSupabaseAuth`, inside handler `supabaseAdmin` se receiver ke active tokens lo, FCM HTTP v1 API ko **high-priority data-only** message bhejo (Google access token Service Account JSON se mint).
+- Payload: `{ type: "incoming_call", invite_id, caller_id, caller_name, caller_avatar, kind: "voice"|"video", agora_channel }`.
+- `createCallInvite` me, invite insert ke turant baad, fire-and-forget `sendCallInvitePush` call.
+- Hang-up / cancel / no-answer pe ek `cancelCallInvitePush` bhi bhejo (`type: "cancel_call"`) taaki dusri side ka full-screen UI auto-dismiss ho.
 
-Selection order (server-side):
-1. `is_active = true` AND `status = 'healthy'` filter
-2. ORDER BY `priority ASC`, `consecutive_failures ASC`, `last_used_at NULLS FIRST` (round-robin within same priority)
-3. Agar koi healthy nahi → degraded ones ko try karo (last resort)
-4. Sab fail → throw "All calling providers down. Please retry in a few minutes."
+### 3. Android native — full-screen incoming call
+Naye files `android/app/src/main/java/.../`:
+- **`TalkoraMessagingService.java`** (extends `FirebaseMessagingService`):
+  - `onMessageReceived` me `type=="incoming_call"` → `IncomingCallActivity` launch karo via `PendingIntent` with `FLAG_ACTIVITY_NEW_TASK`.
+  - `type=="cancel_call"` → notification cancel + broadcast bhejo.
+  - `onNewToken` → WebView ke through JS bridge se naya token sync.
+- **`IncomingCallActivity.java`**:
+  - `setShowWhenLocked(true)` + `setTurnScreenOn(true)` + `KeyguardManager.requestDismissKeyguard`.
+  - Custom layout: caller avatar, name, "Incoming voice/video call", **Accept** (green) + **Reject** (red).
+  - Ringtone (`RingtoneManager.TYPE_RINGTONE`) + vibration pattern.
+  - Accept → MainActivity ko deep link intent (`talkora://call/<kind>/<callerId>?invite=<id>&action=accept`).
+  - Reject → server fn call via broadcast → activity finish.
+- **High-priority notification channel** `incoming_calls` with `IMPORTANCE_HIGH`, `setBypassDnd(true)`, full-screen intent attached (Android 10+ fallback agar activity directly launch na ho).
+- **`CallForegroundService.java`** with `FOREGROUND_SERVICE_PHONE_CALL` — call connect hone ke baad start ho, ongoing notification rakhe (Play Store policy compliant).
 
-Client-side (`agora-client.ts` + new `hms-client.ts`):
-- Call setup wrapper try karega → fail/timeout pe `reportCallFailure` + `getCallingConfig` dobara → next credential pe rejoin (max 2 retries, 1s gap)
-- Hosting/admin alerts: agar 50%+ credentials degraded ho to admin dashboard pe red banner
+### 4. `AndroidManifest.xml` updates
+- Permissions: `USE_FULL_SCREEN_INTENT`, `POST_NOTIFICATIONS`, `WAKE_LOCK`, `VIBRATE`, `FOREGROUND_SERVICE`, `FOREGROUND_SERVICE_PHONE_CALL`, `DISABLE_KEYGUARD`.
+- Register `TalkoraMessagingService` (FCM intent-filter), `IncomingCallActivity` (`showWhenLocked`, `turnScreenOn`, `launchMode=singleInstance`), `CallForegroundService` (`foregroundServiceType=phoneCall`).
+- Deep link intent-filter on `MainActivity` for `talkora://call/*`.
 
-## 4. Admin panel UI (`src/routes/_authenticated/admin.index.tsx` me naya tab)
+### 5. `build.gradle` + plugins
+- `android/build.gradle`: `com.google.gms:google-services` classpath.
+- `android/app/build.gradle`: `apply plugin: 'com.google.gms.google-services'`, `firebase-bom`, `firebase-messaging`.
 
-**"Calling Providers" tab:**
-- Provider switcher tabs: Agora | 100ms
-- Table: Label · Priority · Status badge · Minutes used / quota · Last error · Actions (Edit / Reset / Disable / Delete)
-- "+ Add Credential" button → drawer with form (provider-specific fields)
-- Top banner: global provider preference (mock / auto-pool)
+### 6. Deep-link handling in React app
+- `src/router.tsx` ya root pe Capacitor `App.addListener('appUrlOpen')` → parse `talkora://call/<kind>/<callerId>?invite=<id>&action=accept` → router.navigate to existing `/call/$kind/$userId` route with `?autoAccept=1`.
+- Call route me `autoAccept` flag dekhe to invite ko turant `accepted` mark kare + Agora join start kare (existing flow reuse).
 
-## 5. 100ms client (`src/lib/hms-client.ts` new)
+### 7. Play Store policy compliance
+- Privacy Policy me FCM + microphone/camera background use mention (already exists, sirf line add).
+- `USE_FULL_SCREEN_INTENT` Android 14+ pe sirf "calling apps" ko default-granted; in-app prompt rakhenge agar permission revoked.
+- Foreground service ki notification clearly "Ongoing call with X" dikhayega.
 
-- `@100mslive/hms-video-store` install
-- Audio + video call wrapper jo Agora ke jaisa API expose karega (`join`, `leave`, `toggleMic`, `toggleCam`, `onUserPublished`)
-- Call screens (`call.$kind.$userId.tsx`, `matchmaker.$id.tsx`, `rooms.$id.tsx`) ek thin abstraction use karenge — `getCallingConfig` se decide hoga kaunsa client load karna hai (dynamic import for code-splitting)
+## Test plan (mere taraf se)
+1. Server fn ko `invoke-server-function` se trigger karke FCM payload format verify.
+2. APK build → ek device pe app band karke, dusre device se call → lock screen pe full-screen UI verify.
+3. Accept → app open → Agora connect verify.
+4. Caller cancel → receiver ka UI auto-dismiss verify.
 
-## 6. Quota reset cron
+## Aage kya chahiye aapse
 
-`src/routes/api/public/hooks/reset-calling-quotas.ts` — month ke 1st pe `minutes_used_current_month=0`, `status='healthy'` (agar `exhausted` tha) set. HMAC-protected, pg_cron se trigger.
+1. **`google-services.json`** Firebase console se download karke share karo (steps upar).
+2. Confirm karo: agar `FCM_SERVICE_ACCOUNT_JSON` secret purane Firebase project ka hai to naya JSON bhi share karo — warna main yahi use kar lunga.
 
-## Technical details
-
-- `recordCallMinutes` server-side hi minutes count kare (client trusted nahi) — `call_logs.duration` se derive
-- Credential secrets sirf `service_role` se readable; admin fns mask karke return karenge (`app_id_masked` style)
-- Migration backwards-compat: existing `app_settings` ke `agora_app_id/cert` ko boot pe `calling_credentials` me seed kar dunga as priority=1 Agora credential
-- 100ms tokens 24hr valid; per-call generate, cache nahi
-
-## Out of scope (abhi nahi)
-
-- LiveKit / ZegoCloud providers (architecture ready hai, future me add ho sakte hain)
-- Cost-based routing (sirf priority + health)
-- Region-based selection
-
-## Estimated changes
-
-- 1 new migration
-- 3 new files: `hms-client.ts`, `calling-pool.ts` (selector helper), `reset-calling-quotas.ts`
-- 4 file edits: `calling.functions.ts`, `agora-client.ts`, `admin.index.tsx`, call screen wrappers
+Confirmation aate hi main turant implementation start karunga (estimated ~12-15 file changes).
