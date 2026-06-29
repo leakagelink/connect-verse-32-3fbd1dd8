@@ -10,6 +10,26 @@ async function assertNotBanned(supabase: any, userId: string) {
   if (!data?.onboarded) throw new Error("Complete onboarding first");
 }
 
+/** Messaging is only allowed once a friend request has been accepted between the two users (either direction). */
+async function assertFriends(supabase: any, userId: string, otherUserId: string) {
+  const { data: rels } = await supabase
+    .from("follows")
+    .select("follower_id, following_id, status")
+    .or(
+      `and(follower_id.eq.${userId},following_id.eq.${otherUserId}),` +
+      `and(follower_id.eq.${otherUserId},following_id.eq.${userId})`
+    );
+  const accepted = (rels ?? []).some((r: any) => r.status === "accepted");
+  if (accepted) return;
+  const outgoing = (rels ?? []).find(
+    (r: any) => r.follower_id === userId && r.following_id === otherUserId,
+  );
+  if (outgoing?.status === "pending") {
+    throw new Error("REQUEST_PENDING: Waiting for them to accept your friend request before you can message.");
+  }
+  throw new Error("NOT_FRIENDS: Send a friend request and wait for them to accept before messaging.");
+}
+
 export const getOrCreateConversation = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((d: unknown) => z.object({ otherUserId: z.string().uuid() }).parse(d))
