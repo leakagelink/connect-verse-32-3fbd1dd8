@@ -78,7 +78,7 @@ export function PrecallPermissionDialog({ open, kind, onCancel, onReady }: Props
       setAskedOnce(true);
       await refresh();
       if (res.granted) {
-        onReady();
+        setStage("audio");
         return;
       }
       if (res.reason === "mic-denied") toast.error("Microphone access denied.");
