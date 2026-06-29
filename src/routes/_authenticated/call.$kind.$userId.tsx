@@ -85,6 +85,11 @@ function CallScreen() {
   // Ref bridge so auto-end effects (out-of-coins / peer-left) can invoke
   // confirmEndCall before it's defined later in the component.
   const endCallNowRef = useRef<() => void>(() => {});
+  // Audit reason for why this side ended the call. Set by the trigger
+  // (out-of-coins / peer-left / media error) before invoking endCallNowRef;
+  // sent to endCallLog so the admin panel can audit who disconnected and why.
+  const endReasonRef = useRef<"user_ended" | "peer_left" | "coins_exhausted" | "media_error" | "network" | "unknown">("user_ended");
+
 
   // Single-active-session enforcement: every mount mints a unique token and
   // writes it into the active_call localStorage slot. A newer tab claiming
