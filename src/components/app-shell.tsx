@@ -21,6 +21,7 @@ export function AppShell({ children, isAdmin }: { children: ReactNode; isAdmin?:
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const router = useRouter();
   const profileFn = useServerFn(getMyProfile);
+  const registerTokenFn = useServerFn(registerDeviceToken);
   const { data: me } = useQuery({ queryKey: ["me"], queryFn: () => profileFn() });
   const balance = me?.walletBalance ?? 0;
   const unread = me?.unreadCount ?? 0;
