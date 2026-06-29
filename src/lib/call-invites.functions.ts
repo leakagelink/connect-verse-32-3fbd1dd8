@@ -66,7 +66,28 @@ async function expireIfNeeded(db: any, invite: any) {
     .eq("status", "pending")
     .select("*")
     .maybeSingle();
+  if (data) {
+    // Real pending -> expired transition: notify the callee about the missed call.
+    await sendMissedCallNotification(db, data).catch(() => {});
+  }
   return data ?? { ...invite, status: "expired" };
+}
+
+async function sendMissedCallNotification(db: any, invite: any) {
+  const { data: caller } = await db
+    .from("profiles")
+    .select("username")
+    .eq("id", invite.caller_id)
+    .maybeSingle();
+  const name = caller?.username ?? "Someone";
+  const isVideo = invite.kind === "video";
+  await notifyUser({
+    userId: invite.callee_id,
+    kind: "calls",
+    title: `Missed ${isVideo ? "video" : "audio"} call`,
+    body: `${name} tried to call you.`,
+    deepLink: `/calls`,
+  });
 }
 
 function statusDto(invite: any, userId: string, log?: any) {
