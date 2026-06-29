@@ -548,8 +548,21 @@ function CallScreen() {
         if (!endedRef.current) endCallNowRef.current();
       }, 900);
     }
+    if (
+      isPayer &&
+      perMin > 0 &&
+      totalSecondsLeft > 0 &&
+      totalSecondsLeft <= 180 &&
+      !lowTimeWarnedRef.current
+    ) {
+      lowTimeWarnedRef.current = true;
+      toast.warning("3 minute se kam bache — call jaldi disconnect ho jayegi.", {
+        duration: 8000,
+        action: { label: "Recharge", onClick: () => setRechargeOpen(true) },
+      });
+    }
 
-  }, [connected, outOfFunds, paused]);
+  }, [connected, outOfFunds, paused, isPayer, perMin, totalSecondsLeft]);
 
   // Auto-end when the remote peer leaves the channel. Agora fires `user-left`
   // on an intentional leave or after the ~20s connection timeout, so this is
