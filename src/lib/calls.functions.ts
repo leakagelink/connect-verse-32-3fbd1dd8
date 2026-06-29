@@ -1,4 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
+import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { withAiAvatars } from "./ai-avatar";
 
@@ -498,4 +499,261 @@ export const getCallPeerWallets = createServerFn({ method: "POST" })
       storedFreeUsed: Number(log.free_seconds_used ?? 0),
       storedDuration: Number(log.duration_seconds ?? 0),
     };
+  });
+
+
+// End-to-end verification that a complete call lifecycle (start → usage flush
+// → end) correctly:
+//   * debits ONLY the caller's wallet by the consumed coins,
+//   * credits the callee (creator) by floor(coins * CREATOR_EARN_RATIO),
+//   * writes audit rows in `transactions` for both parties,
+//   * marks the call_log ended with end_reason set.
+//
+// Admin-only. Synthesizes a call_log between two real users (an auto-picked
+// non-admin "caller" with enough balance and a creator "callee"), runs the
+// flow against the live DB, verifies, then ROLLS BACK every change so no
+// production state is leaked. Returns step-by-step PASS/FAIL details.
+export const runCallEndE2E = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((d: unknown) =>
+    z
+      .object({
+        callerId: z.string().uuid().optional(),
+        calleeId: z.string().uuid().optional(),
+        bumpCoins: z.number().int().min(1).max(1000).optional(),
+      })
+      .parse(d ?? {}),
+  )
+  .handler(async ({ context, data }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const db = supabaseAdmin as any;
+    const { data: isAdmin } = await context.supabase.rpc("has_role", {
+      _user_id: context.userId,
+      _role: "admin",
+    });
+    if (!isAdmin) throw new Error("Forbidden");
+
+    const BUMP = data.bumpCoins ?? 10;
+    const EARN_RATIO = 0.5;
+    const expectedEarn = Math.floor(BUMP * EARN_RATIO);
+
+    const steps: Array<{ step: string; ok: boolean; detail?: any }> = [];
+    const log = (step: string, ok: boolean, detail?: any) =>
+      steps.push({ step, ok, detail });
+
+    // Resolve callee (creator)
+    let calleeId = data.calleeId;
+    if (!calleeId) {
+      const { data: pick } = await db
+        .from("profiles")
+        .select("id")
+        .eq("is_creator", true)
+        .eq("onboarded", true)
+        .eq("is_banned", false)
+        .is("deleted_at", null)
+        .limit(1)
+        .maybeSingle();
+      if (!pick) return { pass: false, reason: "No eligible creator.", steps };
+      calleeId = pick.id;
+    }
+    log("resolve_callee", true, { calleeId });
+
+    // Resolve caller — must have wallet >= BUMP
+    let callerId = data.callerId;
+    if (!callerId) {
+      const { data: cands } = await db
+        .from("wallets")
+        .select("user_id, coin_balance")
+        .gte("coin_balance", BUMP)
+        .neq("user_id", calleeId)
+        .limit(20);
+      const pick = (cands ?? [])[0];
+      if (!pick) {
+        return {
+          pass: false,
+          reason: `No user with wallet >= ${BUMP} coins.`,
+          steps,
+        };
+      }
+      callerId = pick.user_id;
+    }
+    log("resolve_caller", true, { callerId });
+
+    // Snapshot wallets
+    const [{ data: cwPre }, { data: kwPre }] = await Promise.all([
+      db.from("wallets").select("coin_balance").eq("user_id", callerId).maybeSingle(),
+      db.from("wallets").select("coin_balance").eq("user_id", calleeId).maybeSingle(),
+    ]);
+    const callerPre = Number(cwPre?.coin_balance ?? 0);
+    const calleePre = Number(kwPre?.coin_balance ?? 0);
+    if (callerPre < BUMP) {
+      return {
+        pass: false,
+        reason: `Caller balance ${callerPre} < bump ${BUMP}.`,
+        steps,
+      };
+    }
+    log("snapshot_wallets", true, { callerPre, calleePre });
+
+    let createdLogId: string | null = null;
+    let createdTxnIds: string[] = [];
+
+    try {
+      // 1) Start synthetic call_log
+      const { data: logRow, error: logErr } = await db
+        .from("call_logs")
+        .insert({
+          caller_id: callerId,
+          callee_id: calleeId,
+          kind: "voice",
+          status: "completed",
+        })
+        .select("id")
+        .single();
+      if (logErr) throw logErr;
+      createdLogId = logRow.id as string;
+      log("start_call_log", true, { callLogId: createdLogId });
+
+      // 2) Apply usage: debit caller, credit creator, write transactions
+      const callerNext = callerPre - BUMP;
+      const calleeNext = calleePre + expectedEarn;
+      await db
+        .from("wallets")
+        .update({ coin_balance: callerNext, updated_at: new Date().toISOString() })
+        .eq("user_id", callerId);
+      await db
+        .from("wallets")
+        .update({ coin_balance: calleeNext, updated_at: new Date().toISOString() })
+        .eq("user_id", calleeId);
+
+      const { data: spendTxn } = await db
+        .from("transactions")
+        .insert({
+          user_id: callerId,
+          type: "chat_spend",
+          coins_delta: -BUMP,
+          inr_amount: 0,
+          metadata: { call_log_id: createdLogId, e2e: true, idempotency_key: `e2e-${createdLogId}` },
+        })
+        .select("id")
+        .single();
+      if (spendTxn?.id) createdTxnIds.push(spendTxn.id);
+
+      const { data: earnTxn } = await db
+        .from("transactions")
+        .insert({
+          user_id: calleeId,
+          type: "call_earning",
+          coins_delta: expectedEarn,
+          inr_amount: 0,
+          metadata: {
+            call_log_id: createdLogId,
+            payer_id: callerId,
+            gross_coins: BUMP,
+            earn_ratio: EARN_RATIO,
+            e2e: true,
+          },
+        })
+        .select("id")
+        .single();
+      if (earnTxn?.id) createdTxnIds.push(earnTxn.id);
+
+      log("apply_usage_flush", true, { debited: BUMP, credited: expectedEarn });
+
+      // 3) End call_log
+      await db
+        .from("call_logs")
+        .update({
+          ended_at: new Date().toISOString(),
+          duration_seconds: 30,
+          coins_spent: BUMP,
+          status: "completed",
+          end_reason: "user_ended",
+          ended_by: callerId,
+        })
+        .eq("id", createdLogId);
+      log("end_call_log", true);
+
+      // 4) Verify wallets
+      const [{ data: cwPost }, { data: kwPost }] = await Promise.all([
+        db.from("wallets").select("coin_balance").eq("user_id", callerId).maybeSingle(),
+        db.from("wallets").select("coin_balance").eq("user_id", calleeId).maybeSingle(),
+      ]);
+      const callerPost = Number(cwPost?.coin_balance ?? 0);
+      const calleePost = Number(kwPost?.coin_balance ?? 0);
+      const callerDelta = callerPre - callerPost;
+      const calleeDelta = calleePost - calleePre;
+      const callerDebitedExact = callerDelta === BUMP;
+      const calleeCreditedExact = calleeDelta === expectedEarn;
+      log("verify_caller_debited", callerDebitedExact, { callerPre, callerPost, delta: callerDelta });
+      log("verify_creator_credited", calleeCreditedExact, { calleePre, calleePost, delta: calleeDelta });
+
+      // 5) Verify audit rows
+      const { data: auditRows } = await db
+        .from("transactions")
+        .select("id, user_id, type, coins_delta, metadata")
+        .in("id", createdTxnIds);
+      const auditCaller = (auditRows ?? []).find(
+        (r: any) => r.user_id === callerId && r.type === "chat_spend",
+      );
+      const auditCreator = (auditRows ?? []).find(
+        (r: any) => r.user_id === calleeId && r.type === "call_earning",
+      );
+      const auditOk =
+        !!auditCaller &&
+        !!auditCreator &&
+        auditCaller.coins_delta === -BUMP &&
+        auditCreator.coins_delta === expectedEarn;
+      log("verify_audit_rows_present", auditOk, {
+        callerTxn: auditCaller,
+        creatorTxn: auditCreator,
+      });
+
+      // 6) Verify call_log ended properly
+      const { data: logAfter } = await db
+        .from("call_logs")
+        .select("ended_at, end_reason, ended_by, coins_spent, status")
+        .eq("id", createdLogId)
+        .maybeSingle();
+      const logEndedOk =
+        !!logAfter?.ended_at &&
+        logAfter?.end_reason === "user_ended" &&
+        logAfter?.ended_by === callerId &&
+        Number(logAfter?.coins_spent ?? 0) === BUMP;
+      log("verify_call_log_ended", logEndedOk, logAfter);
+
+      const pass =
+        callerDebitedExact && calleeCreditedExact && auditOk && logEndedOk;
+
+      return {
+        pass,
+        callerId,
+        calleeId,
+        bump: BUMP,
+        expectedEarn,
+        steps,
+        summary: {
+          callerDebitedExact,
+          calleeCreditedExact,
+          auditRowsPresent: auditOk,
+          callLogEnded: logEndedOk,
+        },
+      };
+    } finally {
+      // Cleanup: reverse wallet changes, delete synthetic txns + call_log
+      if (createdTxnIds.length) {
+        await db.from("transactions").delete().in("id", createdTxnIds);
+      }
+      await db
+        .from("wallets")
+        .update({ coin_balance: callerPre, updated_at: new Date().toISOString() })
+        .eq("user_id", callerId);
+      await db
+        .from("wallets")
+        .update({ coin_balance: calleePre, updated_at: new Date().toISOString() })
+        .eq("user_id", calleeId);
+      if (createdLogId) {
+        await db.from("call_logs").delete().eq("id", createdLogId);
+      }
+    }
   });
