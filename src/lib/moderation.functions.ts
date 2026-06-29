@@ -117,7 +117,7 @@ function severityFor(score: number, csam: boolean): { severity: number; status: 
 // ---- submit a sample (called from the client during a live call) ----
 export const submitMediaSample = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) =>
+  .validator((d: unknown) =>
     z.object({
       kind: z.enum(["voice", "video", "image"]),
       // Target user being analyzed (peer in the call). Self = local mic/cam sample.
@@ -181,7 +181,7 @@ export const submitMediaSample = createServerFn({ method: "POST" })
 // ---- Text chat moderation (called per outbound message) ----
 export const moderateChatText = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) =>
+  .validator((d: unknown) =>
     z.object({
       targetUserId: z.string().uuid(),
       text: z.string().min(1).max(2000),
@@ -243,7 +243,7 @@ export const adminListModerationQueue = createServerFn({ method: "GET" })
 
 export const adminReviewModerationEvent = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) =>
+  .validator((d: unknown) =>
     z.object({ id: z.string().uuid(), status: z.enum(["confirmed", "dismissed"]) }).parse(d),
   )
   .handler(async ({ data, context }) => {
@@ -260,7 +260,7 @@ export const adminReviewModerationEvent = createServerFn({ method: "POST" })
 // ---- Admin: CSAM escalation workflow ----
 export const adminFlagCsam = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) =>
+  .validator((d: unknown) =>
     z.object({
       targetUserId: z.string().uuid(),
       callLogId: z.string().uuid().nullable().optional(),
@@ -317,7 +317,7 @@ export const adminListCsamReports = createServerFn({ method: "GET" })
 
 export const adminUpdateCsamReport = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) =>
+  .validator((d: unknown) =>
     z.object({
       id: z.string().uuid(),
       status: z.enum(["queued", "escalated", "closed"]),

@@ -21,7 +21,7 @@ const OnboardingInput = z.object({
 
 export const completeOnboarding = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => OnboardingInput.parse(d))
+  .validator((d: unknown) => OnboardingInput.parse(d))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
 
@@ -103,7 +103,7 @@ export const getMyProfile = createServerFn({ method: "GET" })
 export const updateMyLanguage = createServerFn({ method: "POST" })
 
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => z.object({ language: z.string().min(2).max(40) }).parse(d))
+  .validator((d: unknown) => z.object({ language: z.string().min(2).max(40) }).parse(d))
   .handler(async ({ data, context }) => {
     const { error } = await context.supabase
       .from("profiles")
@@ -117,7 +117,7 @@ export const updateMyLanguage = createServerFn({ method: "POST" })
 // Old object is deleted to avoid orphan files.
 export const setMyAvatar = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) =>
+  .validator((d: unknown) =>
     z.object({ objectPath: z.string().min(3).max(300) }).parse(d),
   )
   .handler(async ({ data, context }) => {
@@ -165,7 +165,7 @@ export const clearMyAvatar = createServerFn({ method: "POST" })
 
 export const setMyAiAvatarStyle = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) =>
+  .validator((d: unknown) =>
     z.object({ style: z.enum(AI_STYLE_IDS) }).parse(d),
   )
   .handler(async ({ data, context }) => {

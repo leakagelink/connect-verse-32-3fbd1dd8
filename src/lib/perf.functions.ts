@@ -15,7 +15,7 @@ const EventSchema = z.object({
 
 export const logPerfBatch = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) =>
+  .validator((d: unknown) =>
     z.object({ events: z.array(EventSchema).max(50) }).parse(d),
   )
   .handler(async ({ data, context }) => {
@@ -40,7 +40,7 @@ function percentile(sorted: number[], p: number) {
 
 export const adminPerfSummary = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) =>
+  .validator((d: unknown) =>
     z.object({ windowMinutes: z.number().int().min(1).max(1440).default(15) }).parse(d ?? {}),
   )
   .handler(async ({ data, context }) => {
@@ -115,7 +115,7 @@ export const adminPerfSummary = createServerFn({ method: "POST" })
 
 export const adminPerfTraces = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) =>
+  .validator((d: unknown) =>
     z.object({
       windowMinutes: z.number().int().min(1).max(1440).default(60),
       minDurationMs: z.number().int().min(0).max(60000).default(0),

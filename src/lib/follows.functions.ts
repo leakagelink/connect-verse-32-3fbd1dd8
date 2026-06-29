@@ -6,7 +6,7 @@ const UserIdInput = z.object({ userId: z.string().uuid() });
 
 export const getPartnerProfile = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => UserIdInput.parse(d))
+  .validator((d: unknown) => UserIdInput.parse(d))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
 
@@ -49,7 +49,7 @@ export const getPartnerProfile = createServerFn({ method: "POST" })
 
 export const sendFollowRequest = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => UserIdInput.parse(d))
+  .validator((d: unknown) => UserIdInput.parse(d))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
     if (data.userId === userId) throw new Error("Cannot follow yourself");
@@ -62,7 +62,7 @@ export const sendFollowRequest = createServerFn({ method: "POST" })
 
 export const respondFollowRequest = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => z.object({
+  .validator((d: unknown) => z.object({
     userId: z.string().uuid(), // the requester
     action: z.enum(["accept", "reject"]),
   }).parse(d))
@@ -88,7 +88,7 @@ export const respondFollowRequest = createServerFn({ method: "POST" })
 
 export const unfollowUser = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => UserIdInput.parse(d))
+  .validator((d: unknown) => UserIdInput.parse(d))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
     const { error } = await supabase

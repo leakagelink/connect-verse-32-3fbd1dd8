@@ -4,7 +4,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 export const submitReport = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => z.object({
+  .validator((d: unknown) => z.object({
     targetUserId: z.string().uuid(),
     reason: z.enum(["harassment","nudity","fake_profile","spam","threat","violence","scam","underage","other"]),
     context: z.string().max(500).optional(),
@@ -28,7 +28,7 @@ export const submitReport = createServerFn({ method: "POST" })
 
 export const blockUser = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => z.object({ targetUserId: z.string().uuid() }).parse(d))
+  .validator((d: unknown) => z.object({ targetUserId: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
     const { error } = await context.supabase
       .from("blocks")
@@ -39,7 +39,7 @@ export const blockUser = createServerFn({ method: "POST" })
 
 export const unblockUser = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => z.object({ targetUserId: z.string().uuid() }).parse(d))
+  .validator((d: unknown) => z.object({ targetUserId: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
     await context.supabase
       .from("blocks")

@@ -26,7 +26,7 @@ export const listRooms = createServerFn({ method: "GET" })
 
 export const createRoom = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => z.object({
+  .validator((d: unknown) => z.object({
     title: z.string().trim().min(3).max(60),
     topic: z.string().trim().max(160).optional(),
     kind: z.enum(["voice", "video", "game", "live"]),
@@ -67,7 +67,7 @@ export const createRoom = createServerFn({ method: "POST" })
 
 export const joinRoom = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => z.object({ roomId: z.string().uuid() }).parse(d))
+  .validator((d: unknown) => z.object({ roomId: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
     const { data: room } = await supabase
@@ -97,7 +97,7 @@ export const joinRoom = createServerFn({ method: "POST" })
 
 export const leaveRoom = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => z.object({ roomId: z.string().uuid() }).parse(d))
+  .validator((d: unknown) => z.object({ roomId: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
     await supabase.from("room_participants").delete().eq("room_id", data.roomId).eq("user_id", userId);
@@ -111,7 +111,7 @@ export const leaveRoom = createServerFn({ method: "POST" })
 
 export const getRoom = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => z.object({ roomId: z.string().uuid() }).parse(d))
+  .validator((d: unknown) => z.object({ roomId: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
     const { supabase } = context;
     const { data: room } = await supabase

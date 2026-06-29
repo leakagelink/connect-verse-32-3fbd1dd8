@@ -22,7 +22,7 @@ const SendInput = z.object({
 
 export const sendGift = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => SendInput.parse(d))
+  .validator((d: unknown) => SendInput.parse(d))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
     if (data.receiverId === userId) throw new Error("Cannot send a gift to yourself");

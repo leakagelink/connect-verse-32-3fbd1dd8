@@ -11,7 +11,7 @@ async function assertNotBanned(supabase: any, userId: string) {
 
 export const getOrCreateConversation = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => z.object({ otherUserId: z.string().uuid() }).parse(d))
+  .validator((d: unknown) => z.object({ otherUserId: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
     if (data.otherUserId === userId) throw new Error("Cannot chat with yourself");
@@ -69,7 +69,7 @@ export const listConversations = createServerFn({ method: "GET" })
 
 export const sendMessage = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => z.object({
+  .validator((d: unknown) => z.object({
     conversationId: z.string().uuid(),
     body: z.string().trim().min(1).max(2000),
   }).parse(d))
@@ -140,7 +140,7 @@ export const sendMessage = createServerFn({ method: "POST" })
 
 export const startChatSession = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => z.object({ conversationId: z.string().uuid() }).parse(d))
+  .validator((d: unknown) => z.object({ conversationId: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
     await assertNotBanned(supabase, userId);
@@ -167,7 +167,7 @@ export const startChatSession = createServerFn({ method: "POST" })
 
 export const tickChatBilling = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => z.object({
+  .validator((d: unknown) => z.object({
     sessionId: z.string().uuid(),
     elapsedSeconds: z.number().int().min(1).max(120),
   }).parse(d))
@@ -254,7 +254,7 @@ export const tickChatBilling = createServerFn({ method: "POST" })
 
 export const endChatSession = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => z.object({ sessionId: z.string().uuid() }).parse(d))
+  .validator((d: unknown) => z.object({ sessionId: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
     const { userId } = context;
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -268,7 +268,7 @@ export const endChatSession = createServerFn({ method: "POST" })
 
 export const loadMessages = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => z.object({ conversationId: z.string().uuid() }).parse(d))
+  .validator((d: unknown) => z.object({ conversationId: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
     const { data: msgs } = await context.supabase
       .from("messages")

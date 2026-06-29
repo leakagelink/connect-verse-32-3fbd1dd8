@@ -40,7 +40,7 @@ export const listMyNotifications = createServerFn({ method: "GET" })
 
 export const markNotificationRead = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: { id: string }) => z.object({ id: z.string().uuid() }).parse(d))
+  .validator((d: { id: string }) => z.object({ id: z.string().uuid() }).parse(d))
   .handler(async ({ context, data }) => {
     const { error } = await context.supabase
       .from("app_notifications")
@@ -63,7 +63,7 @@ export const markAllNotificationsRead = createServerFn({ method: "POST" })
 
 export const deleteNotification = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: { id: string }) => z.object({ id: z.string().uuid() }).parse(d))
+  .validator((d: { id: string }) => z.object({ id: z.string().uuid() }).parse(d))
   .handler(async ({ context, data }) => {
     const { error } = await context.supabase.from("app_notifications").delete().eq("id", data.id);
     if (error) throw new Error(error.message);
@@ -88,7 +88,7 @@ const PrefsSchema = z.object({
 
 export const saveNotificationPrefs = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: NotificationPrefs) => PrefsSchema.parse(d))
+  .validator((d: NotificationPrefs) => PrefsSchema.parse(d))
   .handler(async ({ context, data }) => {
     const { error } = await context.supabase
       .from("notification_prefs")

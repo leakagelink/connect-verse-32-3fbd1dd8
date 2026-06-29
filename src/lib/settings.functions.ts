@@ -27,7 +27,7 @@ export const getAppSettings = createServerFn({ method: "GET" })
 
 export const setAppSetting = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { key: keyof AppSettings; value: unknown }) => input)
+  .validator((input: { key: keyof AppSettings; value: unknown }) => input)
   .handler(async ({ context, data }) => {
     const { supabase, userId } = context;
     const { data: isAdmin } = await supabase.rpc("has_role", {

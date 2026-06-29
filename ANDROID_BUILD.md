@@ -6,13 +6,34 @@ Phase 4 wraps the Talkora web app into a Play-Store-ready Android APK/AAB using 
 
 ---
 
+## 0. If your laptop copy is broken, do a truly fresh clone
+
+Do **not** delete only the `android/` folder inside the project. That removes Talkora's custom native permission bridge (`CallPermissionsPlugin`) and causes camera/mic prompts to stop working. If you want a fresh copy, delete/rename the whole project folder and clone again:
+
+```powershell
+cd C:\Users\ASUS
+Rename-Item connect-verse-32 connect-verse-32-old -ErrorAction SilentlyContinue
+git clone https://github.com/leakagelink/connect-verse-32.git
+cd connect-verse-32
+```
+
+Then use the automated script below. It fixes `JAVA_HOME`, installs packages, builds web assets, syncs Android, verifies the live URL + native call-permission files, and opens Android Studio:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\windows-fresh-android-build.ps1 -OpenAndroidStudio
+```
+
+If Android Studio is installed in the default path, this script uses Android Studio's bundled JDK automatically. The `inputValidator()` lines in the build output are deprecation warnings, not build errors.
+
+---
+
 ## 1. One-time machine setup
 
 Install on your Windows dev machine:
 
 1. **Node 20+** and **bun** (already used by this project).
 2. **Android Studio** (Hedgehog or newer) + Android SDK 34 + Build-Tools 34.
-3. **JDK 17** (Android Studio bundles one — point `JAVA_HOME` at it).
+3. **JDK 17 or newer** (Android Studio bundles one — the script auto-points `JAVA_HOME` at it when your existing `JAVA_HOME` is invalid).
 4. Set environment variable `ANDROID_HOME` to your SDK location, e.g.
    ```powershell
    setx ANDROID_HOME "$env:LOCALAPPDATA\Android\Sdk"
@@ -26,11 +47,10 @@ From the repo root in PowerShell:
 
 ```powershell
 bun run build
-npx cap add android
-npx cap sync android
+bunx cap sync android
 ```
 
-This generates the `android/` folder. Commit it.
+The `android/` folder is already part of this repo and contains Talkora's custom native permission bridge. Do **not** run `cap add android` unless you are intentionally recreating the native project from scratch and then re-applying all Talkora native files.
 
 ---
 
@@ -47,32 +67,15 @@ Open `android/app/src/main/AndroidManifest.xml` and add inside `<manifest>`:
 <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
 <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
 <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
-<uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
-<uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />
-<uses-permission android:name="android.permission.FOREGROUND_SERVICE_CAMERA" />
 
 <uses-feature android:name="android.hardware.camera" android:required="false" />
-<uses-feature android:name="android.hardware.microphone" android:required="true" />
+<uses-feature android:name="android.hardware.microphone" android:required="false" />
 ```
 
 Inside `<application>`:
 
 ```xml
 android:usesCleartextTraffic="false"
-android:networkSecurityConfig="@xml/network_security_config"
-```
-
-Create `android/app/src/main/res/xml/network_security_config.xml`:
-
-```xml
-<?xml version="1.0" encoding="utf-8"?>
-<network-security-config>
-  <base-config cleartextTrafficPermitted="false">
-    <trust-anchors>
-      <certificates src="system" />
-    </trust-anchors>
-  </base-config>
-</network-security-config>
 ```
 
 ---
@@ -126,7 +129,7 @@ Capacitor can keep an old native bundle or Android can keep old app data. From t
 ```powershell
 bun run build
 New-Item -ItemType Directory -Force -Path "android\app\src\main\assets"
-npx cap sync android
+bunx cap sync android
 Set-Location android
 .\gradlew clean
 .\gradlew assembleDebug
@@ -141,6 +144,20 @@ adb install "android\app\build\outputs\apk\debug\app-debug.apk"
 ```
 
 This project **does** set `server.url` to the live Talkora web app. That is required because creators, presence, calls, wallet, gifts and server functions need the live backend. If the APK acts static/empty, verify `android/app/src/main/assets/capacitor.config.json` contains `https://connect-verse-32.lovable.app`, then uninstall the old app and reinstall.
+
+### Important checks before running from Android Studio
+
+```powershell
+Test-Path android\app\src\main\java\in\talkora\app\CallPermissionsPlugin.java
+Get-Content android\app\src\main\assets\capacitor.config.json | Select-String connect-verse-32.lovable.app
+Get-Content android\app\src\main\AndroidManifest.xml | Select-String "RECORD_AUDIO|CAMERA|POST_NOTIFICATIONS"
+```
+
+All three checks must return output. If not, run:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\windows-fresh-android-build.ps1
+```
 
 ---
 

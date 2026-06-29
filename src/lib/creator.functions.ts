@@ -33,7 +33,7 @@ export const getMyAvailability = createServerFn({ method: "GET" })
 
 export const saveMyAvailability = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d) =>
+  .validator((d) =>
     z
       .object({
         accepting_calls: z.boolean(),
@@ -120,7 +120,7 @@ export const getMyFanClub = createServerFn({ method: "GET" })
 
 export const saveMyFanClub = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d) =>
+  .validator((d) =>
     z
       .object({
         name: z.string().min(2).max(40),
@@ -152,7 +152,7 @@ export const saveMyFanClub = createServerFn({ method: "POST" })
 
 export const joinFanClub = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d) => z.object({ creatorId: z.string().uuid() }).parse(d))
+  .validator((d) => z.object({ creatorId: z.string().uuid() }).parse(d))
   .handler(async ({ context, data }) => {
     const { userId } = context;
     if (userId === data.creatorId) throw new Error("Cannot join your own fan club");
@@ -231,7 +231,7 @@ export const joinFanClub = createServerFn({ method: "POST" })
 
 export const getFanClubFor = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d) => z.object({ creatorId: z.string().uuid() }).parse(d))
+  .validator((d) => z.object({ creatorId: z.string().uuid() }).parse(d))
   .handler(async ({ context, data }) => {
     const { supabase, userId } = context;
     const [{ data: club }, { data: membership }] = await Promise.all([

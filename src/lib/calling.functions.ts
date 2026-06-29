@@ -100,7 +100,7 @@ const GetCfgInput = z.object({
  */
 export const getCallingConfig = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => GetCfgInput.parse(d ?? {}))
+  .validator((d: unknown) => GetCfgInput.parse(d ?? {}))
   .handler(async ({ data, context }) => {
     // Reject banned users upfront
     const { data: prof } = await context.supabase
@@ -141,7 +141,7 @@ const AgoraTokenInput = z.object({
 
 export const issueAgoraToken = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => AgoraTokenInput.parse(d))
+  .validator((d: unknown) => AgoraTokenInput.parse(d))
   .handler(async ({ data, context }) => {
     const { data: prof } = await context.supabase
       .from("profiles").select("is_banned").eq("id", context.userId).maybeSingle();
@@ -212,7 +212,7 @@ const HmsTokenInput = z.object({
  */
 export const issueHmsToken = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => HmsTokenInput.parse(d))
+  .validator((d: unknown) => HmsTokenInput.parse(d))
   .handler(async ({ data, context }) => {
     const { data: prof } = await context.supabase
       .from("profiles").select("is_banned").eq("id", context.userId).maybeSingle();
@@ -319,7 +319,7 @@ const FailureInput = z.object({
 
 export const reportCallFailure = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => FailureInput.parse(d))
+  .validator((d: unknown) => FailureInput.parse(d))
   .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     await supabaseAdmin.rpc("report_credential_failure", {
@@ -348,7 +348,7 @@ const MetricsInput = z.object({
 
 export const recordCallMetrics = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => MetricsInput.parse(d))
+  .validator((d: unknown) => MetricsInput.parse(d))
   .handler(async ({ data, context }) => {
     const patch: Record<string, unknown> = { provider: data.provider };
     if (data.channelName) patch.channel_name = data.channelName;
@@ -421,7 +421,7 @@ const CreateInput = z.object({
 
 export const adminCreateCredential = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => CreateInput.parse(d))
+  .validator((d: unknown) => CreateInput.parse(d))
   .handler(async ({ data, context }) => {
     await assertAdmin(context);
     const creds: Record<string, string> = {};
@@ -475,7 +475,7 @@ const UpdateInput = z.object({
 
 export const adminUpdateCredential = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => UpdateInput.parse(d))
+  .validator((d: unknown) => UpdateInput.parse(d))
   .handler(async ({ data, context }) => {
     await assertAdmin(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -512,7 +512,7 @@ const IdInput = z.object({ id: z.string().uuid() });
 
 export const adminDeleteCredential = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => IdInput.parse(d))
+  .validator((d: unknown) => IdInput.parse(d))
   .handler(async ({ data, context }) => {
     await assertAdmin(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -524,7 +524,7 @@ export const adminDeleteCredential = createServerFn({ method: "POST" })
 
 export const adminResetCredentialStatus = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => IdInput.parse(d))
+  .validator((d: unknown) => IdInput.parse(d))
   .handler(async ({ data, context }) => {
     await assertAdmin(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -579,7 +579,7 @@ const TestInput = z.object({ credentialId: z.string().uuid().optional() });
 
 export const adminTestCredential = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => TestInput.parse(d))
+  .validator((d: unknown) => TestInput.parse(d))
   .handler(async ({ data, context }) => {
     await assertAdmin(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");

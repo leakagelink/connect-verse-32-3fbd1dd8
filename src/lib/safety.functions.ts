@@ -13,7 +13,7 @@ const AvailabilityInput = z.object({
 
 export const updateAvailability = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => AvailabilityInput.parse(d))
+  .validator((d: unknown) => AvailabilityInput.parse(d))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
     const { error } = await supabase
@@ -31,7 +31,7 @@ const LocationBlocksInput = z.object({
 
 export const updateLocationBlocks = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => LocationBlocksInput.parse(d))
+  .validator((d: unknown) => LocationBlocksInput.parse(d))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
     const { error } = await supabase
@@ -71,7 +71,7 @@ const SignalsInput = z.object({
  */
 export const recordDeviceSignals = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => SignalsInput.parse(d))
+  .validator((d: unknown) => SignalsInput.parse(d))
   .handler(async ({ data, context }) => {
     const { userId } = context;
     const { getRequest } = await import("@tanstack/react-start/server");
