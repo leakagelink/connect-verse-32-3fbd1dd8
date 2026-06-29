@@ -311,15 +311,30 @@ function CallScreen() {
       } catch (e: any) {
         if (!mounted) return;
         const msg = String(e?.message ?? e ?? "");
-        // Classify so we can show the right call-to-action.
+        const name = String(e?.name ?? "");
+        const blob = `${name} ${msg}`;
+        // Classify so we can show the right call-to-action. Kind-aware:
+        // for video calls we bias ambiguous failures toward "camera" so the
+        // user gets actionable camera guidance instead of a generic media error.
         let kindOfErr: "mic" | "camera" | "media" | "in-use" | "other" = "other";
-        if (/NotReadableError|in use|busy/i.test(msg)) kindOfErr = "in-use";
-        else if (/camera/i.test(msg) && /(NotAllowed|Permission|denied|NotFound)/i.test(msg)) kindOfErr = "camera";
-        else if (/(NotAllowed|Permission|denied)/i.test(msg) && /(mic|audio)/i.test(msg)) kindOfErr = "mic";
-        else if (/NotAllowedError|Permission/i.test(msg)) kindOfErr = kind === "video" ? "media" : "mic";
-        else if (/NotFoundError/i.test(msg)) kindOfErr = kind === "video" ? "media" : "mic";
-        else if (/getUserMedia|media|camera|mic/i.test(msg)) kindOfErr = "media";
-        setJoinError({ kind: kindOfErr, message: msg || "Unknown error" });
+        const mentionsCamera = /camera|video|OverconstrainedError|getUserMedia.*video/i.test(blob);
+        const mentionsMic = /mic|microphone|audio/i.test(blob);
+        const isInUse = /NotReadableError|TrackStartError|in use|busy|already in use/i.test(blob);
+        const isPerm = /NotAllowedError|Permission|denied|SecurityError/i.test(blob);
+        const isNotFound = /NotFoundError|DevicesNotFoundError|Requested device not found/i.test(blob);
+        const isOverconstrained = /OverconstrainedError|ConstraintNotSatisfied/i.test(blob);
+        if (isInUse) {
+          kindOfErr = "in-use";
+        } else if (mentionsCamera && !mentionsMic && (isPerm || isNotFound || isOverconstrained)) {
+          kindOfErr = "camera";
+        } else if (mentionsMic && !mentionsCamera && (isPerm || isNotFound)) {
+          kindOfErr = "mic";
+        } else if (isPerm || isNotFound || isOverconstrained) {
+          kindOfErr = kind === "video" ? (mentionsCamera ? "camera" : "media") : "mic";
+        } else if (/getUserMedia|MediaStream|track/i.test(blob)) {
+          kindOfErr = kind === "video" ? "camera" : "mic";
+        }
+        setJoinError({ kind: kindOfErr, message: msg || name || "Unknown error" });
         setRetrying(false);
       }
     }
