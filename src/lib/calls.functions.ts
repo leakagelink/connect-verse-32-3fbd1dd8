@@ -258,10 +258,35 @@ export const applyCallUsage = createServerFn({ method: "POST" })
       .eq("id", data.callLogId)
       .maybeSingle();
     if (logErr) throw logErr;
-    if (!log || log.caller_id !== userId) {
+    if (!log) {
       return { ok: false, freeSeconds: null, balance: null, reason: "no-log" };
     }
-    const calleeId = log.callee_id as string;
+
+    // ---------- Resolve payer / earner ----------
+    // The CALLER is not always the payer: if the call was started by a
+    // creator to a regular user, the user (callee) pays and the creator
+    // (caller) earns. We look up is_creator for both sides and pick the
+    // non-creator as the payer (fallback: caller pays).
+    const { data: profs } = await supabaseAdmin
+      .from("profiles")
+      .select("id, is_creator")
+      .in("id", [log.caller_id, log.callee_id]);
+    const isCreatorMap = new Map<string, boolean>(
+      (profs ?? []).map((p: any) => [p.id, !!p.is_creator]),
+    );
+    const callerIsCreator = isCreatorMap.get(log.caller_id) ?? false;
+    const calleeIsCreator = isCreatorMap.get(log.callee_id) ?? false;
+    const payerId =
+      callerIsCreator && !calleeIsCreator ? log.callee_id : log.caller_id;
+    const earnerId = payerId === log.caller_id ? log.callee_id : log.caller_id;
+    const earnerIsCreator = earnerId === log.caller_id ? callerIsCreator : calleeIsCreator;
+
+    if (userId !== payerId) {
+      // Only the payer side may report usage — guards against an earner
+      // (creator) accidentally debiting themselves on a reconnect/refresh.
+      return { ok: false, freeSeconds: null, balance: null, reason: "not-payer" };
+    }
+
 
     const storedFree = Number(log.free_seconds_used ?? 0);
     const storedCoins = Number(log.coins_spent ?? 0);
@@ -341,31 +366,33 @@ export const applyCallUsage = createServerFn({ method: "POST" })
         },
       });
 
-      // Credit the creator (callee) their earning share for the paid portion
-      // of this delta. Only the caller is debited — the creator earns coins.
+      // Credit the EARNER (the creator side) their share for the paid
+      // portion of this delta. Only the payer is debited above — the
+      // creator earns coins regardless of who tapped "call" first.
       // CREATOR_EARN_RATIO is the fraction of spent coins the creator keeps;
-      // the rest is the platform commission.
+      // the rest is the platform commission. Skip credit entirely if the
+      // other side is not a creator (consumer-to-consumer call).
       const CREATOR_EARN_RATIO = 0.5;
       const creatorEarn = Math.floor(deltaCoins * CREATOR_EARN_RATIO);
-      if (creatorEarn > 0 && calleeId && calleeId !== userId) {
+      if (creatorEarn > 0 && earnerIsCreator && earnerId && earnerId !== userId) {
         const { data: creatorWallet } = await supabaseAdmin
           .from("wallets")
           .select("coin_balance")
-          .eq("user_id", calleeId)
+          .eq("user_id", earnerId)
           .maybeSingle();
         if (creatorWallet) {
           const newCreatorBal = Number(creatorWallet.coin_balance ?? 0) + creatorEarn;
           await supabaseAdmin
             .from("wallets")
             .update({ coin_balance: newCreatorBal, updated_at: new Date().toISOString() })
-            .eq("user_id", calleeId);
+            .eq("user_id", earnerId);
         } else {
           await supabaseAdmin
             .from("wallets")
-            .insert({ user_id: calleeId, coin_balance: creatorEarn });
+            .insert({ user_id: earnerId, coin_balance: creatorEarn });
         }
         await supabaseAdmin.from("transactions").insert({
-          user_id: calleeId,
+          user_id: earnerId,
           type: "call_earning",
           coins_delta: creatorEarn,
           inr_amount: 0,

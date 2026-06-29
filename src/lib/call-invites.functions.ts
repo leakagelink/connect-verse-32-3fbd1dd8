@@ -3,10 +3,60 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { withAiAvatar, withAiAvatars } from "./ai-avatar";
 import { notifyUser, notifyIncomingCall, notifyCallEnded } from "./push.functions";
+import { VOICE_CALL_COINS_PER_MINUTE, VIDEO_CALL_COINS_PER_MINUTE } from "./constants";
 
 const KindSchema = z.enum(["voice", "video"]);
 const InviteIdSchema = z.object({ inviteId: z.string().uuid() });
 const INVITE_TTL_SECONDS = 45;
+
+/**
+ * Resolve which side of a call PAYS coins and which side EARNS them.
+ *
+ * Rule: the creator is always the earner; the consumer (non-creator) is
+ * always the payer. This lets a creator initiate calls to a regular user
+ * without accidentally draining the creator's wallet — coins still come
+ * out of the consumer's wallet regardless of who tapped "call" first.
+ *
+ * Fallback: if both sides are creators or both are non-creators, the
+ * caller pays (legacy behaviour).
+ */
+async function resolveCallParties(
+  db: any,
+  callerId: string,
+  calleeId: string,
+): Promise<{
+  payerId: string;
+  earnerId: string;
+  payerRole: "caller" | "callee";
+  earnerRole: "caller" | "callee";
+  earnerIsCreator: boolean;
+}> {
+  const { data: profs } = await db
+    .from("profiles")
+    .select("id, is_creator")
+    .in("id", [callerId, calleeId]);
+  const map = new Map<string, boolean>((profs ?? []).map((p: any) => [p.id, !!p.is_creator]));
+  const callerIsCreator = map.get(callerId) ?? false;
+  const calleeIsCreator = map.get(calleeId) ?? false;
+
+  // Default: caller pays, callee earns.
+  let payerRole: "caller" | "callee" = "caller";
+  if (callerIsCreator && !calleeIsCreator) {
+    // Creator → user: the user (callee) is the payer.
+    payerRole = "callee";
+  }
+  const payerId = payerRole === "caller" ? callerId : calleeId;
+  const earnerId = payerRole === "caller" ? calleeId : callerId;
+  const earnerIsCreator = payerRole === "caller" ? calleeIsCreator : callerIsCreator;
+  return {
+    payerId,
+    earnerId,
+    payerRole,
+    earnerRole: payerRole === "caller" ? "callee" : "caller",
+    earnerIsCreator,
+  };
+}
+
 
 const SAFE_PROFILE_FIELDS =
   "id, username, gender, country, state, language, avatar_url, ai_avatar_style, is_creator, last_seen_at, availability";
@@ -219,22 +269,37 @@ async function recordMissedCallLog(
   }
 }
 
-function statusDto(invite: any, userId: string, log?: any) {
+function statusDto(
+  invite: any,
+  userId: string,
+  log?: any,
+  parties?: { payerRole: "caller" | "callee"; earnerRole: "caller" | "callee"; payerId: string; earnerId: string },
+) {
+  const role = invite.caller_id === userId ? "caller" : "callee";
   return {
     id: invite.id as string,
     kind: invite.kind as "voice" | "video",
     status: invite.status as "pending" | "accepted" | "rejected" | "missed" | "cancelled" | "expired",
     callerId: invite.caller_id as string,
     calleeId: invite.callee_id as string,
-    role: invite.caller_id === userId ? "caller" : "callee",
+    role,
     callLogId: (invite.call_log_id ?? log?.id ?? null) as string | null,
     expiresAt: invite.expires_at as string,
     deliveredAt: (invite.delivered_at ?? null) as string | null,
     baselineDurationSeconds: Number(log?.duration_seconds ?? 0),
     baselineFreeSecondsUsed: Number(log?.free_seconds_used ?? 0),
     baselineCoinsSpent: Number(log?.coins_spent ?? 0),
+    // Billing direction: which side pays / earns coins for this call.
+    // Null when the server hasn't resolved it yet — client falls back to
+    // legacy behaviour (caller = payer).
+    payerRole: (parties?.payerRole ?? null) as "caller" | "callee" | null,
+    earnerRole: (parties?.earnerRole ?? null) as "caller" | "callee" | null,
+    payerId: (parties?.payerId ?? null) as string | null,
+    earnerId: (parties?.earnerId ?? null) as string | null,
+    amPayer: parties ? userId === parties.payerId : null,
   };
 }
+
 
 
 export const createCallInvite = createServerFn({ method: "POST" })
@@ -446,7 +511,8 @@ export const getCallInviteStatus = createServerFn({ method: "POST" })
         .maybeSingle();
       log = row;
     }
-    return statusDto(invite, context.userId, log);
+    const parties = await resolveCallParties(db, invite.caller_id, invite.callee_id);
+    return statusDto(invite, context.userId, log, parties);
   });
 
 /**
@@ -472,18 +538,43 @@ export const acceptCallInvite = createServerFn({ method: "POST" })
     const { data: rawInvite } = await db.from("call_invites").select("*").eq("id", data.inviteId).maybeSingle();
     if (!rawInvite || rawInvite.callee_id !== context.userId) throw new Error("Call invite not found.");
 
+    // Resolve billing direction up-front so every code path returns it.
+    const parties = await resolveCallParties(db, rawInvite.caller_id, rawInvite.callee_id);
+
     // ---------- Idempotent short-circuit ----------
     // If this invite is already accepted by the same callee, return the
     // existing DTO. Repeated taps / network retries / reconnect storms can
     // never insert a duplicate call_log or transition state twice.
     if (rawInvite.status === "accepted") {
       const log = await loadInviteLog(db, rawInvite.call_log_id);
-      return statusDto(rawInvite, context.userId, log);
+      return statusDto(rawInvite, context.userId, log, parties);
     }
 
     const invite = await expireIfNeeded(db, rawInvite);
     if (invite.status !== "pending") throw new Error("This call is no longer ringing.");
     await assertCallable(db, invite.caller_id, invite.callee_id);
+
+    // ---------- Payer-balance gate ----------
+    // If the accepting user IS the payer (i.e., a creator initiated the call
+    // to them), make sure they can afford at least one minute of talk time.
+    // Otherwise show a recharge prompt instead of connecting a call that
+    // would instantly run dry.
+    if (context.userId === parties.payerId) {
+      const perMin = invite.kind === "video" ? VIDEO_CALL_COINS_PER_MINUTE : VOICE_CALL_COINS_PER_MINUTE;
+      const [{ data: payerProf }, { data: payerWallet }] = await Promise.all([
+        db.from("profiles").select("free_seconds_remaining").eq("id", parties.payerId).maybeSingle(),
+        db.from("wallets").select("coin_balance").eq("user_id", parties.payerId).maybeSingle(),
+      ]);
+      const freeLeft = Number(payerProf?.free_seconds_remaining ?? 0);
+      const coinLeft = Number(payerWallet?.coin_balance ?? 0);
+      const hasFreeMinute = freeLeft >= 60;
+      const hasCoinMinute = coinLeft >= perMin;
+      if (!hasFreeMinute && !hasCoinMinute) {
+        throw new Error(
+          `RECHARGE_REQUIRED: Bat karne ke liye coins lijiye. Kam se kam ${perMin} coins zaroori hain ek minute ${invite.kind === "video" ? "video" : "audio"} call ke liye.`,
+        );
+      }
+    }
 
     // ---------- Step 1: atomically reserve the invite ----------
     // Flip pending → accepted FIRST (without a call_log_id yet). Only one
@@ -515,7 +606,7 @@ export const acceptCallInvite = createServerFn({ method: "POST" })
       const { data: current } = await db.from("call_invites").select("*").eq("id", invite.id).maybeSingle();
       if (current?.status === "accepted" && current.callee_id === context.userId) {
         const log = await loadInviteLog(db, current.call_log_id);
-        return statusDto(current, context.userId, log);
+        return statusDto(current, context.userId, log, parties);
       }
       throw new Error("This call is no longer ringing.");
     }
@@ -547,7 +638,7 @@ export const acceptCallInvite = createServerFn({ method: "POST" })
       .select("*")
       .maybeSingle();
 
-    return statusDto(finalized ?? { ...reserved, call_log_id: log.id }, context.userId, log);
+    return statusDto(finalized ?? { ...reserved, call_log_id: log.id }, context.userId, log, parties);
   });
 
 export const rejectCallInvite = createServerFn({ method: "POST" })

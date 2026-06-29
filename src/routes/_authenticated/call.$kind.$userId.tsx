@@ -208,6 +208,11 @@ function CallScreen() {
   const [casePanelOpen, setCasePanelOpen] = useState(false);
   const [generating, setGenerating] = useState(false);
   const callRoleRef = useRef<"caller" | "callee" | null>(null);
+  // Whether the local user is the PAYER for this call. Server resolves this
+  // via resolveCallParties — a creator calling a regular user inverts the
+  // default (caller-pays) rule. Null until the invite status loads.
+  const amPayerRef = useRef<boolean | null>(null);
+  const [amPayerState, setAmPayerState] = useState<boolean | null>(null);
 
   // Realtime: share generated case_id between caller & callee using a deterministic channel
   useEffect(() => {
@@ -327,6 +332,14 @@ function CallScreen() {
           throw new Error("Call invite does not match this call session.");
         }
         callRoleRef.current = invite.role as "caller" | "callee";
+        // Prefer server-resolved billing direction; fall back to legacy
+        // caller-pays rule when older servers omit the field.
+        const payerResolved =
+          typeof invite.amPayer === "boolean"
+            ? invite.amPayer
+            : invite.role === "caller";
+        amPayerRef.current = payerResolved;
+        setAmPayerState(payerResolved);
         callLogIdRef.current = invite.callLogId;
         syncedFreeRef.current = invite.baselineFreeSecondsUsed ?? 0;
         syncedCoinsRef.current = invite.baselineCoinsSpent ?? 0;
@@ -569,7 +582,9 @@ function CallScreen() {
   const coinSecondsLeft = Math.floor((coinsLeft * 60) / perMin);
   const totalSecondsLeft = freeLeftSec + coinSecondsLeft;
   const usingFree = freeLeftSec > 0;
-  const isPayer = callRoleRef.current !== "callee";
+  // Server-resolved billing: a creator calling a regular user means the
+  // CALLEE is the payer. We honour amPayerState whenever it has loaded.
+  const isPayer = amPayerState ?? (callRoleRef.current !== "callee");
   const outOfFunds = connected && isPayer && totalSecondsLeft <= 0;
   const criticalTime = isPayer && perMin > 0 && totalSecondsLeft > 0 && totalSecondsLeft <= 60;
 
@@ -681,7 +696,10 @@ function CallScreen() {
   flushUsage.current = () => {
     const callLogId = callLogIdRef.current;
     if (!callLogId) return;
-    if (callRoleRef.current === "callee") return;
+    // Only the PAYER side reports usage to the server. The server also
+    // re-checks this (returns "not-payer") but we short-circuit here to
+    // avoid useless round-trips from the earner's tab.
+    if (amPayerRef.current === false) return;
     if (flushInFlightRef.current) return;
     // Paused (another tab took ownership) → don't push usage from this tab,
     // the authoritative tab is now responsible for billing.
