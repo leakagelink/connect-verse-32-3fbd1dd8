@@ -55,6 +55,9 @@ export function ForYouSection({
               <p className="text-[11px] text-muted-foreground truncate">
                 {[u.country, u.language].filter(Boolean).join(" · ")}
               </p>
+              <div className="mt-1">
+                <FollowStatusPill status={statusMap?.[u.id] ?? null} size="xs" />
+              </div>
             </div>
             <div className="flex gap-1">
               <Button size="icon" variant="secondary" className="size-8" onClick={() => onCall(u.id, "voice")}>
