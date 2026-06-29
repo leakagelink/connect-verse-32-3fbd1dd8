@@ -95,12 +95,30 @@ export const createCallInvite = createServerFn({ method: "POST" })
     if (callerId === data.calleeId) throw new Error("You cannot call yourself.");
     const { caller } = await assertCallable(db, callerId, data.calleeId);
 
+    // Busy detection: callee already ringing with someone else or in an active accepted call.
+    const nowIso = new Date().toISOString();
+    const { data: busyRows } = await db
+      .from("call_invites")
+      .select("id, status, caller_id, expires_at, accepted_at")
+      .eq("callee_id", data.calleeId)
+      .in("status", ["pending", "accepted"])
+      .order("created_at", { ascending: false })
+      .limit(5);
+    const isBusy = (busyRows ?? []).some((r: any) => {
+      if (r.caller_id === callerId) return false;
+      if (r.status === "accepted") return true;
+      if (r.status === "pending" && r.expires_at && new Date(r.expires_at).getTime() > Date.now()) return true;
+      return false;
+    });
+    if (isBusy) throw new Error("BUSY: This creator is on another call right now.");
+
     await db
       .from("call_invites")
-      .update({ status: "cancelled", cancelled_at: new Date().toISOString() })
+      .update({ status: "cancelled", cancelled_at: nowIso })
       .eq("caller_id", callerId)
       .eq("callee_id", data.calleeId)
       .eq("status", "pending");
+
 
     const { data: invite, error } = await db
       .from("call_invites")
