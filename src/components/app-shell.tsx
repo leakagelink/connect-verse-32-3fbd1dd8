@@ -9,7 +9,8 @@ import { APP_NAME } from "@/lib/constants";
 import talkoraLogo from "@/assets/talkora-logo.png.asset.json";
 import { SafetySignalsProbe } from "@/components/safety-signals-probe";
 import { NotificationsBell } from "@/components/notifications-bell";
-import { applyChromeForApp } from "@/lib/native";
+import { applyChromeForApp, startPushAutoRegister, isNative } from "@/lib/native";
+import { registerDeviceToken } from "@/lib/push.functions";
 import { installDeepLinkHandler } from "@/lib/deep-links";
 import { useT, syncStoredLocale, type Locale } from "@/lib/i18n";
 import { IncomingCallDialog } from "@/components/incoming-call-dialog";
@@ -20,6 +21,7 @@ export function AppShell({ children, isAdmin }: { children: ReactNode; isAdmin?:
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const router = useRouter();
   const profileFn = useServerFn(getMyProfile);
+  const registerTokenFn = useServerFn(registerDeviceToken);
   const { data: me } = useQuery({ queryKey: ["me"], queryFn: () => profileFn() });
   const balance = me?.walletBalance ?? 0;
   const unread = me?.unreadCount ?? 0;
@@ -36,12 +38,25 @@ export function AppShell({ children, isAdmin }: { children: ReactNode; isAdmin?:
     } catch (e) {
       console.warn("[native] init failed", e);
     }
-    // Push notification permission is intentionally NOT requested on app
-    // launch. It is now user-triggered from Settings so Android does not show
-    // only the notification dialog before call mic/camera permission, and a
-    // partial Firebase setup cannot crash the first screen.
+    // Push notifications: auto-register on every launch + on every resume.
+    // Picks up FCM token rotations (reinstall / clear-data / 28-day refresh)
+    // and immediately replaces the stale token on the server. Gated by
+    // signed-in profile so the protected server fn always has a bearer token.
+    if (isNative() && me?.profile?.id) {
+      try {
+        startPushAutoRegister(async ({ token, platform }) => {
+          try {
+            await registerTokenFn({ data: { token, platform } });
+          } catch (e) {
+            console.warn("[push] registerDeviceToken failed", e);
+          }
+        });
+      } catch (e) {
+        console.warn("[push] auto-register start failed", e);
+      }
+    }
     return dispose;
-  }, [router]);
+  }, [router, me?.profile?.id, registerTokenFn]);
 
 
   // Phase 10 — sync stored locale from profile.app_language whenever it changes.
