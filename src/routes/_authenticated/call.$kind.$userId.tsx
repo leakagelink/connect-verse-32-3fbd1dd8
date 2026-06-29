@@ -709,6 +709,8 @@ function CallScreen() {
   const BG_RECONNECT_GRACE_MS = 15_000;
   const bgHiddenAtRef = useRef<number | null>(null);
   const bgGraceTimerRef = useRef<number | null>(null);
+  const bgResumedClearTimerRef = useRef<number | null>(null);
+  const [bgState, setBgState] = useState<null | "reconnecting" | "resumed" | "lost">(null);
   useEffect(() => {
     if (!connected) return;
     const onVisibility = () => {
@@ -726,7 +728,11 @@ function CallScreen() {
       // SDK reports a healthy session AND remote still present → just a
       // brief background trip; surface a soft "back online" hint and exit.
       if (!localDropReasonRef.current && remoteJoined) {
-        if (awayMs > 4000) toast.success("Back online — call still connected");
+        if (awayMs > 4000) {
+          setBgState("resumed");
+          if (bgResumedClearTimerRef.current) clearTimeout(bgResumedClearTimerRef.current);
+          bgResumedClearTimerRef.current = window.setTimeout(() => setBgState(null), 3500);
+        }
         return;
       }
 
@@ -734,19 +740,27 @@ function CallScreen() {
       // grace window to auto-reconnect. `onReconnected` clears
       // localDropReasonRef and `onRemoteJoined` flips remoteJoined back on
       // — both are checked when the timer fires.
-      toast.warning("Reconnecting call…", { duration: BG_RECONNECT_GRACE_MS });
+      setBgState("reconnecting");
       if (bgGraceTimerRef.current) clearTimeout(bgGraceTimerRef.current);
       bgGraceTimerRef.current = window.setTimeout(() => {
         bgGraceTimerRef.current = null;
         if (endedRef.current) return;
         const healthy = !localDropReasonRef.current && remoteJoined;
         if (healthy) {
-          toast.success("Call resumed");
+          setBgState("resumed");
+          if (bgResumedClearTimerRef.current) clearTimeout(bgResumedClearTimerRef.current);
+          bgResumedClearTimerRef.current = window.setTimeout(() => setBgState(null), 3500);
           return;
         }
-        toast.error("Couldn't reconnect after returning — ending call.");
+        // Mark call as lost-due-to-background. We keep the banner visible
+        // so the user understands why the call is ending; tapping "Return
+        // to lobby" runs the standard end-call flow (cleanup + nav). If
+        // they don't tap, we auto-end after a short window.
+        setBgState("lost");
         endReasonRef.current = "background_lost";
-        endCallNowRef.current();
+        window.setTimeout(() => {
+          if (!endedRef.current) endCallNowRef.current();
+        }, 6000);
       }, BG_RECONNECT_GRACE_MS);
     };
     document.addEventListener("visibilitychange", onVisibility);
@@ -756,8 +770,23 @@ function CallScreen() {
         clearTimeout(bgGraceTimerRef.current);
         bgGraceTimerRef.current = null;
       }
+      if (bgResumedClearTimerRef.current) {
+        clearTimeout(bgResumedClearTimerRef.current);
+        bgResumedClearTimerRef.current = null;
+      }
     };
   }, [connected, remoteJoined]);
+
+  // Clear the "reconnecting" banner the moment the SDK actually reconnects.
+  useEffect(() => {
+    if (bgState !== "reconnecting") return;
+    if (!localDropReasonRef.current && remoteJoined) {
+      setBgState("resumed");
+      if (bgResumedClearTimerRef.current) clearTimeout(bgResumedClearTimerRef.current);
+      bgResumedClearTimerRef.current = window.setTimeout(() => setBgState(null), 3500);
+    }
+  }, [bgState, remoteJoined, networkQ]);
+
 
 
 
