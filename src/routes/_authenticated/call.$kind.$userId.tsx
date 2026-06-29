@@ -928,6 +928,19 @@ function CallScreen() {
             <PhoneOff className="size-5" />
           </Button>
         </div>
+        <div className="px-4 pb-2 flex justify-center">
+          <span
+            className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium ${
+              speakerOn
+                ? "bg-primary/15 text-primary"
+                : "bg-muted text-muted-foreground"
+            }`}
+            aria-live="polite"
+          >
+            {speakerOn ? <Volume2 className="size-3" /> : <VolumeX className="size-3" />}
+            Speaker {speakerOn ? "ON" : "OFF"}
+          </span>
+        </div>
 
         {wasDowngraded && kind === "voice" && (
           <div className="px-4 pb-2 flex items-center justify-between gap-2 text-xs">
