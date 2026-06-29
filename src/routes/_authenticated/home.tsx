@@ -233,6 +233,10 @@ function Home() {
         <LiveCreatorsStrip users={liveCreators} loading={loadingCreators} onCall={startCall} />
       </div>
 
+      {/* Languages — auto-sliding chips, filter creators by language */}
+      <LanguagesSection onCall={startCall} />
+      </div>
+
       {/* Quick Actions Grid 2x2 */}
       <div className="mb-5">
         <h2 className="text-sm font-semibold uppercase tracking-wider mb-2">Quick Actions</h2>
