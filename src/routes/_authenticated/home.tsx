@@ -7,7 +7,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { getMyProfile } from "@/lib/onboarding.functions";
 import { getOrCreateConversation } from "@/lib/chat.functions";
-import { heartbeat, listOnlineUsers } from "@/lib/presence.functions";
+import { heartbeat, listOnlineCreators, listOnlineUsers } from "@/lib/presence.functions";
 import { listRooms } from "@/lib/rooms.functions";
 import { getWallet } from "@/lib/wallet.functions";
 import { AppShell } from "@/components/app-shell";
@@ -38,6 +38,7 @@ function Home() {
   const navigate = useNavigate();
   const getProfile = useServerFn(getMyProfile);
   const online = useServerFn(listOnlineUsers);
+  const onlineCreators = useServerFn(listOnlineCreators);
   const beat = useServerFn(heartbeat);
   const rooms = useServerFn(listRooms);
   const startChat = useServerFn(getOrCreateConversation);
@@ -47,6 +48,12 @@ function Home() {
   const { data: walletData } = useQuery({ queryKey: ["wallet"], queryFn: () => wallet(), staleTime: 60_000 });
   const { data: onlineUsers, isLoading: loadingOnline, refetch: refetchOnline } = useQuery({
     queryKey: ["online"], queryFn: () => online(), staleTime: 30_000,
+  });
+  const { data: creatorData, isLoading: loadingCreators, refetch: refetchCreators } = useQuery({
+    queryKey: ["online-creators"],
+    queryFn: () => onlineCreators(),
+    staleTime: 30_000,
+    refetchInterval: 15_000,
   });
   const { data: roomList, isLoading: loadingRooms } = useQuery({
     queryKey: ["rooms"], queryFn: () => rooms(), staleTime: 30_000,
@@ -58,6 +65,7 @@ function Home() {
   // used only as a refresh signal because mobile WebViews can reconnect with a
   // partial presence state and would otherwise hide valid online creators.
   const liveOnlineUsers = onlineUsers ?? [];
+  const liveCreators = creatorData?.creators ?? [];
 
   // heartbeat every 60s
   useEffect(() => {
@@ -95,6 +103,7 @@ function Home() {
           setRtConnected(true);
           await ch.track({ uid, at: Date.now() });
           queryClient.invalidateQueries({ queryKey: ["online"] });
+          queryClient.invalidateQueries({ queryKey: ["online-creators"] });
           queryClient.invalidateQueries({ queryKey: ["rooms"] });
           queryClient.invalidateQueries({ queryKey: ["notifications"] });
         } else if (status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED") {
@@ -110,6 +119,7 @@ function Home() {
       setRtConnected(true);
       beat().catch(() => {});
       queryClient.invalidateQueries({ queryKey: ["online"] });
+      queryClient.invalidateQueries({ queryKey: ["online-creators"] });
       queryClient.invalidateQueries({ queryKey: ["rooms"] });
       queryClient.invalidateQueries({ queryKey: ["notifications"] });
     };
@@ -121,6 +131,7 @@ function Home() {
       if (document.visibilityState !== "visible") return;
       beat().catch(() => {});
       queryClient.invalidateQueries({ queryKey: ["online"] });
+      queryClient.invalidateQueries({ queryKey: ["online-creators"] });
       queryClient.invalidateQueries({ queryKey: ["rooms"] });
     };
     window.addEventListener("online", onOnline);
@@ -155,11 +166,13 @@ function Home() {
     const candidates = (liveOnlineUsers).filter(
       (u: any) => u.gender === "female" && u.id !== me?.profile?.id,
     );
-    if (candidates.length === 0) {
+    const creatorCandidates = liveCreators.filter((u: any) => u.gender === "female" && u.id !== me?.profile?.id);
+    const pool = creatorCandidates.length ? creatorCandidates : candidates;
+    if (pool.length === 0) {
       toast.info("No female creators are online right now. Try again in a moment.");
       return;
     }
-    const pick = candidates[Math.floor(Math.random() * candidates.length)];
+    const pick = pool[Math.floor(Math.random() * pool.length)];
     setPreview({ userId: pick.id, kind: "voice" });
   }
 
@@ -174,7 +187,7 @@ function Home() {
           <h1 className="text-2xl font-bold">Discover</h1>
           <p className="text-sm text-muted-foreground">Live creators · calls · rooms</p>
         </div>
-        <Button size="sm" variant="outline" onClick={() => refetchOnline()}>Refresh</Button>
+        <Button size="sm" variant="outline" onClick={() => { refetchOnline(); refetchCreators(); }}>Refresh</Button>
       </div>
 
       {/* Free Minutes Hero Banner — sticky, top priority */}
@@ -207,14 +220,14 @@ function Home() {
           <div className="flex items-center gap-2">
             <span className={`size-2 rounded-full ${rtConnected ? "bg-emerald-400 animate-pulse" : "bg-amber-400"}`} />
             <h2 className="text-sm font-semibold uppercase tracking-wider">Live Now</h2>
-            <Badge variant="secondary" className="text-[10px]">{(liveOnlineUsers).length}</Badge>
+            <Badge variant="secondary" className="text-[10px]">{liveCreators.length}</Badge>
             {!rtConnected && (
               <span className="text-[10px] text-amber-500 font-medium">Reconnecting…</span>
             )}
           </div>
           <Link to="/connect" className="text-xs text-primary font-medium">See all →</Link>
         </div>
-        <LiveCreatorsStrip users={liveOnlineUsers} loading={loadingOnline} onCall={startCall} />
+        <LiveCreatorsStrip users={liveCreators} loading={loadingCreators} onCall={startCall} />
       </div>
 
       {/* Quick Actions Grid 2x2 */}
