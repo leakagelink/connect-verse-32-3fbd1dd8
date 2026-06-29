@@ -127,3 +127,27 @@ export const listFollowRequests = createServerFn({ method: "GET" })
     const map = new Map(withAiAvatars(profiles ?? []).map((p) => [p.id, p]));
     return reqs.map((r) => ({ ...r, profile: map.get(r.follower_id) }));
   });
+
+/** Return follow status for a batch of users (me -> them).
+ *  status: 'accepted' | 'pending' | null  */
+export const getFollowStatusBatch = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((d: unknown) =>
+    z.object({ userIds: z.array(z.string().uuid()).max(200) }).parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    if (!data.userIds.length) return {} as Record<string, "accepted" | "pending" | null>;
+    const { data: rows } = await supabase
+      .from("follows")
+      .select("following_id, status")
+      .eq("follower_id", userId)
+      .in("following_id", data.userIds);
+    const out: Record<string, "accepted" | "pending" | null> = {};
+    for (const id of data.userIds) out[id] = null;
+    for (const r of rows ?? []) {
+      out[r.following_id] = (r.status as "accepted" | "pending") ?? null;
+    }
+    return out;
+  });
+

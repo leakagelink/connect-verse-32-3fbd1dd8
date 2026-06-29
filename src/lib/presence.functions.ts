@@ -40,12 +40,69 @@ export const heartbeat = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const { supabase, userId } = context;
+    const nowIso = new Date().toISOString();
+    // Detect "came back online" transition so we can ping followers.
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: prev } = await supabaseAdmin
+      .from("profiles")
+      .select("username, last_seen_at, last_online_notified_at")
+      .eq("id", userId)
+      .maybeSingle();
+
     await supabase
       .from("profiles")
-      .update({ last_seen_at: new Date().toISOString() })
+      .update({ last_seen_at: nowIso })
       .eq("id", userId);
+
+    // Throttle: notify only when user was offline (no heartbeat for >30 min)
+    // AND we haven't pinged followers in the past 2 hours.
+    const THIRTY_MIN = 30 * 60 * 1000;
+    const TWO_HOURS = 2 * 60 * 60 * 1000;
+    const now = Date.now();
+    const lastSeen = prev?.last_seen_at ? new Date(prev.last_seen_at).getTime() : 0;
+    const lastNotified = prev?.last_online_notified_at
+      ? new Date(prev.last_online_notified_at).getTime()
+      : 0;
+    const wasOffline = !lastSeen || now - lastSeen > THIRTY_MIN;
+    const notifyAllowed = !lastNotified || now - lastNotified > TWO_HOURS;
+
+    if (wasOffline && notifyAllowed) {
+      // Run fan-out without blocking the heartbeat response.
+      const username = prev?.username ?? "Someone";
+      // Mark immediately so concurrent heartbeats don't double-fire.
+      await supabaseAdmin
+        .from("profiles")
+        .update({ last_online_notified_at: nowIso })
+        .eq("id", userId);
+
+      const { data: followerRows } = await supabaseAdmin
+        .from("follows")
+        .select("follower_id")
+        .eq("following_id", userId)
+        .eq("status", "accepted")
+        .limit(500);
+
+      const followerIds = (followerRows ?? []).map((r) => r.follower_id);
+      if (followerIds.length > 0) {
+        const { notifyUser } = await import("./push.functions");
+        // Fire and forget — don't await heavy fanout in the request path.
+        Promise.allSettled(
+          followerIds.map((fid) =>
+            notifyUser({
+              userId: fid,
+              kind: "follows",
+              title: `${username} is online`,
+              body: `Tap to say hi or start a call`,
+              deepLink: `/recents`,
+            }),
+          ),
+        ).catch(() => {});
+      }
+    }
+
     return { ok: true };
   });
+
 
 export const listOnlineUsers = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
