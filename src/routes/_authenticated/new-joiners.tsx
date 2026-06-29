@@ -6,6 +6,7 @@ import { listNewJoiners } from "@/lib/discovery.functions";
 import { getOrCreateConversation } from "@/lib/chat.functions";
 import { AppShell } from "@/components/app-shell";
 import { CreatorPreviewDialog } from "@/components/creator-preview-dialog";
+import { CallInviteDialog } from "@/components/call-invite-dialog";
 import { Card } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -27,6 +28,7 @@ function NewJoinersPage() {
     refetchInterval: 60_000,
   });
   const [preview, setPreview] = useState<{ userId: string; kind: "voice" | "video" } | null>(null);
+  const [callInvite, setCallInvite] = useState<{ userId: string; kind: "voice" | "video" } | null>(null);
 
   async function openChat(uid: string) {
     try {
@@ -100,9 +102,10 @@ function NewJoinersPage() {
         onConfirm={(uid) => {
           const kind = preview?.kind ?? "voice";
           setPreview(null);
-          navigate({ to: "/call/$kind/$userId", params: { kind, userId: uid } });
+          setCallInvite({ kind, userId: uid });
         }}
       />
+      <CallInviteDialog pendingCall={callInvite} onClose={() => setCallInvite(null)} />
     </AppShell>
   );
 }
