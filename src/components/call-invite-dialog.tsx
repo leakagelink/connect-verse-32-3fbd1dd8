@@ -44,8 +44,16 @@ export function CallInviteDialog({
 
   const [endState, setEndState] = useState<null | { tone: "busy" | "rejected" | "timeout" | "cancelled"; title: string; body: string }>(null);
 
+  // Per-attempt idempotency key. Stable for the whole "ringing" attempt — if
+  // network blips cause the create call to retry, the server returns the same
+  // invite instead of creating a duplicate.
+  const [attemptId, setAttemptId] = useState<string>(() =>
+    (globalThis.crypto?.randomUUID?.() ?? `att_${Date.now()}_${Math.random().toString(36).slice(2)}`),
+  );
+
   const createMut = useMutation({
-    mutationFn: (p: NonNullable<PendingCall>) => createInviteFn({ data: { calleeId: p.userId, kind: p.kind } }),
+    mutationFn: (p: NonNullable<PendingCall> & { attemptId: string }) =>
+      createInviteFn({ data: { calleeId: p.userId, kind: p.kind, attemptId: p.attemptId } }),
     onSuccess: (res) => {
       setInvite(res as InviteStatus);
       setMessage(deliveryAttempt > 1
@@ -73,18 +81,26 @@ export function CallInviteDialog({
     onSettled: () => onClose(),
   });
 
+  const newAttemptId = () =>
+    globalThis.crypto?.randomUUID?.() ?? `att_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+
   useEffect(() => {
     setInvite(null);
     setEndState(null);
     setDeliveryAttempt(1);
     setMessage("Sending call request…");
-    if (pendingCall) createMut.mutate(pendingCall);
+    if (pendingCall) {
+      const id = newAttemptId();
+      setAttemptId(id);
+      createMut.mutate({ ...pendingCall, attemptId: id });
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pendingCall?.kind, pendingCall?.userId]);
 
   // Delivery-ack timeout: if creator's device doesn't ack within DELIVERY_TIMEOUT_MS,
-  // silently cancel the current invite and re-initiate to the same creator.
-  // Stops after MAX_DELIVERY_ATTEMPTS and shows an end-state.
+  // silently cancel the current invite and re-initiate to the same creator with a
+  // fresh attemptId. The server idempotency key prevents duplicates from any
+  // mid-flight retries that may race with this reinitiate.
   useEffect(() => {
     if (!pendingCall) return;
     if (!invite?.id) return;
@@ -108,7 +124,9 @@ export function CallInviteDialog({
       const next = deliveryAttempt + 1;
       setDeliveryAttempt(next);
       setMessage(`Retrying delivery… (attempt ${next}/${MAX_DELIVERY_ATTEMPTS})`);
-      createMut.mutate(pendingCall);
+      const id = newAttemptId();
+      setAttemptId(id);
+      createMut.mutate({ ...pendingCall, attemptId: id });
     }, DELIVERY_TIMEOUT_MS);
 
     return () => clearTimeout(t);
