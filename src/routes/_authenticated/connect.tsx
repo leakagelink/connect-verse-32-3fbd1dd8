@@ -36,6 +36,7 @@ import {
 } from "@/lib/constants";
 import { COUNTRIES, STATES_BY_COUNTRY } from "@/lib/locations";
 import { PrecallPermissionDialog } from "@/components/precall-permission-dialog";
+import { requestCallPermissions } from "@/lib/native";
 import { CallInviteDialog } from "@/components/call-invite-dialog";
 import { toast } from "sonner";
 
