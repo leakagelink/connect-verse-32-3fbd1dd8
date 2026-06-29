@@ -714,8 +714,10 @@ function CallScreen() {
           durationSeconds: totalSeconds,
           coinsSpent: totalCoins,
           status: totalSeconds > 0 ? "completed" : "cancelled",
+          endReason: endReasonRef.current,
         },
       }).catch(() => {});
+
       // Persist call quality + provider + credential for analytics / quota.
       recordCallMetrics({
         data: {
