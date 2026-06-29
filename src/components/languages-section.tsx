@@ -123,7 +123,7 @@ export function LanguagesSection({
             return (
               <button
                 key={`${l.code}-${i}`}
-                onClick={() => { setSelected(l.code); setPaused(true); }}
+                onClick={() => { setSelected(l.code); setUserPaused(true); }}
                 className={cn(
                   "shrink-0 px-3.5 py-1.5 rounded-full text-xs font-medium border transition-colors",
                   active
