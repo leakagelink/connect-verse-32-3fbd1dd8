@@ -366,31 +366,33 @@ export const applyCallUsage = createServerFn({ method: "POST" })
         },
       });
 
-      // Credit the creator (callee) their earning share for the paid portion
-      // of this delta. Only the caller is debited — the creator earns coins.
+      // Credit the EARNER (the creator side) their share for the paid
+      // portion of this delta. Only the payer is debited above — the
+      // creator earns coins regardless of who tapped "call" first.
       // CREATOR_EARN_RATIO is the fraction of spent coins the creator keeps;
-      // the rest is the platform commission.
+      // the rest is the platform commission. Skip credit entirely if the
+      // other side is not a creator (consumer-to-consumer call).
       const CREATOR_EARN_RATIO = 0.5;
       const creatorEarn = Math.floor(deltaCoins * CREATOR_EARN_RATIO);
-      if (creatorEarn > 0 && calleeId && calleeId !== userId) {
+      if (creatorEarn > 0 && earnerIsCreator && earnerId && earnerId !== userId) {
         const { data: creatorWallet } = await supabaseAdmin
           .from("wallets")
           .select("coin_balance")
-          .eq("user_id", calleeId)
+          .eq("user_id", earnerId)
           .maybeSingle();
         if (creatorWallet) {
           const newCreatorBal = Number(creatorWallet.coin_balance ?? 0) + creatorEarn;
           await supabaseAdmin
             .from("wallets")
             .update({ coin_balance: newCreatorBal, updated_at: new Date().toISOString() })
-            .eq("user_id", calleeId);
+            .eq("user_id", earnerId);
         } else {
           await supabaseAdmin
             .from("wallets")
-            .insert({ user_id: calleeId, coin_balance: creatorEarn });
+            .insert({ user_id: earnerId, coin_balance: creatorEarn });
         }
         await supabaseAdmin.from("transactions").insert({
-          user_id: calleeId,
+          user_id: earnerId,
           type: "call_earning",
           coins_delta: creatorEarn,
           inr_amount: 0,
