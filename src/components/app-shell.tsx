@@ -40,12 +40,13 @@ export function AppShell({ children, isAdmin }: { children: ReactNode; isAdmin?:
     }
     // Push notifications: auto-register on every launch + on every resume.
     // Picks up FCM token rotations (reinstall / clear-data / 28-day refresh)
-    // and immediately replaces the stale token on the server.
-    if (isNative()) {
+    // and immediately replaces the stale token on the server. Gated by
+    // signed-in profile so the protected server fn always has a bearer token.
+    if (isNative() && me?.profile?.id) {
       try {
         startPushAutoRegister(async ({ token, platform }) => {
           try {
-            await registerDeviceToken({ data: { token, platform } });
+            await registerTokenFn({ data: { token, platform } });
           } catch (e) {
             console.warn("[push] registerDeviceToken failed", e);
           }
@@ -55,7 +56,7 @@ export function AppShell({ children, isAdmin }: { children: ReactNode; isAdmin?:
       }
     }
     return dispose;
-  }, [router]);
+  }, [router, me?.profile?.id, registerTokenFn]);
 
 
   // Phase 10 — sync stored locale from profile.app_language whenever it changes.
