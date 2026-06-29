@@ -362,13 +362,19 @@ export const cancelCallInvite = createServerFn({ method: "POST" })
     const db = supabaseAdmin as any;
     const { data: invite } = await db.from("call_invites").select("*").eq("id", data.inviteId).maybeSingle();
     if (!invite || invite.caller_id !== context.userId) throw new Error("Call invite not found.");
-    await db
+    const { data: cancelled } = await db
       .from("call_invites")
       .update({ status: "cancelled", cancelled_at: new Date().toISOString() })
       .eq("id", data.inviteId)
-      .eq("status", "pending");
+      .eq("status", "pending")
+      .select("*")
+      .maybeSingle();
     // Caller hung up before answer — dismiss the full-screen UI on the callee.
     await notifyCallEnded({ calleeId: invite.callee_id, inviteId: invite.id }).catch(() => ({ pushed: 0 }));
+    // If the ring actually reached the callee's device, surface it as a missed call.
+    if (cancelled && invite.delivered_at) {
+      await sendMissedCallNotification(db, cancelled).catch(() => {});
+    }
     return { ok: true };
   });
 
