@@ -3,10 +3,60 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { withAiAvatar, withAiAvatars } from "./ai-avatar";
 import { notifyUser, notifyIncomingCall, notifyCallEnded } from "./push.functions";
+import { VOICE_CALL_COINS_PER_MINUTE, VIDEO_CALL_COINS_PER_MINUTE } from "./constants";
 
 const KindSchema = z.enum(["voice", "video"]);
 const InviteIdSchema = z.object({ inviteId: z.string().uuid() });
 const INVITE_TTL_SECONDS = 45;
+
+/**
+ * Resolve which side of a call PAYS coins and which side EARNS them.
+ *
+ * Rule: the creator is always the earner; the consumer (non-creator) is
+ * always the payer. This lets a creator initiate calls to a regular user
+ * without accidentally draining the creator's wallet — coins still come
+ * out of the consumer's wallet regardless of who tapped "call" first.
+ *
+ * Fallback: if both sides are creators or both are non-creators, the
+ * caller pays (legacy behaviour).
+ */
+async function resolveCallParties(
+  db: any,
+  callerId: string,
+  calleeId: string,
+): Promise<{
+  payerId: string;
+  earnerId: string;
+  payerRole: "caller" | "callee";
+  earnerRole: "caller" | "callee";
+  earnerIsCreator: boolean;
+}> {
+  const { data: profs } = await db
+    .from("profiles")
+    .select("id, is_creator")
+    .in("id", [callerId, calleeId]);
+  const map = new Map<string, boolean>((profs ?? []).map((p: any) => [p.id, !!p.is_creator]));
+  const callerIsCreator = map.get(callerId) ?? false;
+  const calleeIsCreator = map.get(calleeId) ?? false;
+
+  // Default: caller pays, callee earns.
+  let payerRole: "caller" | "callee" = "caller";
+  if (callerIsCreator && !calleeIsCreator) {
+    // Creator → user: the user (callee) is the payer.
+    payerRole = "callee";
+  }
+  const payerId = payerRole === "caller" ? callerId : calleeId;
+  const earnerId = payerRole === "caller" ? calleeId : callerId;
+  const earnerIsCreator = payerRole === "caller" ? calleeIsCreator : callerIsCreator;
+  return {
+    payerId,
+    earnerId,
+    payerRole,
+    earnerRole: payerRole === "caller" ? "callee" : "caller",
+    earnerIsCreator,
+  };
+}
+
 
 const SAFE_PROFILE_FIELDS =
   "id, username, gender, country, state, language, avatar_url, ai_avatar_style, is_creator, last_seen_at, availability";
