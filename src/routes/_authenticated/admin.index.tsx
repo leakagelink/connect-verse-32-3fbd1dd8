@@ -28,6 +28,7 @@ import { Users, Flag, Ban, IndianRupee, Radio, ShieldAlert, Settings as Settings
 import { PerformanceTab } from "@/components/admin/PerformanceTab";
 import { CallAuditTab } from "@/components/admin/CallAuditTab";
 import { BusyResetE2E } from "@/components/admin/BusyResetE2E";
+import { CallEndE2E } from "@/components/admin/CallEndE2E";
 
 import { adminListKyc, adminReviewKyc, adminListWithdrawals, adminProcessWithdrawal, getKycDocUrl, adminListKycPurgeLog } from "@/lib/kyc.functions";
 import {
