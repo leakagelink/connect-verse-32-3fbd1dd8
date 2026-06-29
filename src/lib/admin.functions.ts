@@ -280,3 +280,55 @@ export const adminFcmProjectInfo = createServerFn({ method: "GET" })
       return { ok: false as const, reason: "JSON parse failed: " + (e?.message ?? "unknown") };
     }
   });
+
+/**
+ * Admin call-end audit: recent call_logs with end_reason, ended_by username,
+ * duration, coins, and participant usernames. Optional filter by reason.
+ */
+export const adminListCallEndAudit = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((d: unknown) => z.object({
+    reason: z.enum([
+      "all", "user_ended", "peer_left", "coins_exhausted",
+      "media_error", "network", "admin", "unknown",
+    ]).default("all"),
+    limit: z.number().int().min(1).max(200).default(50),
+  }).parse(d))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    let q = supabaseAdmin
+      .from("call_logs")
+      .select("id, caller_id, callee_id, kind, started_at, ended_at, duration_seconds, coins_spent, status, end_reason, ended_by, missed_reason")
+      .order("started_at", { ascending: false })
+      .limit(data.limit);
+    if (data.reason !== "all") q = q.eq("end_reason", data.reason);
+    const { data: rows, error } = await q;
+    if (error) throw error;
+    const ids = Array.from(new Set(
+      (rows ?? []).flatMap((r) => [r.caller_id, r.callee_id, r.ended_by].filter((x): x is string => !!x))
+    ));
+    let nameMap = new Map<string, string>();
+    if (ids.length) {
+      const { data: profs } = await supabaseAdmin
+        .from("profiles").select("id, username").in("id", ids);
+      nameMap = new Map((profs ?? []).map((p) => [p.id, p.username ?? "—"]));
+    }
+    return (rows ?? []).map((r) => ({
+      id: r.id as string,
+      kind: r.kind as "voice" | "video",
+      callerId: r.caller_id as string,
+      callerUsername: nameMap.get(r.caller_id) ?? "—",
+      calleeId: r.callee_id as string,
+      calleeUsername: nameMap.get(r.callee_id) ?? "—",
+      startedAt: r.started_at as string,
+      endedAt: r.ended_at as string | null,
+      durationSeconds: Number(r.duration_seconds ?? 0),
+      coinsSpent: Number(r.coins_spent ?? 0),
+      status: r.status as string,
+      endReason: (r.end_reason as string | null) ?? null,
+      endedById: (r.ended_by as string | null) ?? null,
+      endedByUsername: r.ended_by ? (nameMap.get(r.ended_by) ?? "—") : null,
+      missedReason: (r.missed_reason as string | null) ?? null,
+    }));
+  });
