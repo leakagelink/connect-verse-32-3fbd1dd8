@@ -210,7 +210,7 @@ export const createCallInvite = createServerFn({ method: "POST" })
 
     await db
       .from("call_invites")
-      .update({ status: "cancelled", cancelled_at: nowIso })
+      .update({ status: "cancelled", cancelled_at: new Date().toISOString() })
       .eq("caller_id", callerId)
       .eq("callee_id", data.calleeId)
       .eq("status", "pending");
