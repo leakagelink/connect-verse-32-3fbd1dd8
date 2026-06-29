@@ -108,11 +108,13 @@ export class AgoraSession {
       }
       this.events.onRemoteUser?.(user, mediaType);
     });
-    this.client.on("user-left", (user) => this.events.onRemoteLeft?.(user));
-    this.client.on("connection-state-change", (cur, prev) => {
+    this.client.on("user-left", (user, reason) =>
+      this.events.onRemoteLeft?.(user, mapLeaveReason(reason)),
+    );
+    this.client.on("connection-state-change", (cur, prev, reason) => {
       if (prev === "CONNECTED" && cur !== "CONNECTED") {
         this.disconnects += 1;
-        this.events.onDisconnected?.();
+        this.events.onDisconnected?.(mapDisconnectReason(reason));
       }
       if (cur === "CONNECTED" && prev === "RECONNECTING") {
         this.events.onReconnected?.();
