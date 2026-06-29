@@ -696,7 +696,10 @@ function CallScreen() {
   flushUsage.current = () => {
     const callLogId = callLogIdRef.current;
     if (!callLogId) return;
-    if (callRoleRef.current === "callee") return;
+    // Only the PAYER side reports usage to the server. The server also
+    // re-checks this (returns "not-payer") but we short-circuit here to
+    // avoid useless round-trips from the earner's tab.
+    if (amPayerRef.current === false) return;
     if (flushInFlightRef.current) return;
     // Paused (another tab took ownership) → don't push usage from this tab,
     // the authoritative tab is now responsible for billing.
