@@ -74,6 +74,7 @@ function ChatRoom() {
 
   // Realtime: react instantly when the peer accepts/rejects the friend request
   useEffect(() => {
+    const myId = me?.profile?.id;
     if (!myId || !otherUserId) return;
     const ch = supabase.channel(`follows:${myId}:${otherUserId}`)
       .on("postgres_changes",
@@ -90,7 +91,7 @@ function ChatRoom() {
         })
       .subscribe();
     return () => { supabase.removeChannel(ch); };
-  }, [myId, otherUserId, qc]);
+  }, [me?.profile?.id, otherUserId, qc]);
 
   // start session on mount, tick every 30s, end on unmount
   useEffect(() => {
