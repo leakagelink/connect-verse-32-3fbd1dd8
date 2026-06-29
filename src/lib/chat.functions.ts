@@ -46,6 +46,9 @@ export const getOrCreateConversation = createServerFn({ method: "POST" })
       .maybeSingle();
     if (blockRow) throw new Error("Unable to start chat");
 
+    // Friendship gate: must have an accepted follow in either direction.
+    await assertFriends(supabase, userId, data.otherUserId);
+
     const [a, b] = [userId, data.otherUserId].sort();
     const { data: existing } = await supabase
       .from("conversations")
