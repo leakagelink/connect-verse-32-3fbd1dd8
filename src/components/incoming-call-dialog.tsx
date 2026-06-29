@@ -32,7 +32,10 @@ export function IncomingCallDialog({ disabled }: { disabled?: boolean }) {
   const listFn = useServerFn(listIncomingCallInvites);
   const acceptFn = useServerFn(acceptCallInvite);
   const rejectFn = useServerFn(rejectCallInvite);
+  const ackFn = useServerFn(markCallInviteDelivered);
   const [permissionFor, setPermissionFor] = useState<IncomingInvite | null>(null);
+  const ackedRef = useRef<Set<string>>(new Set());
+
 
   const { data } = useQuery({
     queryKey: ["incoming-call-invites"],
