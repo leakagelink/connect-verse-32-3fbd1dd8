@@ -82,6 +82,10 @@ function CallScreen() {
   const [freeStart, setFreeStart] = useState<number | null>(null);
   const [coinStart, setCoinStart] = useState<number | null>(null);
   const outOfFundsTriggeredRef = useRef(false);
+  // Ref bridge so auto-end effects (out-of-coins / peer-left) can invoke
+  // confirmEndCall before it's defined later in the component.
+  const endCallNowRef = useRef<() => void>(() => {});
+
   // Single-active-session enforcement: every mount mints a unique token and
   // writes it into the active_call localStorage slot. A newer tab claiming
   // ownership overwrites the token; older tabs notice via the `storage` event
