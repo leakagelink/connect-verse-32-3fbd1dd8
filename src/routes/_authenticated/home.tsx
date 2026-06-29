@@ -22,6 +22,7 @@ import { RecentlyPlayedSection } from "@/components/recently-played-section";
 import { ForYouSection } from "@/components/for-you-section";
 import { TrustBadgesFooter } from "@/components/trust-badges-footer";
 import { CallInviteDialog } from "@/components/call-invite-dialog";
+import { LanguagesSection } from "@/components/languages-section";
 
 import { Card } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
