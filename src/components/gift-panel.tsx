@@ -7,6 +7,23 @@ import { Button } from "@/components/ui/button";
 import { Coins, Gift as GiftIcon, Loader2 } from "lucide-react";
 import { listGifts, sendGift } from "@/lib/gifts.functions";
 
+export type GiftSendEvent = {
+  giftId: string;
+  giftName: string;
+  giftEmoji: string;
+  cost: number;
+  requestedAt: number;
+  serverRespondedAt: number;
+  uiRefreshedAt: number;
+  preBalance: number;          // sender balance shown in UI before send
+  newBalance: number;          // sender balance returned by server
+  serverProcessedMs?: number;
+  receiverPreBalance?: number;
+  receiverNewBalance?: number;
+  ok: boolean;
+  error?: string;
+};
+
 type Props = {
   open: boolean;
   onOpenChange: (v: boolean) => void;
@@ -15,9 +32,10 @@ type Props = {
   balance: number;
   onSent?: (newBalance: number) => void;
   onLowBalance?: () => void;
+  onEvent?: (event: GiftSendEvent) => void;
 };
 
-export function GiftPanel({ open, onOpenChange, receiverId, callLogId, balance, onSent, onLowBalance }: Props) {
+export function GiftPanel({ open, onOpenChange, receiverId, callLogId, balance, onSent, onLowBalance, onEvent }: Props) {
   const listFn = useServerFn(listGifts);
   const sendFn = useServerFn(sendGift);
   const qc = useQueryClient();
@@ -31,24 +49,69 @@ export function GiftPanel({ open, onOpenChange, receiverId, callLogId, balance, 
   });
 
   async function handleSend(giftId: string, cost: number) {
+    const giftMeta = (gifts ?? []).find((g) => g.id === giftId);
+    const giftName = giftMeta?.name ?? "Gift";
+    const giftEmoji = giftMeta?.emoji ?? "🎁";
+    const requestedAt = Date.now();
+    console.log("[gift-client] requested", { giftId, giftName, cost, receiverId, callLogId, balance, at: requestedAt });
+
     if (balance < cost) {
+      console.warn("[gift-client] insufficient_local", { balance, cost });
       toast.error(`Need ${cost} coins · you have ${balance}`);
       onLowBalance?.();
+      onEvent?.({
+        giftId, giftName, giftEmoji, cost,
+        requestedAt, serverRespondedAt: requestedAt, uiRefreshedAt: requestedAt,
+        preBalance: balance, newBalance: balance,
+        ok: false, error: "insufficient_local",
+      });
       return;
     }
     setSendingId(giftId);
     try {
       const res = await sendFn({ data: { giftId, receiverId, callLogId } });
+      const serverRespondedAt = Date.now();
+      console.log("[gift-client] server_ok", {
+        giftId, cost,
+        serverProcessedMs: res.serverProcessedMs,
+        roundtripMs: serverRespondedAt - requestedAt,
+        preBalance: res.preBalance,
+        newBalance: res.newBalance,
+        receiverPreBalance: res.receiverPreBalance,
+        receiverNewBalance: res.receiverNewBalance,
+      });
       toast.success(`Sent ${res.gift.emoji} ${res.gift.name} · -${res.gift.coin_cost} coins`);
       onSent?.(res.newBalance);
       qc.invalidateQueries({ queryKey: ["wallet"] });
       qc.invalidateQueries({ queryKey: ["me"] });
+      const uiRefreshedAt = Date.now();
+      console.log("[gift-client] ui_refreshed", { totalMs: uiRefreshedAt - requestedAt });
+      onEvent?.({
+        giftId, giftName: res.gift.name, giftEmoji: res.gift.emoji, cost: res.gift.coin_cost,
+        requestedAt, serverRespondedAt, uiRefreshedAt,
+        preBalance: res.preBalance ?? balance,
+        newBalance: res.newBalance,
+        serverProcessedMs: res.serverProcessedMs,
+        receiverPreBalance: res.receiverPreBalance,
+        receiverNewBalance: res.receiverNewBalance,
+        ok: true,
+      });
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Could not send gift");
+      const serverRespondedAt = Date.now();
+      const msg = e instanceof Error ? e.message : "Could not send gift";
+      console.error("[gift-client] error", { giftId, cost, msg, roundtripMs: serverRespondedAt - requestedAt });
+      toast.error(msg);
+      onEvent?.({
+        giftId, giftName, giftEmoji, cost,
+        requestedAt, serverRespondedAt, uiRefreshedAt: serverRespondedAt,
+        preBalance: balance, newBalance: balance,
+        ok: false, error: msg,
+      });
     } finally {
       setSendingId(null);
     }
   }
+
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
