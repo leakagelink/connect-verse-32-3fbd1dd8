@@ -48,15 +48,21 @@ export function PushPermissionGate() {
 
   useEffect(() => {
     let alive = true;
-    void (async () => {
+    const refresh = async () => {
       const s = await getPushPermissionState();
-      if (alive) setState(s);
-    })();
-    // Re-check when the tab regains focus (user may have toggled in Settings).
-    const onFocus = async () => {
-      const s = await getPushPermissionState();
-      if (alive) setState(s);
+      if (!alive) return;
+      setState(s);
+      // Only check FSI grant once notifications themselves are granted —
+      // otherwise the notification toggle is the more urgent fix.
+      if (s === "granted") {
+        const fsi = await checkFullScreenIntentPermission();
+        if (alive) setFsiNeeded(fsi.required && !fsi.granted);
+      } else {
+        setFsiNeeded(false);
+      }
     };
+    void refresh();
+    const onFocus = () => { void refresh(); };
     window.addEventListener("focus", onFocus);
     return () => {
       alive = false;
@@ -64,10 +70,14 @@ export function PushPermissionGate() {
     };
   }, []);
 
-  if (state === null || state === "granted" || state === "unknown") return null;
+  // Show FSI banner even when push state is "granted" (the early-return below
+  // would otherwise hide the gate entirely).
+  if (state === null || state === "unknown") return null;
+  if (state === "granted" && !fsiNeeded) return null;
 
   const isDenied = state === "denied";
-  if (!isDenied && dismissed) return null;
+  const showFsiOnly = state === "granted" && fsiNeeded;
+  if (!isDenied && !showFsiOnly && dismissed) return null;
 
   const handleEnable = async () => {
     setBusy(true);
