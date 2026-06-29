@@ -538,18 +538,43 @@ export const acceptCallInvite = createServerFn({ method: "POST" })
     const { data: rawInvite } = await db.from("call_invites").select("*").eq("id", data.inviteId).maybeSingle();
     if (!rawInvite || rawInvite.callee_id !== context.userId) throw new Error("Call invite not found.");
 
+    // Resolve billing direction up-front so every code path returns it.
+    const parties = await resolveCallParties(db, rawInvite.caller_id, rawInvite.callee_id);
+
     // ---------- Idempotent short-circuit ----------
     // If this invite is already accepted by the same callee, return the
     // existing DTO. Repeated taps / network retries / reconnect storms can
     // never insert a duplicate call_log or transition state twice.
     if (rawInvite.status === "accepted") {
       const log = await loadInviteLog(db, rawInvite.call_log_id);
-      return statusDto(rawInvite, context.userId, log);
+      return statusDto(rawInvite, context.userId, log, parties);
     }
 
     const invite = await expireIfNeeded(db, rawInvite);
     if (invite.status !== "pending") throw new Error("This call is no longer ringing.");
     await assertCallable(db, invite.caller_id, invite.callee_id);
+
+    // ---------- Payer-balance gate ----------
+    // If the accepting user IS the payer (i.e., a creator initiated the call
+    // to them), make sure they can afford at least one minute of talk time.
+    // Otherwise show a recharge prompt instead of connecting a call that
+    // would instantly run dry.
+    if (context.userId === parties.payerId) {
+      const perMin = invite.kind === "video" ? VIDEO_CALL_COINS_PER_MINUTE : VOICE_CALL_COINS_PER_MINUTE;
+      const [{ data: payerProf }, { data: payerWallet }] = await Promise.all([
+        db.from("profiles").select("free_seconds_remaining").eq("id", parties.payerId).maybeSingle(),
+        db.from("wallets").select("coin_balance").eq("user_id", parties.payerId).maybeSingle(),
+      ]);
+      const freeLeft = Number(payerProf?.free_seconds_remaining ?? 0);
+      const coinLeft = Number(payerWallet?.coin_balance ?? 0);
+      const hasFreeMinute = freeLeft >= 60;
+      const hasCoinMinute = coinLeft >= perMin;
+      if (!hasFreeMinute && !hasCoinMinute) {
+        throw new Error(
+          `RECHARGE_REQUIRED: Bat karne ke liye coins lijiye. Kam se kam ${perMin} coins zaroori hain ek minute ${invite.kind === "video" ? "video" : "audio"} call ke liye.`,
+        );
+      }
+    }
 
     // ---------- Step 1: atomically reserve the invite ----------
     // Flip pending → accepted FIRST (without a call_log_id yet). Only one
@@ -581,7 +606,7 @@ export const acceptCallInvite = createServerFn({ method: "POST" })
       const { data: current } = await db.from("call_invites").select("*").eq("id", invite.id).maybeSingle();
       if (current?.status === "accepted" && current.callee_id === context.userId) {
         const log = await loadInviteLog(db, current.call_log_id);
-        return statusDto(current, context.userId, log);
+        return statusDto(current, context.userId, log, parties);
       }
       throw new Error("This call is no longer ringing.");
     }
@@ -613,7 +638,7 @@ export const acceptCallInvite = createServerFn({ method: "POST" })
       .select("*")
       .maybeSingle();
 
-    return statusDto(finalized ?? { ...reserved, call_log_id: log.id }, context.userId, log);
+    return statusDto(finalized ?? { ...reserved, call_log_id: log.id }, context.userId, log, parties);
   });
 
 export const rejectCallInvite = createServerFn({ method: "POST" })
