@@ -657,6 +657,7 @@ function CallScreen() {
   }
 
   if (joinError) {
+    const err = joinError;
     const titles: Record<typeof joinError.kind, string> = {
       mic: "Microphone unavailable",
       camera: "Camera unavailable",
