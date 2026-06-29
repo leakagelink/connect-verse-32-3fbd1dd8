@@ -186,17 +186,23 @@ export const createCallInvite = createServerFn({ method: "POST" })
     const { caller } = await assertCallable(db, callerId, data.calleeId);
 
     // Busy detection: callee already ringing with someone else or in an active accepted call.
-    const nowIso = new Date().toISOString();
+    // We JOIN to call_logs so an "accepted" invite whose call already ended
+    // (ended_at IS NOT NULL) is NOT treated as busy — otherwise stale rows
+    // would brick the creator's inbox forever.
     const { data: busyRows } = await db
       .from("call_invites")
-      .select("id, status, caller_id, expires_at, accepted_at")
+      .select("id, status, caller_id, expires_at, accepted_at, call_log_id, call_logs:call_log_id(ended_at)")
       .eq("callee_id", data.calleeId)
       .in("status", ["pending", "accepted"])
       .order("created_at", { ascending: false })
       .limit(5);
     const isBusy = (busyRows ?? []).some((r: any) => {
       if (r.caller_id === callerId) return false;
-      if (r.status === "accepted") return true;
+      if (r.status === "accepted") {
+        // accepted but the underlying call has already ended → not busy
+        if (r.call_logs?.ended_at) return false;
+        return true;
+      }
       if (r.status === "pending" && r.expires_at && new Date(r.expires_at).getTime() > Date.now()) return true;
       return false;
     });
