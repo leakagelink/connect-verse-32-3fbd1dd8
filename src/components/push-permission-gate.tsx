@@ -99,6 +99,44 @@ export function PushPermissionGate() {
     setBusy(false);
   };
 
+  const handleOpenFsiSettings = async () => {
+    setBusy(true);
+    await openFullScreenIntentSettings();
+    setBusy(false);
+  };
+
+  // Dedicated FSI-only banner: notifications already granted, but Android 14+
+  // hasn't given us full-screen-intent — incoming calls will silently demote
+  // to a heads-up notification when the app is killed.
+  if (showFsiOnly) {
+    return (
+      <div
+        className="mx-auto max-w-3xl px-4 pt-3 animate-in fade-in slide-in-from-top-2"
+        role="region"
+        aria-label="Full-screen call permission"
+      >
+        <div className="glass relative flex items-start gap-3 rounded-2xl border border-amber-500/40 p-3.5 sm:p-4">
+          <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-amber-500/15 text-amber-500" aria-hidden>
+            <PhoneIncoming className="size-5" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-semibold">Allow full-screen incoming calls</p>
+            <p className="mt-0.5 text-xs text-muted-foreground">
+              Android needs one more permission so Talkora can ring and pop the call screen even when the app is closed or your phone is locked. Without it, calls only show as a small banner and may be missed.
+            </p>
+            <div className="mt-2.5 flex flex-wrap gap-2">
+              <Button size="sm" onClick={handleOpenFsiSettings} disabled={busy || !isNative()} className="h-8">
+                <Settings className="mr-1.5 size-3.5" />
+                Open Settings
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+
   const handleDismiss = () => {
     try {
       sessionStorage.setItem(DISMISS_KEY, "1");
