@@ -25,6 +25,7 @@ export function ForYouSection({
 
   const list = (data ?? []).slice(0, 6);
   useAvatarPrefetch(list.map((u: any) => u.avatar_url));
+  const { data: statusMap } = useFollowStatusMap(list.map((u: any) => u.id));
 
   if (!data?.length) return null;
 
