@@ -525,11 +525,13 @@ function CallScreen() {
     if (!connected || !wasJoinedRef.current || remoteJoined) return;
     if (endedRef.current) return;
     toast.warning("Other person ended the call.");
+    endReasonRef.current = "peer_left";
     const t = window.setTimeout(() => {
       if (!endedRef.current) endCallNowRef.current();
     }, 1200);
     return () => clearTimeout(t);
   }, [connected, remoteJoined]);
+
 
 
   // ---- Persistence: keep server-side free_seconds_remaining and coin balance
