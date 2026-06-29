@@ -666,19 +666,25 @@ function CallScreen() {
     };
     const tips: Record<typeof joinError.kind, string> = {
       mic: "We couldn't capture your microphone. Make sure mic permission is granted and no other app is using it.",
-      camera: "We couldn't capture your camera. Grant camera permission and make sure no other app is using it.",
-      media: "We couldn't capture your camera or microphone. Grant access and try again.",
+      camera: "We couldn't capture your camera. Grant camera permission, close any other app that might be using it (WhatsApp, Instagram, Zoom, your browser), then retry.",
+      media: "We couldn't capture your camera or microphone. Grant access to both and try again.",
       "in-use": "Another app (like WhatsApp or your browser) is using your mic or camera. Close it and retry.",
       other: "Something went wrong while connecting. Please try again.",
     };
     const needsPerm = joinError.kind !== "in-use" && joinError.kind !== "other";
+    // Offer a voice-only fallback when the camera is the blocker on a video call.
+    const canFallbackToVoice =
+      kind === "video" && (joinError.kind === "camera" || joinError.kind === "in-use");
 
     async function handleRetry() {
       setRetrying(true);
       try {
         if (needsPerm) {
-          // Re-prompt the OS for permission inside the tap gesture.
-          try { await requestCallPermissions(kind as "voice" | "video"); } catch { /* ignore */ }
+          // Re-prompt the OS for the relevant permission inside the tap gesture.
+          // For camera errors on a video call, ensure we ask for camera too.
+          const askKind: "voice" | "video" =
+            joinError.kind === "camera" || kind === "video" ? "video" : "voice";
+          try { await requestCallPermissions(askKind); } catch { /* ignore */ }
         }
         setJoinError(null);
         setRemoteJoined(false);
@@ -694,6 +700,16 @@ function CallScreen() {
     async function handleOpenSettings() {
       const ok = await openAppSettings();
       if (!ok) toast.info("Open Settings → Apps → Talkora → Permissions and enable Microphone / Camera.");
+    }
+
+    function handleSwitchToVoice() {
+      setJoinError(null);
+      navigate({
+        to: "/call/$kind/$userId",
+        params: { kind: "voice", userId },
+        search: { inviteId },
+        replace: true,
+      });
     }
 
     return (
@@ -714,6 +730,11 @@ function CallScreen() {
             <Button onClick={handleRetry} disabled={retrying} className="w-full">
               {retrying ? "Retrying…" : needsPerm ? "Grant access & retry" : "Try again"}
             </Button>
+            {canFallbackToVoice && inviteId && (
+              <Button variant="secondary" onClick={handleSwitchToVoice} className="w-full">
+                Continue as voice call
+              </Button>
+            )}
             {needsPerm && isNative() && (
               <Button variant="outline" onClick={handleOpenSettings} className="w-full">
                 Open app settings
