@@ -27,6 +27,7 @@ export function LiveCreatorsStrip({
   onCall: (userId: string, kind: "voice" | "video") => void;
 }) {
   useAvatarPrefetch(users.map((u) => u.avatar_url));
+  const { data: statusMap } = useFollowStatusMap(users.map((u) => u.id));
   if (loading) {
     return (
       <div className="flex gap-3 overflow-hidden pb-2">
