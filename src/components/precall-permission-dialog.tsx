@@ -78,7 +78,7 @@ export function PrecallPermissionDialog({ open, kind, onCancel, onReady }: Props
       setAskedOnce(true);
       await refresh();
       if (res.granted) {
-        setStage("audio");
+        onReady();
         return;
       }
       if (res.reason === "mic-denied") toast.error("Microphone access denied.");
@@ -96,13 +96,14 @@ export function PrecallPermissionDialog({ open, kind, onCancel, onReady }: Props
     if (!ok) toast.info("Open Settings → Apps → Talkora → Permissions and enable Microphone" + (needsCamera ? " and Camera." : "."));
   }
 
-  // Auto-advance to the audio test as soon as the device reports all
-  // permissions are already granted (e.g. user previously allowed).
+  // Auto-proceed as soon as the device reports all permissions are already
+  // granted (e.g. user previously allowed).
   useEffect(() => {
     if (open && stage === "perm" && allGranted && !checking) {
-      setStage("audio");
+      onReady();
     }
-  }, [open, stage, allGranted, checking]);
+  }, [open, stage, allGranted, checking, onReady]);
+
 
 
   return (
