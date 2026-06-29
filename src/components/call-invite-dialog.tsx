@@ -148,6 +148,12 @@ export function CallInviteDialog({
   if (!pendingCall) return null;
   const kind = pendingCall.kind;
   const Icon = kind === "video" ? Video : Phone;
+  const toneStyles: Record<string, string> = {
+    busy: "bg-amber-500/15 text-amber-600",
+    rejected: "bg-rose-500/15 text-rose-600",
+    timeout: "bg-slate-500/15 text-slate-600",
+    cancelled: "bg-slate-500/15 text-slate-600",
+  };
 
   return (
     <Dialog open={!!pendingCall} onOpenChange={(open) => {
@@ -157,34 +163,49 @@ export function CallInviteDialog({
       }
     }}>
       <DialogContent className="max-w-sm text-center">
-        <DialogHeader className="items-center text-center">
-          <div className="relative mb-2 flex size-20 items-center justify-center rounded-full bg-primary/15">
-            <span className="absolute inset-0 rounded-full bg-primary/20 animate-ping" />
-            <Icon className="relative size-9 text-primary" />
-          </div>
-          <DialogTitle>{kind === "video" ? "Video call request sent" : "Audio call request sent"}</DialogTitle>
-          <DialogDescription>
-            {message}. Call will connect only after the creator accepts.
-          </DialogDescription>
-        </DialogHeader>
-        <div className="rounded-xl border bg-muted/40 p-3 text-sm">
-          <div className="flex items-center justify-center gap-2 font-medium">
-            {createMut.isPending ? <Loader2 className="size-4 animate-spin" /> : <span className="size-2 rounded-full bg-emerald-500 animate-pulse" />}
-            {createMut.isPending ? "Sending…" : `Ringing${secondsLeft ? ` · ${secondsLeft}s` : ""}`}
-          </div>
-          <p className="mt-1 text-xs text-muted-foreground">Please wait. “Connected” will show only after answer.</p>
-        </div>
-        <Button
-          variant="destructive"
-          className="w-full gap-2"
-          disabled={cancelMut.isPending}
-          onClick={() => {
-            if (invite?.id && invite.status === "pending") cancelMut.mutate(invite.id);
-            else onClose();
-          }}
-        >
-          <PhoneOff className="size-4" /> Cancel call
-        </Button>
+        {endState ? (
+          <>
+            <DialogHeader className="items-center text-center">
+              <div className={`mb-2 flex size-20 items-center justify-center rounded-full ${toneStyles[endState.tone]}`}>
+                <PhoneOff className="size-9" />
+              </div>
+              <DialogTitle>{endState.title}</DialogTitle>
+              <DialogDescription>{endState.body}</DialogDescription>
+            </DialogHeader>
+            <Button className="w-full" onClick={onClose}>Close</Button>
+          </>
+        ) : (
+          <>
+            <DialogHeader className="items-center text-center">
+              <div className="relative mb-2 flex size-20 items-center justify-center rounded-full bg-primary/15">
+                <span className="absolute inset-0 rounded-full bg-primary/20 animate-ping" />
+                <Icon className="relative size-9 text-primary" />
+              </div>
+              <DialogTitle>{kind === "video" ? "Video call request sent" : "Audio call request sent"}</DialogTitle>
+              <DialogDescription>
+                {message}. Call will connect only after the creator accepts.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="rounded-xl border bg-muted/40 p-3 text-sm">
+              <div className="flex items-center justify-center gap-2 font-medium">
+                {createMut.isPending ? <Loader2 className="size-4 animate-spin" /> : <span className="size-2 rounded-full bg-emerald-500 animate-pulse" />}
+                {createMut.isPending ? "Sending…" : `Ringing${secondsLeft ? ` · ${secondsLeft}s` : ""}`}
+              </div>
+              <p className="mt-1 text-xs text-muted-foreground">Auto-cancels in {secondsLeft}s if no answer.</p>
+            </div>
+            <Button
+              variant="destructive"
+              className="w-full gap-2"
+              disabled={cancelMut.isPending}
+              onClick={() => {
+                if (invite?.id && invite.status === "pending") cancelMut.mutate(invite.id);
+                else onClose();
+              }}
+            >
+              <PhoneOff className="size-4" /> Cancel call
+            </Button>
+          </>
+        )}
       </DialogContent>
     </Dialog>
   );
