@@ -567,7 +567,7 @@ function CallScreen() {
     // Network drop on the peer's side: Agora signals "timeout" (or unknown
     // when the remote SDK crashed without a clean leave). Keep the call up
     // for a grace window so they can reconnect; only end if they don't.
-    if (reason === "timeout" || reason === "unknown") {
+    if (reason === "timeout") {
       toast.warning("Peer disconnected — waiting for reconnect…", {
         duration: PEER_RECONNECT_GRACE_MS,
       });
