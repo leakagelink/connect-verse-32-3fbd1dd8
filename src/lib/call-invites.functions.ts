@@ -475,7 +475,17 @@ export const acceptCallInvite = createServerFn({ method: "POST" })
       .eq("status", "pending")
       .select("*")
       .single();
-    if (error) throw new Error(error.message);
+    if (error) {
+      // Concurrent accept lost the race against the partial-unique index
+      // `call_invites_one_accepted_per_callee`. Roll back the log we just
+      // created so we don't leak an orphan call_logs row.
+      const msg = String(error.message ?? "");
+      if (error.code === "23505" || /call_invites_one_accepted_per_callee|duplicate key/i.test(msg)) {
+        await db.from("call_logs").delete().eq("id", log.id);
+        throw new Error("This creator just picked up another call.");
+      }
+      throw new Error(msg);
+    }
     return statusDto(accepted, context.userId, log);
   });
 
@@ -816,6 +826,239 @@ export const runBusyResetE2E = createServerFn({ method: "POST" })
       }
       if (createdLogId) {
         await db.from("call_logs").delete().eq("id", createdLogId);
+      }
+      await db
+        .from("profiles")
+        .update({ availability: originalAvailability })
+        .eq("id", calleeId);
+    }
+  });
+
+// ============================================================================
+// E2E: Concurrent-call stress test
+// Admin-only. Two callers ring the same creator at the same instant; we
+// race the accept code path in parallel and assert that the DB only ever
+// records ONE 'accepted' invite per callee at a time (enforced by the
+// partial-unique index `call_invites_one_accepted_per_callee`).
+// Rolls back every synthetic row it creates.
+// ============================================================================
+export const runConcurrentCallE2E = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((d: unknown) =>
+    z
+      .object({
+        calleeId: z.string().uuid().optional(),
+        rounds: z.number().int().min(1).max(20).optional(),
+      })
+      .parse(d ?? {}),
+  )
+  .handler(async ({ context, data }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const db = supabaseAdmin as any;
+    const { data: isAdmin } = await context.supabase.rpc("has_role", {
+      _user_id: context.userId,
+      _role: "admin",
+    });
+    if (!isAdmin) throw new Error("Forbidden");
+
+    const rounds = data.rounds ?? 5;
+    const steps: Array<{ step: string; ok: boolean; detail?: any }> = [];
+    const log = (step: string, ok: boolean, detail?: any) =>
+      steps.push({ step, ok, detail });
+
+    // Pick creator
+    const admins = await hiddenAdminIds(db);
+    let calleeId = data.calleeId;
+    if (!calleeId) {
+      const { data: candidates } = await db
+        .from("profiles")
+        .select("id, is_creator, onboarded, is_banned")
+        .eq("is_creator", true)
+        .eq("onboarded", true)
+        .eq("is_banned", false)
+        .is("deleted_at", null)
+        .limit(20);
+      const pick = (candidates ?? []).find((p: any) => !admins.has(p.id));
+      if (!pick) return { pass: false, reason: "No eligible creator.", steps };
+      calleeId = pick.id;
+    }
+    log("resolve_callee", true, { calleeId });
+
+    // Pick two distinct fake callers
+    const { data: others } = await db
+      .from("profiles")
+      .select("id")
+      .neq("id", calleeId)
+      .eq("onboarded", true)
+      .eq("is_banned", false)
+      .is("deleted_at", null)
+      .limit(50);
+    const callers = (others ?? []).filter((p: any) => !admins.has(p.id)).slice(0, 2);
+    if (callers.length < 2) {
+      return { pass: false, reason: "Need 2 eligible callers.", steps };
+    }
+    log("resolve_callers", true, { a: callers[0].id, b: callers[1].id });
+
+    // Snapshot availability for restoration
+    const { data: profBefore } = await db
+      .from("profiles")
+      .select("availability")
+      .eq("id", calleeId)
+      .maybeSingle();
+    const originalAvailability = profBefore?.availability ?? "online";
+
+    const createdInviteIds: string[] = [];
+    const createdLogIds: string[] = [];
+
+    // Simulate concurrent accept: insert call_log + UPDATE invite to accepted
+    // exactly the way acceptCallInvite does, but in parallel for both invites.
+    const tryAccept = async (inviteId: string, callerId: string) => {
+      try {
+        const { data: logRow, error: logErr } = await db
+          .from("call_logs")
+          .insert({
+            caller_id: callerId,
+            callee_id: calleeId,
+            kind: "voice",
+            status: "completed",
+          })
+          .select("id")
+          .single();
+        if (logErr) throw logErr;
+        createdLogIds.push(logRow.id);
+
+        const { data: accepted, error: updErr } = await db
+          .from("call_invites")
+          .update({
+            status: "accepted",
+            accepted_at: new Date().toISOString(),
+            call_log_id: logRow.id,
+          })
+          .eq("id", inviteId)
+          .eq("status", "pending")
+          .select("id, status")
+          .maybeSingle();
+        if (updErr) {
+          return { inviteId, ok: false, reason: updErr.message };
+        }
+        return { inviteId, ok: !!accepted, accepted };
+      } catch (e: any) {
+        return { inviteId, ok: false, reason: e?.message ?? String(e) };
+      }
+    };
+
+    let totalAcceptedAcrossRounds = 0;
+    let roundsWithSingleWinner = 0;
+    let roundsWithUniqueViolation = 0;
+
+    try {
+      for (let r = 0; r < rounds; r++) {
+        // Ensure creator is online so the next round mirrors a real race
+        await db.from("profiles").update({ availability: "online" }).eq("id", calleeId);
+
+        // Insert two pending invites bypassing the createCallInvite busy check
+        // so we simulate the worst-case race window where both rings landed.
+        const expiresAt = new Date(Date.now() + 60_000).toISOString();
+        const { data: rowA, error: errA } = await db
+          .from("call_invites")
+          .insert({
+            caller_id: callers[0].id,
+            callee_id: calleeId,
+            kind: "voice",
+            status: "pending",
+            expires_at: expiresAt,
+          })
+          .select("id").single();
+        if (errA) throw errA;
+        const { data: rowB, error: errB } = await db
+          .from("call_invites")
+          .insert({
+            caller_id: callers[1].id,
+            callee_id: calleeId,
+            kind: "voice",
+            status: "pending",
+            expires_at: expiresAt,
+          })
+          .select("id").single();
+        if (errB) throw errB;
+        createdInviteIds.push(rowA.id, rowB.id);
+
+        const [resA, resB] = await Promise.all([
+          tryAccept(rowA.id, callers[0].id),
+          tryAccept(rowB.id, callers[1].id),
+        ]);
+        const acceptedThisRound = [resA, resB].filter((r) => r.ok).length;
+        totalAcceptedAcrossRounds += acceptedThisRound;
+        if (acceptedThisRound === 1) roundsWithSingleWinner++;
+
+        const violation =
+          /duplicate key|call_invites_one_accepted_per_callee|23505/i.test(
+            String(resA.reason ?? "") + " " + String(resB.reason ?? ""),
+          );
+        if (violation) roundsWithUniqueViolation++;
+
+        // Authoritative DB check
+        const { data: acceptedRows } = await db
+          .from("call_invites")
+          .select("id, caller_id")
+          .eq("callee_id", calleeId)
+          .eq("status", "accepted");
+        const distinctAccepted = (acceptedRows ?? []).length;
+
+        log(`round_${r + 1}`, acceptedThisRound === 1 && distinctAccepted === 1, {
+          handlerWinners: acceptedThisRound,
+          dbAcceptedRows: distinctAccepted,
+          uniqueViolation: violation,
+          resA, resB,
+        });
+
+        if (distinctAccepted > 1) {
+          // Critical invariant breach — bail early.
+          break;
+        }
+
+        // Tear down accepted invite so next round starts clean
+        await db
+          .from("call_invites")
+          .update({ status: "cancelled", cancelled_at: new Date().toISOString() })
+          .eq("callee_id", calleeId)
+          .in("id", [rowA.id, rowB.id]);
+      }
+
+      // Final aggregate check
+      const { data: finalAccepted } = await db
+        .from("call_invites")
+        .select("id")
+        .eq("callee_id", calleeId)
+        .eq("status", "accepted");
+      const finalAcceptedCount = (finalAccepted ?? []).length;
+      log("no_lingering_accepted", finalAcceptedCount === 0, {
+        finalAcceptedCount,
+      });
+
+      const pass =
+        roundsWithSingleWinner === rounds &&
+        totalAcceptedAcrossRounds === rounds &&
+        finalAcceptedCount === 0;
+
+      return {
+        pass,
+        calleeId,
+        rounds,
+        steps,
+        summary: {
+          allRoundsExactlyOneWinner: roundsWithSingleWinner === rounds,
+          totalAcceptedEqualsRounds: totalAcceptedAcrossRounds === rounds,
+          noLingeringAccepted: finalAcceptedCount === 0,
+          uniqueIndexFiredAtLeastOnce: roundsWithUniqueViolation > 0,
+        },
+      };
+    } finally {
+      if (createdInviteIds.length) {
+        await db.from("call_invites").delete().in("id", createdInviteIds);
+      }
+      if (createdLogIds.length) {
+        await db.from("call_logs").delete().in("id", createdLogIds);
       }
       await db
         .from("profiles")
