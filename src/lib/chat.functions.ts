@@ -1,7 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { CHAT_COINS_PER_MINUTE, MESSAGE_COIN_COST_MALE, containsBlockedContent } from "./constants";
+import { CHAT_COINS_PER_MINUTE, MESSAGE_COIN_COST_MALE, containsBlockedContent, detectContactShare, contactShareWarning } from "./constants";
 import { withAiAvatars } from "./ai-avatar";
 
 async function assertNotBanned(supabase: any, userId: string) {
