@@ -79,11 +79,13 @@ function statusDto(invite: any, userId: string, log?: any) {
     role: invite.caller_id === userId ? "caller" : "callee",
     callLogId: (invite.call_log_id ?? log?.id ?? null) as string | null,
     expiresAt: invite.expires_at as string,
+    deliveredAt: (invite.delivered_at ?? null) as string | null,
     baselineDurationSeconds: Number(log?.duration_seconds ?? 0),
     baselineFreeSecondsUsed: Number(log?.free_seconds_used ?? 0),
     baselineCoinsSpent: Number(log?.coins_spent ?? 0),
   };
 }
+
 
 export const createCallInvite = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
