@@ -156,7 +156,27 @@ export function IncomingCallDialog({ disabled }: { disabled?: boolean }) {
         search: { inviteId: res.id },
       });
     },
-    onError: (e: any) => toast.error(e?.message ?? "Could not answer call"),
+    onError: (e: any) => {
+      const msg = String(e?.message ?? "");
+      // Server signals that the accepting user (the payer) doesn't have
+      // enough coins / free seconds for a minute of talk time. Offer to
+      // open the recharge sheet instead of silently failing.
+      if (msg.startsWith("RECHARGE_REQUIRED")) {
+        const friendly = msg.replace(/^RECHARGE_REQUIRED:\s*/, "") ||
+          "Bat karne ke liye coins lijiye.";
+        toast.error(friendly, {
+          duration: 8000,
+          action: {
+            label: "Recharge",
+            onClick: () => navigate({ to: "/wallet" }),
+          },
+        });
+        // Auto-reject the invite so the caller gets a clean signal.
+        if (invite) rejectMut.mutate(invite.id);
+        return;
+      }
+      toast.error(msg || "Could not answer call");
+    },
   });
 
   const rejectMut = useMutation({
