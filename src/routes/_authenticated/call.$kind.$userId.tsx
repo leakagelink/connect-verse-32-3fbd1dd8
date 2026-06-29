@@ -12,7 +12,7 @@ import { Mic, MicOff, Video as VideoIcon, VideoOff, PhoneOff, Coins, Search, Gif
 import { AppShell } from "@/components/app-shell";
 import { toast } from "sonner";
 import { VOICE_CALL_COINS_PER_MINUTE, VIDEO_CALL_COINS_PER_MINUTE } from "@/lib/constants";
-import { startCallLog, endCallLog, applyCallUsage } from "@/lib/calls.functions";
+import { endCallLog, applyCallUsage } from "@/lib/calls.functions";
 import { generateMysteryCase, CASE_GENERATION_COIN_COST } from "@/lib/mystery.functions";
 import { getMyProfile } from "@/lib/onboarding.functions";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -30,16 +30,21 @@ import { supabase } from "@/integrations/supabase/client";
 import { recordCallMetrics } from "@/lib/calling.functions";
 import { connectCall, type AnySession } from "@/lib/call-session";
 import { Signal, SignalHigh, SignalLow, SignalMedium, SignalZero } from "lucide-react";
+import { getCallInviteStatus } from "@/lib/call-invites.functions";
 
 
 
 
 export const Route = createFileRoute("/_authenticated/call/$kind/$userId")({
+  validateSearch: (search) => ({
+    inviteId: typeof search.inviteId === "string" ? search.inviteId : undefined,
+  }),
   component: CallScreen,
 });
 
 function CallScreen() {
   const { kind, userId } = useParams({ from: "/_authenticated/call/$kind/$userId" });
+  const { inviteId } = Route.useSearch();
   const navigate = useNavigate();
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const remoteContainerRef = useRef<HTMLDivElement | null>(null);
@@ -92,9 +97,9 @@ function CallScreen() {
 
 
   const perMin = kind === "video" ? VIDEO_CALL_COINS_PER_MINUTE : VOICE_CALL_COINS_PER_MINUTE;
-  const startLogFn = useServerFn(startCallLog);
   const endLogFn = useServerFn(endCallLog);
   const applyUsageFn = useServerFn(applyCallUsage);
+  const inviteStatusFn = useServerFn(getCallInviteStatus);
   // Tracks how much we've already persisted to the server (server is the
   // source of truth across refresh / reconnect).
   const syncedFreeRef = useRef(0);
@@ -113,6 +118,7 @@ function CallScreen() {
   const [caseId, setCaseId] = useState<string | null>(null);
   const [casePanelOpen, setCasePanelOpen] = useState(false);
   const [generating, setGenerating] = useState(false);
+  const callRoleRef = useRef<"caller" | "callee" | null>(null);
 
   // Realtime: share generated case_id between caller & callee using a deterministic channel
   useEffect(() => {
