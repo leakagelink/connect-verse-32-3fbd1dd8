@@ -396,3 +396,81 @@ export const getCallParticipantProfile = createServerFn({ method: "POST" })
       .maybeSingle();
     return { profile: p ? withAiAvatar(p) : null };
   });
+
+// TEMP DIAG — admin-only: create an already-expired pending invite to the logged-in user
+// (faking another user as caller) and run the missed-call push pipeline. Returns FCM result.
+export const diagSelfMissedCall = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const db = supabaseAdmin as any;
+    const { data: isAdmin } = await context.supabase.rpc("has_role", { _user_id: context.userId, _role: "admin" });
+    if (!isAdmin) throw new Error("Forbidden");
+
+    // pick any other onboarded user as the fake caller
+    const { data: other } = await db
+      .from("profiles")
+      .select("id, username")
+      .neq("id", context.userId)
+      .eq("is_banned", false)
+      .eq("onboarded", true)
+      .is("deleted_at", null)
+      .limit(1)
+      .maybeSingle();
+    if (!other) throw new Error("No other user available as fake caller.");
+
+    const pastIso = new Date(Date.now() - 60_000).toISOString();
+    const { data: invite, error } = await db
+      .from("call_invites")
+      .insert({
+        caller_id: other.id,
+        callee_id: context.userId,
+        kind: "voice",
+        status: "pending",
+        expires_at: pastIso,
+      })
+      .select("*")
+      .single();
+    if (error) throw new Error(error.message);
+
+    const before = invite;
+    const reconciled = await (async () => {
+      const { data } = await db
+        .from("call_invites")
+        .update({ status: "expired", cancelled_at: new Date().toISOString() })
+        .eq("id", invite.id)
+        .eq("status", "pending")
+        .select("*")
+        .maybeSingle();
+      return data;
+    })();
+
+    // fetch caller name and call notifyUser directly so we get FCM counters
+    const { data: caller } = await db.from("profiles").select("username").eq("id", invite.caller_id).maybeSingle();
+    const name = caller?.username ?? "Someone";
+
+    // tokens snapshot
+    const { data: tokens } = await db.from("device_tokens").select("token, platform").eq("user_id", context.userId);
+
+    const { notifyUser: notify } = await import("./push.functions");
+    const pushResult = await notify({
+      userId: context.userId,
+      kind: "calls",
+      title: `Missed audio call`,
+      body: `${name} tried to call you.`,
+      deepLink: `/calls`,
+    });
+
+    return {
+      ok: true,
+      calleeId: context.userId,
+      fakeCallerId: invite.caller_id,
+      fakeCallerName: name,
+      inviteId: invite.id,
+      inviteStatusBefore: before.status,
+      inviteStatusAfter: reconciled?.status ?? "no-transition",
+      registeredTokens: (tokens ?? []).length,
+      tokenPlatforms: (tokens ?? []).map((t: any) => t.platform),
+      fcmPushed: pushResult.pushed,
+    };
+  });
