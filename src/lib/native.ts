@@ -118,6 +118,99 @@ export async function registerPushNotifications(): Promise<PushRegistration | nu
   }
 }
 
+/* ----------------------------------------------------------------
+ * Auto-registration on every app launch.
+ *
+ * Goals:
+ *   - Run silently on every cold start AND on resume from background.
+ *   - Pick up FCM token rotations (Android can rotate at any time after
+ *     reinstall / clear-data / 28-day inactivity / Google Play Services
+ *     refresh) and immediately push the fresh value to the server so
+ *     stale tokens get replaced.
+ *   - Idempotent — listeners attach exactly once per JS context, even
+ *     if AppShell remounts.
+ *
+ * The caller supplies an `onToken` callback (wired to the
+ * `registerDeviceToken` server function in AppShell) so this module
+ * stays free of server-function imports.
+ * ---------------------------------------------------------------- */
+
+let pushAutoRegisterStarted = false;
+let pushTokenHandler: ((reg: PushRegistration) => void) | null = null;
+let lastSentToken: string | null = null;
+
+export function startPushAutoRegister(
+  onToken: (reg: PushRegistration) => void | Promise<void>,
+): void {
+  if (!isNative()) return;
+  // Always keep the latest handler (component may remount with a new fn ref).
+  pushTokenHandler = (reg) => { void onToken(reg); };
+
+  if (pushAutoRegisterStarted) {
+    // Already wired — just kick a fresh register() to surface current token.
+    void kickPushRegister();
+    return;
+  }
+  pushAutoRegisterStarted = true;
+
+  (async () => {
+    try {
+      const [{ PushNotifications }, { App }] = await Promise.all([
+        import('@capacitor/push-notifications'),
+        import('@capacitor/app'),
+      ]);
+
+      // 1) Persistent registration listener — fires on initial token AND on
+      //    every FCM-driven rotation. We forward unique values upstream.
+      await PushNotifications.addListener('registration', (t) => {
+        const token = t?.value;
+        if (!token) return;
+        if (token === lastSentToken) return;
+        lastSentToken = token;
+        pushTokenHandler?.({ token, platform: platform() as 'android' });
+      });
+      await PushNotifications.addListener('registrationError', (err) => {
+        console.warn('[push] registrationError', err);
+      });
+
+      // 2) Re-kick on every resume so a token rotated in the background
+      //    while the JS context was dead gets refreshed immediately.
+      await App.addListener('appStateChange', (state) => {
+        if (state.isActive) void kickPushRegister();
+      });
+
+      // 3) Initial kick on launch.
+      await kickPushRegister();
+    } catch (e) {
+      console.warn('[push] auto-register init failed', e);
+      pushAutoRegisterStarted = false;
+    }
+  })();
+}
+
+async function kickPushRegister(): Promise<void> {
+  if (!isNative()) return;
+  try {
+    const { PushNotifications } = await import('@capacitor/push-notifications');
+    const perm = await PushNotifications.checkPermissions();
+    let state = perm.receive;
+    if (state !== 'granted') {
+      const req = await PushNotifications.requestPermissions();
+      state = req.receive;
+    }
+    if (state !== 'granted') return;
+    await PushNotifications.register();
+  } catch (e) {
+    console.warn('[push] kick register failed', e);
+  }
+}
+
+/** Forget the cached "last sent" token. Call on sign-out so the next user
+ *  re-registers the same physical token under their own account. */
+export function resetPushAutoRegisterCache(): void {
+  lastSentToken = null;
+}
+
 /* ---------------- Call permissions (mic / camera) ---------------- */
 
 /**
