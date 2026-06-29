@@ -187,7 +187,7 @@ function DiagnosticsPage() {
         : "ok";
 
   return (
-    <AppShell title="Diagnostics" showBack>
+    <AppShell>
       <div className="space-y-4">
         <div className="flex items-center gap-2">
           <Link
