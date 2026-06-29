@@ -32,7 +32,7 @@ import java.util.Map;
  */
 public class TalkoraMessagingService extends MessagingService {
     private static final String TAG = "TalkoraFCM";
-    public static final String CALL_CHANNEL_ID = "incoming_calls";
+    public static final String CALL_CHANNEL_ID = NotificationChannels.INCOMING_CALLS;
     public static final int CALL_NOTIFICATION_ID = 1991;
     public static final String PREF_PENDING_TOKEN = "talkora.fcm.pending_token";
 
