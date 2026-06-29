@@ -1270,9 +1270,13 @@ function CallScreen() {
         onOpenChange={setGiftOpen}
         receiverId={userId}
         callLogId={callLogIdRef.current}
-        balance={myBalance}
-        onSent={() => {
+        balance={coinsLeft}
+        onSent={(newBalance) => {
+          // Reset baseline so the live coinsLeft reflects the post-gift balance
+          // without waiting for the next ['me'] refetch.
+          setCoinStart(newBalance + coinsConsumed);
           qc.invalidateQueries({ queryKey: ["me"] });
+          qc.invalidateQueries({ queryKey: ["wallet"] });
         }}
         onLowBalance={() => {
           setGiftOpen(false);
