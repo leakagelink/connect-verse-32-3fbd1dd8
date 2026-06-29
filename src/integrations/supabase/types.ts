@@ -2021,6 +2021,7 @@ export type Database = {
         | "fan_club_income"
         | "admin_credit"
         | "admin_debit"
+        | "call_earning"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -2182,6 +2183,7 @@ export const Constants = {
         "fan_club_income",
         "admin_credit",
         "admin_debit",
+        "call_earning",
       ],
     },
   },

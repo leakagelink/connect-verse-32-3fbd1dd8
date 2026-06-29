@@ -253,13 +253,14 @@ export const applyCallUsage = createServerFn({ method: "POST" })
     // Verify ownership of the call.
     const { data: log, error: logErr } = await supabaseAdmin
       .from("call_logs")
-      .select("id, caller_id, duration_seconds, coins_spent, free_seconds_used, ended_at")
+      .select("id, caller_id, callee_id, duration_seconds, coins_spent, free_seconds_used, ended_at")
       .eq("id", data.callLogId)
       .maybeSingle();
     if (logErr) throw logErr;
     if (!log || log.caller_id !== userId) {
       return { ok: false, freeSeconds: null, balance: null, reason: "no-log" };
     }
+    const calleeId = log.callee_id as string;
 
     const storedFree = Number(log.free_seconds_used ?? 0);
     const storedCoins = Number(log.coins_spent ?? 0);
@@ -338,6 +339,45 @@ export const applyCallUsage = createServerFn({ method: "POST" })
           reconciled: true,
         },
       });
+
+      // Credit the creator (callee) their earning share for the paid portion
+      // of this delta. Only the caller is debited — the creator earns coins.
+      // CREATOR_EARN_RATIO is the fraction of spent coins the creator keeps;
+      // the rest is the platform commission.
+      const CREATOR_EARN_RATIO = 0.5;
+      const creatorEarn = Math.floor(deltaCoins * CREATOR_EARN_RATIO);
+      if (creatorEarn > 0 && calleeId && calleeId !== userId) {
+        const { data: creatorWallet } = await supabaseAdmin
+          .from("wallets")
+          .select("coin_balance")
+          .eq("user_id", calleeId)
+          .maybeSingle();
+        if (creatorWallet) {
+          const newCreatorBal = Number(creatorWallet.coin_balance ?? 0) + creatorEarn;
+          await supabaseAdmin
+            .from("wallets")
+            .update({ coin_balance: newCreatorBal, updated_at: new Date().toISOString() })
+            .eq("user_id", calleeId);
+        } else {
+          await supabaseAdmin
+            .from("wallets")
+            .insert({ user_id: calleeId, coin_balance: creatorEarn });
+        }
+        await supabaseAdmin.from("transactions").insert({
+          user_id: calleeId,
+          type: "call_earning",
+          coins_delta: creatorEarn,
+          inr_amount: 0,
+          metadata: {
+            call_log_id: data.callLogId,
+            seconds: sentElapsed,
+            idempotency_key: idemKey,
+            payer_id: userId,
+            gross_coins: deltaCoins,
+            earn_ratio: CREATOR_EARN_RATIO,
+          },
+        });
+      }
     }
 
     await supabaseAdmin
