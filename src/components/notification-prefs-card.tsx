@@ -92,16 +92,19 @@ export function NotificationPrefsCard() {
             {enabling ? "Enabling..." : "Enable device notifications"}
           </Button>
         )}
-        {ROWS.map((row) => (
-          <div key={row.key} className="flex items-center justify-between">
-            <span className="text-sm">{t(row.tKey)}</span>
-            <Switch
-              checked={prefs[row.key]}
-              onCheckedChange={(v) => toggle(row.key, v)}
-              disabled={saveMut.isPending}
-            />
-          </div>
-        ))}
+        {ROWS.map((row) => {
+          const label = t(row.tKey);
+          return (
+            <div key={row.key} className="flex items-center justify-between gap-3">
+              <span className="text-sm">{label === row.tKey ? row.fallback : label}</span>
+              <Switch
+                checked={prefs[row.key]}
+                onCheckedChange={(v) => toggle(row.key, v)}
+                disabled={saveMut.isPending}
+              />
+            </div>
+          );
+        })}
       </div>
     </Card>
   );
