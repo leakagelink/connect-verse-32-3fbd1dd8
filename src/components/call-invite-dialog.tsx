@@ -249,6 +249,7 @@ export function CallInviteDialog({
                 onClick={() => {
                   setInvite(null);
                   setEndState(null);
+                  setDeliveryAttempt(1);
                   setMessage("Sending call request…");
                   if (pendingCall) createMut.mutate(pendingCall);
                 }}
