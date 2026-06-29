@@ -172,6 +172,21 @@ function CallRow({ call, onOpenProfile }: { call: RecentCall; onOpenProfile: (id
             <KindIcon className="size-3" />
             {call.kind === "video" ? "Video" : "Voice"}
           </Badge>
+          {(() => {
+            const status =
+              call.status === "missed"
+                ? { label: "Missed", cls: "border-destructive/40 text-destructive" }
+                : call.status === "cancelled"
+                ? { label: "Cancelled", cls: "border-amber-500/40 text-amber-500" }
+                : call.duration_seconds > 0
+                ? { label: "Connected", cls: "border-emerald-500/40 text-emerald-500" }
+                : { label: "Ended", cls: "border-muted-foreground/40 text-muted-foreground" };
+            return (
+              <Badge variant="outline" className={`text-[10px] py-0 px-1.5 shrink-0 ${status.cls}`}>
+                {status.label}
+              </Badge>
+            );
+          })()}
         </div>
         <div className="flex items-center gap-1.5 text-xs text-muted-foreground flex-wrap">
           <DirIcon className={`size-3.5 ${dirColor}`} />
