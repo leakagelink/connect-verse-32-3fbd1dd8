@@ -298,6 +298,78 @@ export async function openFullScreenIntentSettings(): Promise<void> {
   try { await p.openSettings(); } catch { /* ignore */ }
 }
 
+/* ---------------- Background reliability (Autostart + battery) ----------------
+ * OEM-specific Autostart toggles + REQUEST_IGNORE_BATTERY_OPTIMIZATIONS.
+ * Without these, MIUI / FunTouch / ColorOS / Realme / Honor kill our process
+ * shortly after backgrounding, so the FCM ringer push either never wakes
+ * Talkora or can't launch the IncomingCallActivity. Bridged via
+ * BackgroundReliabilityPlugin.java.
+ */
+
+export type OemVendor =
+  | 'xiaomi' | 'vivo' | 'oppo' | 'realme' | 'oneplus'
+  | 'honor' | 'huawei' | 'samsung' | 'asus' | 'letv'
+  | 'nokia' | 'stock';
+
+export interface BackgroundReliabilityStatus {
+  vendor: OemVendor;
+  autostartSupported: boolean;
+  batteryOptIgnored: boolean;
+  recommended: boolean;
+}
+
+interface BackgroundReliabilityBridge {
+  status(): Promise<BackgroundReliabilityStatus>;
+  requestIgnoreBatteryOptimizations(): Promise<{ granted: boolean; opened?: boolean }>;
+  openBatterySettings(): Promise<{ opened: boolean }>;
+  openAutostartSettings(): Promise<{ opened: boolean; vendor?: OemVendor; fallback?: boolean }>;
+}
+
+let bgReliabilityPlugin: BackgroundReliabilityBridge | null = null;
+function bgPlugin(): BackgroundReliabilityBridge | null {
+  if (!isNative() || platform() !== 'android') return null;
+  if (!bgReliabilityPlugin) {
+    try {
+      bgReliabilityPlugin = registerPlugin<BackgroundReliabilityBridge>('BackgroundReliability');
+    } catch { return null; }
+  }
+  return bgReliabilityPlugin;
+}
+
+export async function getBackgroundReliabilityStatus(): Promise<BackgroundReliabilityStatus | null> {
+  const p = bgPlugin();
+  if (!p) return null;
+  try { return await p.status(); } catch { return null; }
+}
+
+export async function requestIgnoreBatteryOptimizations(): Promise<boolean> {
+  const p = bgPlugin();
+  if (!p) return false;
+  try {
+    const r = await p.requestIgnoreBatteryOptimizations();
+    return !!r.granted;
+  } catch { return false; }
+}
+
+export async function openAutostartSettings(): Promise<boolean> {
+  const p = bgPlugin();
+  if (!p) return false;
+  try {
+    const r = await p.openAutostartSettings();
+    return !!r.opened;
+  } catch { return false; }
+}
+
+export async function openBatterySettings(): Promise<boolean> {
+  const p = bgPlugin();
+  if (!p) return false;
+  try {
+    const r = await p.openBatterySettings();
+    return !!r.opened;
+  } catch { return false; }
+}
+
+
 /* ---------------- Call permissions (mic / camera) ---------------- */
 
 /**

@@ -15,6 +15,7 @@ import { installDeepLinkHandler } from "@/lib/deep-links";
 import { useT, syncStoredLocale, type Locale } from "@/lib/i18n";
 import { IncomingCallDialog } from "@/components/incoming-call-dialog";
 import { PushPermissionGate } from "@/components/push-permission-gate";
+import { BackgroundReliabilityGate } from "@/components/background-reliability-gate";
 
 
 
@@ -138,6 +139,7 @@ export function AppShell({ children, isAdmin }: { children: ReactNode; isAdmin?:
 
 
       {me?.profile?.id && <PushPermissionGate />}
+      {me?.profile?.id && <BackgroundReliabilityGate />}
       <main className="mx-auto max-w-3xl px-4 pt-4">{children}</main>
       <SafetySignalsProbe />
       <IncomingCallDialog disabled={pathname.startsWith("/call/")} />
