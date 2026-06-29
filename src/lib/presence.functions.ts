@@ -45,7 +45,7 @@ export const heartbeat = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: prev } = await supabaseAdmin
       .from("profiles")
-      .select("username, last_seen_at, last_online_notified_at")
+      .select("username, last_seen_at, last_online_notified_at, is_creator")
       .eq("id", userId)
       .maybeSingle();
 
@@ -67,9 +67,8 @@ export const heartbeat = createServerFn({ method: "POST" })
     const notifyAllowed = !lastNotified || now - lastNotified > TWO_HOURS;
 
     if (wasOffline && notifyAllowed) {
-      // Run fan-out without blocking the heartbeat response.
       const username = prev?.username ?? "Someone";
-      // Mark immediately so concurrent heartbeats don't double-fire.
+      const sourceIsCreator = !!prev?.is_creator;
       await supabaseAdmin
         .from("profiles")
         .update({ last_online_notified_at: nowIso })
@@ -84,19 +83,35 @@ export const heartbeat = createServerFn({ method: "POST" })
 
       const followerIds = (followerRows ?? []).map((r) => r.follower_id);
       if (followerIds.length > 0) {
-        const { notifyUser } = await import("./push.functions");
-        // Fire and forget — don't await heavy fanout in the request path.
-        Promise.allSettled(
-          followerIds.map((fid) =>
-            notifyUser({
-              userId: fid,
-              kind: "follows",
-              title: `${username} is online`,
-              body: `Tap to say hi or start a call`,
-              deepLink: `/recents`,
-            }),
-          ),
-        ).catch(() => {});
+        // Respect each follower's "online aa gaya" preference, split between
+        // followed users and followed creators.
+        const prefCol = sourceIsCreator ? "online_creators" : "online_followers";
+        const { data: prefRows } = await supabaseAdmin
+          .from("notification_prefs")
+          .select(`user_id, ${prefCol}`)
+          .in("user_id", followerIds);
+
+        const disabled = new Set(
+          (prefRows ?? [])
+            .filter((r: any) => r[prefCol] === false)
+            .map((r: any) => r.user_id),
+        );
+        const recipients = followerIds.filter((id) => !disabled.has(id));
+
+        if (recipients.length > 0) {
+          const { notifyUser } = await import("./push.functions");
+          Promise.allSettled(
+            recipients.map((fid) =>
+              notifyUser({
+                userId: fid,
+                kind: "follows",
+                title: `${username} is online`,
+                body: `Tap to say hi or start a call`,
+                deepLink: `/recents`,
+              }),
+            ),
+          ).catch(() => {});
+        }
       }
     }
 
