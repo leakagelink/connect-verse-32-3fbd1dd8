@@ -401,7 +401,8 @@ export const getCallParticipantProfile = createServerFn({ method: "POST" })
 // (faking another user as caller) and run the missed-call push pipeline. Returns FCM result.
 export const diagSelfMissedCall = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .handler(async ({ context }) => {
+  .validator((d: unknown) => z.object({ targetUserId: z.string().uuid().optional() }).parse(d ?? {}))
+  .handler(async ({ context, data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const db = supabaseAdmin as any;
     const { data: isAdmin } = await context.supabase.rpc("has_role", { _user_id: context.userId, _role: "admin" });
