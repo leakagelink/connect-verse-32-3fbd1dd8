@@ -123,7 +123,7 @@ function missedReasonLabel(call: RecentCall): string | null {
   }
 }
 
-function CallRow({ call }: { call: RecentCall }) {
+function CallRow({ call, onOpenProfile }: { call: RecentCall; onOpenProfile: (id: string) => void }) {
   const KindIcon = call.kind === "video" ? VideoIcon : Mic;
   const isMissed = call.status === "missed";
   const DirIcon = isMissed ? PhoneMissed : call.direction === "outgoing" ? PhoneOutgoing : PhoneIncoming;
@@ -138,19 +138,31 @@ function CallRow({ call }: { call: RecentCall }) {
     : call.direction === "outgoing"
     ? "Outgoing"
     : "Incoming";
+  const openProfile = () => {
+    if (call.partner.id) onOpenProfile(call.partner.id);
+  };
 
   return (
     <Card className={`glass p-3 flex items-center gap-3 ${isMissed ? "border-destructive/30" : ""}`}>
-      <div className="size-11 rounded-full brand-gradient flex items-center justify-center text-primary-foreground font-bold shrink-0 overflow-hidden">
+      <button
+        type="button"
+        onClick={openProfile}
+        aria-label={`Open ${call.partner.username ?? "user"}'s profile`}
+        className="size-11 rounded-full brand-gradient flex items-center justify-center text-primary-foreground font-bold shrink-0 overflow-hidden focus:outline-none focus:ring-2 focus:ring-primary"
+      >
         {call.partner.avatar_url ? (
           <img src={call.partner.avatar_url} alt="" className="size-full object-cover" />
         ) : (
           (call.partner.username ?? "U").slice(0, 1).toUpperCase()
         )}
-      </div>
-      <div className="min-w-0 flex-1">
+      </button>
+      <button
+        type="button"
+        onClick={openProfile}
+        className="min-w-0 flex-1 text-left"
+      >
         <div className="flex items-center gap-1.5">
-          <p className={`font-semibold truncate ${isMissed ? "text-destructive" : ""}`}>
+          <p className={`font-semibold truncate hover:underline ${isMissed ? "text-destructive" : ""}`}>
             {call.partner.username ?? "Unknown"}
           </p>
           <KindIcon className="size-3.5 text-muted-foreground shrink-0" />
@@ -161,7 +173,7 @@ function CallRow({ call }: { call: RecentCall }) {
           <span>·</span>
           <span>{fmtWhen(call.started_at)}</span>
         </div>
-      </div>
+      </button>
       <div className="text-right shrink-0">
         {isMissed ? (
           <Badge variant="outline" className="border-destructive/40 text-destructive text-[10px] py-0 px-1.5">
