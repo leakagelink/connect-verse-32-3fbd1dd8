@@ -41,8 +41,9 @@ export function PrecallPermissionDialog({ open, kind, onCancel, onReady }: Props
   const [checking, setChecking] = useState(false);
   const [requesting, setRequesting] = useState(false);
   const [askedOnce, setAskedOnce] = useState(false);
-  /** Stage 2 audio test runs after permissions are granted. */
+  /** Reserved for future multi-stage flow; currently unused. */
   const [stage, setStage] = useState<"perm" | "audio">("perm");
+  void stage; void setStage;
 
   async function refresh() {
     setChecking(true);
