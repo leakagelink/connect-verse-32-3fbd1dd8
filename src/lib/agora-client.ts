@@ -42,6 +42,9 @@ export class AgoraSession {
   private events: AgoraEvents = {};
   /** Remote audio tracks whose autoplay was blocked, kept so retryAudio() can play them. */
   private pendingAudio: Array<{ play: () => void }> = [];
+  /** All currently subscribed remote audio tracks (for volume / speaker routing). */
+  private remoteAudio: Array<{ setVolume: (v: number) => void }> = [];
+  private speakerOn = false;
 
   async join(opts: {
     appId: string;
@@ -70,6 +73,8 @@ export class AgoraSession {
         return;
       }
       if (mediaType === "audio" && user.audioTrack) {
+        this.remoteAudio.push(user.audioTrack as any);
+        try { (user.audioTrack as any).setVolume(this.speakerOn ? 200 : 100); } catch { /* ignore */ }
         try {
           user.audioTrack.play();
         } catch (err) {
@@ -165,6 +170,29 @@ export class AgoraSession {
       try { t.play(); } catch { /* ignore */ }
     }
   }
+
+  /**
+   * Toggle "speaker" (loudspeaker) mode.
+   * Web/desktop: boosts remote audio volume to ~200 so it plays loud through
+   * the device's main speakers vs the muted/earpiece-like default.
+   * Native (Capacitor Android): also asks the OS to route audio to the
+   * loudspeaker via the SpeakerMode plugin if available; falls back silently.
+   */
+  async setSpeakerMode(on: boolean) {
+    this.speakerOn = on;
+    for (const t of this.remoteAudio) {
+      try { t.setVolume(on ? 200 : 100); } catch { /* ignore */ }
+    }
+    try {
+      const cap = (window as any).Capacitor;
+      if (cap?.isNativePlatform?.() && cap?.Plugins?.SpeakerMode?.set) {
+        await cap.Plugins.SpeakerMode.set({ on });
+      }
+    } catch { /* ignore — plugin optional */ }
+  }
+  isSpeakerOn() { return this.speakerOn; }
+
+
 
 
   async disableVideo() {

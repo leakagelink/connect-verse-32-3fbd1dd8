@@ -8,7 +8,7 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Mic, MicOff, Video as VideoIcon, VideoOff, PhoneOff, Coins, Search, Gift, ShieldAlert } from "lucide-react";
+import { Mic, MicOff, Video as VideoIcon, VideoOff, PhoneOff, Coins, Search, Gift, ShieldAlert, Volume2, VolumeX } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
 import { toast } from "sonner";
 import { VOICE_CALL_COINS_PER_MINUTE, VIDEO_CALL_COINS_PER_MINUTE } from "@/lib/constants";
@@ -69,6 +69,7 @@ function CallScreen() {
   const elapsedRef = useRef(0);
   const [muted, setMuted] = useState(false);
   const [camOff, setCamOff] = useState(false);
+  const [speakerOn, setSpeakerOn] = useState(false);
   const [elapsed, setElapsed] = useState(0);
   const [connected, setConnected] = useState(false);
   const [confirmEnd, setConfirmEnd] = useState(false);
@@ -637,6 +638,14 @@ function CallScreen() {
     const t = streamRef.current?.getVideoTracks()[0];
     if (t) { t.enabled = !t.enabled; setCamOff(!t.enabled); }
   }
+  async function toggleSpeaker() {
+    const next = !speakerOn;
+    setSpeakerOn(next);
+    const sess: any = sessionRef.current?.session;
+    try {
+      await sess?.setSpeakerMode?.(next);
+    } catch { /* ignore */ }
+  }
   function confirmEndCall() {
     endedRef.current = true;
     streamRef.current?.getTracks().forEach((t) => t.stop());
@@ -896,6 +905,15 @@ function CallScreen() {
               {camOff ? <VideoOff className="size-5" /> : <VideoIcon className="size-5" />}
             </Button>
           )}
+          <Button
+            size="icon"
+            variant={speakerOn ? "default" : "secondary"}
+            onClick={toggleSpeaker}
+            aria-label={speakerOn ? "Speaker on" : "Speaker off"}
+            title={speakerOn ? "Speaker on — tap for earpiece" : "Tap for speaker"}
+          >
+            {speakerOn ? <Volume2 className="size-5" /> : <VolumeX className="size-5" />}
+          </Button>
           <Button
             size="icon"
             variant="secondary"
