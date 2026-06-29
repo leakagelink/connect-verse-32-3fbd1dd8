@@ -78,6 +78,13 @@ function CallScreen() {
   const [elapsed, setElapsed] = useState(0);
   const [connected, setConnected] = useState(false);
   const [confirmEnd, setConfirmEnd] = useState(false);
+  // Two-step end-call confirmation. Tap red button (1) → AlertDialog asks
+  // "End this call?" → tap "End call" (2) → final "Yes, disconnect now" (3).
+  // Three deliberate taps eliminate accidental hangups mid-conversation.
+  const [endStep, setEndStep] = useState<1 | 2>(1);
+  // Peer profile sheet — opens *inside* the call screen so the WebRTC
+  // session keeps running while the user follows / sends a friend request.
+  const [peerProfileOpen, setPeerProfileOpen] = useState(false);
   const [lowBalanceOpen, setLowBalanceOpen] = useState(false);
   const [rechargeOpen, setRechargeOpen] = useState(false);
   const [giftOpen, setGiftOpen] = useState(false);
