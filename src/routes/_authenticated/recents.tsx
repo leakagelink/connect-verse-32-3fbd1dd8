@@ -71,7 +71,7 @@ function RecentsScreen() {
 import { Tabs as UITabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { RecentCall } from "@/lib/calls.functions";
 
-function Tabs({ all, voice, video, loading }: { all: RecentCall[]; voice: RecentCall[]; video: RecentCall[]; loading: boolean }) {
+function Tabs({ all, voice, video, loading, onOpenProfile }: { all: RecentCall[]; voice: RecentCall[]; video: RecentCall[]; loading: boolean; onOpenProfile: (id: string) => void }) {
   return (
     <UITabs defaultValue="all">
       <TabsList className="w-full">
@@ -79,14 +79,14 @@ function Tabs({ all, voice, video, loading }: { all: RecentCall[]; voice: Recent
         <TabsTrigger value="voice" className="flex-1">Voice</TabsTrigger>
         <TabsTrigger value="video" className="flex-1">Video</TabsTrigger>
       </TabsList>
-      <TabsContent value="all"><CallList items={all} loading={loading} /></TabsContent>
-      <TabsContent value="voice"><CallList items={voice} loading={loading} /></TabsContent>
-      <TabsContent value="video"><CallList items={video} loading={loading} /></TabsContent>
+      <TabsContent value="all"><CallList items={all} loading={loading} onOpenProfile={onOpenProfile} /></TabsContent>
+      <TabsContent value="voice"><CallList items={voice} loading={loading} onOpenProfile={onOpenProfile} /></TabsContent>
+      <TabsContent value="video"><CallList items={video} loading={loading} onOpenProfile={onOpenProfile} /></TabsContent>
     </UITabs>
   );
 }
 
-function CallList({ items, loading }: { items: RecentCall[]; loading: boolean }) {
+function CallList({ items, loading, onOpenProfile }: { items: RecentCall[]; loading: boolean; onOpenProfile: (id: string) => void }) {
   if (loading) {
     return <p className="text-sm text-muted-foreground py-8 text-center">Loading history…</p>;
   }
@@ -103,7 +103,7 @@ function CallList({ items, loading }: { items: RecentCall[]; loading: boolean })
   }
   return (
     <div className="space-y-2">
-      {items.map((c) => <CallRow key={c.id} call={c} />)}
+      {items.map((c) => <CallRow key={c.id} call={c} onOpenProfile={onOpenProfile} />)}
     </div>
   );
 }
