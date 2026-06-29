@@ -79,8 +79,14 @@ export async function connectCall(opts: {
       data: { excludeCredentialIds },
     });
 
-    // No provider available → mock fallback (existing P2P path).
+    // No provider available → mock fallback (local-only — cannot exchange
+    // audio between two devices). Only acceptable for a self-call (same id).
     if (cfg.provider === "mock" || !cfg.credentialId) {
+      if (opts.myUserId !== opts.partnerUserId) {
+        throw new Error(
+          "Calling service is not configured. Audio cannot connect between two devices without a calling provider.",
+        );
+      }
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: true,
         video: opts.kind === "video" ? { width: 640, height: 480, facingMode: "user" } : false,
