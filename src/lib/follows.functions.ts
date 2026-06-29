@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { withAiAvatar, withAiAvatars } from "./ai-avatar";
 
 const UserIdInput = z.object({ userId: z.string().uuid() });
 
@@ -9,20 +10,21 @@ export const getPartnerProfile = createServerFn({ method: "POST" })
   .validator((d: unknown) => UserIdInput.parse(d))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-    const { data: p, error } = await supabase
+    const { data: p, error } = await supabaseAdmin
       .from("profiles")
-      .select("id, username, gender, country, state, avatar_url, bio, is_creator, is_banned, last_seen_at")
+      .select("id, username, gender, country, state, avatar_url, ai_avatar_style, bio, is_creator, is_banned, onboarded, deleted_at, last_seen_at")
       .eq("id", data.userId)
       .maybeSingle();
     if (error) throw new Error(error.message);
-    if (!p) throw new Error("User not found");
+    if (!p || p.deleted_at || p.is_banned || !p.onboarded) throw new Error("User not found");
 
     // counts (accepted only)
     const [{ count: followers }, { count: following }] = await Promise.all([
-      supabase.from("follows").select("id", { count: "exact", head: true })
+      supabaseAdmin.from("follows").select("id", { count: "exact", head: true })
         .eq("following_id", data.userId).eq("status", "accepted"),
-      supabase.from("follows").select("id", { count: "exact", head: true })
+      supabaseAdmin.from("follows").select("id", { count: "exact", head: true })
         .eq("follower_id", data.userId).eq("status", "accepted"),
     ]);
 
@@ -37,9 +39,10 @@ export const getPartnerProfile = createServerFn({ method: "POST" })
 
     const outgoing = rels?.find((r) => r.follower_id === userId && r.following_id === data.userId) ?? null;
     const incoming = rels?.find((r) => r.follower_id === data.userId && r.following_id === userId) ?? null;
+    const { onboarded, deleted_at, ...safeProfile } = p as any;
 
     return {
-      profile: p,
+      profile: withAiAvatar(safeProfile),
       followers: followers ?? 0,
       following: following ?? 0,
       outgoing: outgoing ? outgoing.status : null, // 'pending' | 'accepted' | null
@@ -113,10 +116,14 @@ export const listFollowRequests = createServerFn({ method: "GET" })
       .limit(100);
     if (!reqs?.length) return [];
     const ids = reqs.map((r) => r.follower_id);
-    const { data: profiles } = await supabase
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: profiles } = await supabaseAdmin
       .from("profiles")
-      .select("id, username, avatar_url, gender, country, state")
-      .in("id", ids);
-    const map = new Map((profiles ?? []).map((p) => [p.id, p]));
+      .select("id, username, avatar_url, ai_avatar_style, gender, country, state, is_banned, onboarded, deleted_at")
+      .in("id", ids)
+      .eq("is_banned", false)
+      .eq("onboarded", true)
+      .is("deleted_at", null);
+    const map = new Map(withAiAvatars(profiles ?? []).map((p) => [p.id, p]));
     return reqs.map((r) => ({ ...r, profile: map.get(r.follower_id) }));
   });

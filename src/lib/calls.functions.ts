@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { withAiAvatars } from "./ai-avatar";
 
 // If `resumeId` is supplied AND it matches an in-progress call between the
 // same two users that was last touched within RESUME_WINDOW_SECONDS, we
@@ -21,19 +22,22 @@ export const startCallLog = createServerFn({ method: "POST" })
     resumeId?: string | null;
   }) => input)
   .handler(async ({ data, context }) => {
-    const { supabase, userId } = context;
+    const { userId } = context;
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
     // ---- Pre-flight safety checks ----
     const [{ data: caller }, { data: callee }] = await Promise.all([
-      supabase
+      supabaseAdmin
         .from("profiles")
         .select("id, gender, country, state, is_banned, created_at")
         .eq("id", userId)
+        .is("deleted_at", null)
         .maybeSingle(),
-      supabase
+      supabaseAdmin
         .from("profiles")
         .select("id, availability, blocked_countries, blocked_states, is_banned, onboarded")
         .eq("id", data.calleeId)
+        .is("deleted_at", null)
         .maybeSingle(),
     ]);
 
@@ -68,7 +72,7 @@ export const startCallLog = createServerFn({ method: "POST" })
       const accountAgeHours = (Date.now() - new Date(caller.created_at).getTime()) / 3600_000;
       if (accountAgeHours < NEW_ACCOUNT_WINDOW_HOURS) {
         const since = new Date(Date.now() - 24 * 3600_000).toISOString();
-        const { count } = await supabase
+        const { count } = await supabaseAdmin
           .from("call_logs")
           .select("id", { count: "exact", head: true })
           .eq("caller_id", userId)
@@ -82,7 +86,7 @@ export const startCallLog = createServerFn({ method: "POST" })
     }
 
     if (data.resumeId) {
-      const { data: existing } = await supabase
+      const { data: existing } = await supabaseAdmin
         .from("call_logs")
         .select("id, caller_id, callee_id, kind, ended_at, last_flushed_at, started_at, duration_seconds, coins_spent, free_seconds_used")
         .eq("id", data.resumeId)
@@ -109,7 +113,6 @@ export const startCallLog = createServerFn({ method: "POST" })
       }
     }
 
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: row, error } = await supabaseAdmin
       .from("call_logs")
       .insert({
@@ -345,6 +348,7 @@ export const listRecentCalls = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }): Promise<RecentCall[]> => {
     const { supabase, userId } = context;
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data, error } = await supabase
       .from("call_logs")
       .select("id, kind, caller_id, callee_id, started_at, ended_at, duration_seconds, coins_spent, status")
@@ -358,11 +362,14 @@ export const listRecentCalls = createServerFn({ method: "GET" })
     );
     let profilesById = new Map<string, any>();
     if (partnerIds.length) {
-      const { data: profs } = await supabase
+      const { data: profs } = await supabaseAdmin
         .from("profiles")
-        .select("id, username, avatar_url, country, state")
-        .in("id", partnerIds);
-      profilesById = new Map((profs ?? []).map((p) => [p.id, p]));
+        .select("id, username, avatar_url, ai_avatar_style, gender, country, state, is_banned, onboarded, deleted_at")
+        .in("id", partnerIds)
+        .eq("is_banned", false)
+        .eq("onboarded", true)
+        .is("deleted_at", null);
+      profilesById = new Map(withAiAvatars(profs ?? []).map((p) => [p.id as string, p]));
     }
 
     return (data ?? []).map((r) => {
