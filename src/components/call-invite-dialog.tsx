@@ -89,6 +89,8 @@ export function CallInviteDialog({
       callerId: raw.callerId ?? raw.caller_id,
       calleeId: raw.calleeId ?? raw.callee_id,
       expiresAt: raw.expiresAt ?? raw.expires_at,
+      deliveredAt: raw.deliveredAt ?? raw.delivered_at ?? null,
+
     });
     const applyStatus = (next: InviteStatus) => {
       if (done) return;
