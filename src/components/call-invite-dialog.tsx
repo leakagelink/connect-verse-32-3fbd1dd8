@@ -64,6 +64,14 @@ export function CallInviteDialog({
   useEffect(() => {
     if (!invite?.id || invite.status !== "pending") return;
     let done = false;
+    const normalizeStatus = (raw: any): InviteStatus => ({
+      id: raw.id,
+      kind: raw.kind,
+      status: raw.status,
+      callerId: raw.callerId ?? raw.caller_id,
+      calleeId: raw.calleeId ?? raw.callee_id,
+      expiresAt: raw.expiresAt ?? raw.expires_at,
+    });
     const applyStatus = (next: InviteStatus) => {
       if (done) return;
       setInvite(next);
@@ -92,14 +100,14 @@ export function CallInviteDialog({
       .on(
         "postgres_changes",
         { event: "UPDATE", schema: "public", table: "call_invites", filter: `id=eq.${invite.id}` },
-        (payload) => applyStatus(payload.new as InviteStatus),
+        (payload) => applyStatus(normalizeStatus(payload.new)),
       )
       .subscribe();
 
     const poll = setInterval(async () => {
       try {
         const res = await statusFn({ data: { inviteId: invite.id } });
-        applyStatus(res as InviteStatus);
+        applyStatus(normalizeStatus(res));
       } catch { /* keep ringing UI */ }
     }, 2000);
 

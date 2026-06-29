@@ -119,7 +119,10 @@ export const createCallInvite = createServerFn({ method: "POST" })
       kind: "calls",
       title: `Incoming ${data.kind === "video" ? "video" : "audio"} call`,
       body: `${caller.username ?? "Someone"} is calling you. Tap to answer.`,
-      deepLink: `/call/${data.kind}/${callerId}?inviteId=${invite.id}`,
+      // Open a normal authenticated screen so the global IncomingCallDialog can
+      // show the ringing UI. Do not deep-link directly into /call; the call
+      // route is now reserved for already-accepted invites only.
+      deepLink: `/home`,
     }).catch(() => ({ pushed: 0 }));
 
     return statusDto(invite, callerId);
