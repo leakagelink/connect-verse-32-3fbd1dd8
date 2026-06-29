@@ -159,7 +159,14 @@ export const endCallLog = createServerFn({ method: "POST" })
     // Don't overwrite an already-recorded end_reason (first side to report wins,
     // so "peer_left" from the survivor doesn't clobber "coins_exhausted" from
     // the payer who actually triggered the disconnect).
-    const patch: Record<string, unknown> = {
+    const patch: {
+      ended_at: string;
+      duration_seconds: number;
+      coins_spent: number;
+      status: string;
+      end_reason?: string;
+      ended_by?: string;
+    } = {
       ended_at: new Date().toISOString(),
       duration_seconds: data.durationSeconds,
       coins_spent: data.coinsSpent,
@@ -173,6 +180,7 @@ export const endCallLog = createServerFn({ method: "POST" })
       .from("call_logs")
       .update(patch)
       .eq("id", data.id);
+
     if (error) throw error;
     return { ok: true };
   });
