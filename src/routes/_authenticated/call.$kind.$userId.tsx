@@ -1300,7 +1300,23 @@ function CallScreen() {
           setGiftOpen(false);
           setRechargeOpen(true);
         }}
+        onEvent={(ev) => {
+          // End-to-end trace: surface in the call-screen debug overlay too.
+          console.log("[call:gift-event]", {
+            ok: ev.ok,
+            cost: ev.cost,
+            preBalance: ev.preBalance,
+            newBalance: ev.newBalance,
+            coinsLeftBefore: coinsLeft,
+            serverProcessedMs: ev.serverProcessedMs,
+            roundtripMs: ev.serverRespondedAt - ev.requestedAt,
+            totalMs: ev.uiRefreshedAt - ev.requestedAt,
+            error: ev.error,
+          });
+          setGiftEvents((prev) => [ev, ...prev].slice(0, 8));
+        }}
       />
+
 
 
       <AlertDialog open={confirmEnd} onOpenChange={setConfirmEnd}>
