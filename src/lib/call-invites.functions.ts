@@ -449,6 +449,20 @@ export const getCallInviteStatus = createServerFn({ method: "POST" })
     return statusDto(invite, context.userId, log);
   });
 
+/**
+ * Idempotent helper: load the call_log row associated with an already-accepted
+ * invite so repeat requests can return the same DTO without re-inserting.
+ */
+async function loadInviteLog(db: any, callLogId: string | null) {
+  if (!callLogId) return null;
+  const { data } = await db
+    .from("call_logs")
+    .select("id, duration_seconds, coins_spent, free_seconds_used")
+    .eq("id", callLogId)
+    .maybeSingle();
+  return data;
+}
+
 export const acceptCallInvite = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((d: unknown) => InviteIdSchema.parse(d))
@@ -457,36 +471,83 @@ export const acceptCallInvite = createServerFn({ method: "POST" })
     const db = supabaseAdmin as any;
     const { data: rawInvite } = await db.from("call_invites").select("*").eq("id", data.inviteId).maybeSingle();
     if (!rawInvite || rawInvite.callee_id !== context.userId) throw new Error("Call invite not found.");
+
+    // ---------- Idempotent short-circuit ----------
+    // If this invite is already accepted by the same callee, return the
+    // existing DTO. Repeated taps / network retries / reconnect storms can
+    // never insert a duplicate call_log or transition state twice.
+    if (rawInvite.status === "accepted") {
+      const log = await loadInviteLog(db, rawInvite.call_log_id);
+      return statusDto(rawInvite, context.userId, log);
+    }
+
     const invite = await expireIfNeeded(db, rawInvite);
     if (invite.status !== "pending") throw new Error("This call is no longer ringing.");
     await assertCallable(db, invite.caller_id, invite.callee_id);
 
+    // ---------- Step 1: atomically reserve the invite ----------
+    // Flip pending → accepted FIRST (without a call_log_id yet). Only one
+    // request can win this conditional UPDATE; concurrent duplicates get
+    // an empty result and fall through to the idempotent re-read below.
+    const acceptedAt = new Date().toISOString();
+    const { data: reserved, error: reserveErr } = await db
+      .from("call_invites")
+      .update({ status: "accepted", accepted_at: acceptedAt })
+      .eq("id", invite.id)
+      .eq("status", "pending")
+      .select("*")
+      .maybeSingle();
+
+    if (reserveErr) {
+      const msg = String(reserveErr.message ?? "");
+      // Partial-unique index `call_invites_one_accepted_per_callee` — the
+      // callee already has another accepted invite live.
+      if (reserveErr.code === "23505" || /call_invites_one_accepted_per_callee|duplicate key/i.test(msg)) {
+        throw new Error("This creator just picked up another call.");
+      }
+      throw new Error(msg);
+    }
+
+    if (!reserved) {
+      // Lost the race against a concurrent accept on the same invite.
+      // Re-read and return whatever the winner produced — same response
+      // shape, so the duplicate caller is none the wiser.
+      const { data: current } = await db.from("call_invites").select("*").eq("id", invite.id).maybeSingle();
+      if (current?.status === "accepted" && current.callee_id === context.userId) {
+        const log = await loadInviteLog(db, current.call_log_id);
+        return statusDto(current, context.userId, log);
+      }
+      throw new Error("This call is no longer ringing.");
+    }
+
+    // ---------- Step 2: create the call_log for the winning reservation ----------
     const { data: log, error: logErr } = await db
       .from("call_logs")
       .insert({ caller_id: invite.caller_id, callee_id: invite.callee_id, kind: invite.kind, status: "completed" })
       .select("id, duration_seconds, coins_spent, free_seconds_used")
       .single();
-    if (logErr) throw new Error(logErr.message);
-
-    const { data: accepted, error } = await db
-      .from("call_invites")
-      .update({ status: "accepted", accepted_at: new Date().toISOString(), call_log_id: log.id })
-      .eq("id", invite.id)
-      .eq("status", "pending")
-      .select("*")
-      .single();
-    if (error) {
-      // Concurrent accept lost the race against the partial-unique index
-      // `call_invites_one_accepted_per_callee`. Roll back the log we just
-      // created so we don't leak an orphan call_logs row.
-      const msg = String(error.message ?? "");
-      if (error.code === "23505" || /call_invites_one_accepted_per_callee|duplicate key/i.test(msg)) {
-        await db.from("call_logs").delete().eq("id", log.id);
-        throw new Error("This creator just picked up another call.");
-      }
-      throw new Error(msg);
+    if (logErr) {
+      // Roll the reservation back so the caller isn't stuck "accepted" with
+      // no call_log to bill against.
+      await db
+        .from("call_invites")
+        .update({ status: "pending", accepted_at: null })
+        .eq("id", invite.id)
+        .eq("status", "accepted")
+        .is("call_log_id", null);
+      throw new Error(logErr.message);
     }
-    return statusDto(accepted, context.userId, log);
+
+    // ---------- Step 3: attach the call_log to the reserved invite ----------
+    const { data: finalized } = await db
+      .from("call_invites")
+      .update({ call_log_id: log.id })
+      .eq("id", invite.id)
+      .is("call_log_id", null)
+      .select("*")
+      .maybeSingle();
+
+    return statusDto(finalized ?? { ...reserved, call_log_id: log.id }, context.userId, log);
   });
 
 export const rejectCallInvite = createServerFn({ method: "POST" })
