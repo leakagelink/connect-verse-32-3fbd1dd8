@@ -127,14 +127,20 @@ export const sendMessage = createServerFn({ method: "POST" })
       try {
         await supabase.from("moderation_events").insert({
           user_id: userId,
-          source: "chat",
-          rule: "contact_share",
-          category: contactCat,
-          status: "pending",
-          surface_id: data.conversationId,
-          excerpt: data.body.slice(0, 280),
+          kind: "text",
+          category: "contact_share",
+          severity: 2,
+          ai_label: contactCat,
+          ai_model: "regex.contact_share.v1",
+          evidence: { snippet: data.body.slice(0, 280), conversation_id: data.conversationId },
+          status: "pending_review",
         });
       } catch { /* best-effort logging */ }
+      const err: any = new Error(`CONTACT_SHARE_BLOCKED:${contactCat}:${contactShareWarning(contactCat)}`);
+      err.code = "CONTACT_SHARE_BLOCKED";
+      err.category = contactCat;
+      throw err;
+    }
       const err: any = new Error(`CONTACT_SHARE_BLOCKED:${contactCat}:${contactShareWarning(contactCat)}`);
       err.code = "CONTACT_SHARE_BLOCKED";
       err.category = contactCat;
