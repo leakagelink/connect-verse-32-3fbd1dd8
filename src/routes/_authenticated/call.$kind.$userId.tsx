@@ -182,6 +182,17 @@ function CallScreen() {
   const sessionStartElapsedRef = useRef(0);
   const generateCaseFn = useServerFn(generateMysteryCase);
   const profileFn = useServerFn(getMyProfile);
+  // Gift E2E test runners (debug overlay).
+  const listGiftsFn = useServerFn(listGifts);
+  const sendGiftFn = useServerFn(sendGift);
+  const getWalletFn = useServerFn(getWallet);
+  const [e2eRunning, setE2eRunning] = useState(false);
+  const [e2eResult, setE2eResult] = useState<{
+    ok: boolean;
+    summary: string;
+    details: Record<string, unknown>;
+    at: number;
+  } | null>(null);
   const qc = useQueryClient();
   const { data: me } = useQuery({ queryKey: ["me"], queryFn: () => profileFn() });
   const isMale = me?.profile?.gender === "male";
