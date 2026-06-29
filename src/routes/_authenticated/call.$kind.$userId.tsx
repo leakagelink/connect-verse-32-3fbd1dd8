@@ -1386,6 +1386,57 @@ function CallScreen() {
           </div>
         );
       })()}
+
+      {/* Recharge timeline overlay — gated by same debug flag */}
+      {(() => {
+        let show = false;
+        try {
+          show =
+            new URLSearchParams(window.location.search).get("debug") === "1" ||
+            localStorage.getItem("callDebug") === "1";
+        } catch { /* ignore */ }
+        if (!show || rechargeEvents.length === 0) return null;
+        const fmt = (t: number) => {
+          const d = new Date(t);
+          return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}:${String(d.getSeconds()).padStart(2, "0")}.${String(d.getMilliseconds()).padStart(3, "0")}`;
+        };
+        return (
+          <div className="fixed bottom-2 right-2 z-[9999] max-h-[60vh] w-[320px] overflow-y-auto rounded-md border border-white/20 bg-black/80 px-2 py-1.5 font-mono text-[10px] leading-tight text-sky-200 shadow-lg backdrop-blur-sm">
+            <div className="mb-1 flex items-center justify-between text-white/70">
+              <span>RECHARGE TIMELINE</span>
+              <button
+                type="button"
+                className="text-white/60 hover:text-white"
+                onClick={() => setRechargeEvents([])}
+              >
+                clear
+              </button>
+            </div>
+            {rechargeEvents.map((ev, i) => {
+              const tServer = ev.serverRespondedAt - ev.requestedAt;
+              const tRefresh = ev.uiRefreshedAt - ev.serverRespondedAt;
+              const tTotal = ev.uiRefreshedAt - ev.requestedAt;
+              return (
+                <div key={i} className="mb-1.5 border-t border-white/10 pt-1 first:border-0 first:pt-0">
+                  <div className="text-white/80">
+                    #{rechargeEvents.length - i} · {ev.source} · plan <span className="text-white">{ev.planId.slice(0, 8)}</span>
+                  </div>
+                  {ev.orderId && (
+                    <div>order: <span className="text-white break-all">{ev.orderId}</span></div>
+                  )}
+                  {ev.paymentId && (
+                    <div>payment: <span className="text-white break-all">{ev.paymentId}</span></div>
+                  )}
+                  <div>requested: <span className="text-white">{fmt(ev.requestedAt)}</span></div>
+                  <div>server credit: <span className="text-white">{fmt(ev.serverRespondedAt)}</span> <span className="text-emerald-300">(+{tServer}ms)</span></div>
+                  <div>ui refresh: <span className="text-white">{fmt(ev.uiRefreshedAt)}</span> <span className="text-emerald-300">(+{tRefresh}ms)</span></div>
+                  <div className="text-amber-300">total: {tTotal}ms · +{ev.added}{ev.bonus > 0 ? ` (+${ev.bonus} bonus)` : ""} → bal {ev.newBalance}</div>
+                </div>
+              );
+            })}
+          </div>
+        );
+      })()}
     </AppShell>
 
 
