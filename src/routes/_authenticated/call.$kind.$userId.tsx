@@ -43,9 +43,16 @@ export const Route = createFileRoute("/_authenticated/call/$kind/$userId")({
   validateSearch: (search) => ({
     inviteId: typeof search.inviteId === "string" ? search.inviteId : undefined,
     autoAccept: search.autoAccept === "1" || search.autoAccept === 1 || search.autoAccept === true,
+    e2e: search.e2e === "ui" ? "ui" : undefined,
   }),
-  component: CallScreen,
+  component: CallScreenWithE2E,
 });
+
+function CallScreenWithE2E() {
+  const search = Route.useSearch();
+  if (search.e2e === "ui") return <CallFullscreenE2EMock />;
+  return <CallScreen />;
+}
 
 function CallScreen() {
   const { kind, userId } = useParams({ from: "/_authenticated/call/$kind/$userId" });
