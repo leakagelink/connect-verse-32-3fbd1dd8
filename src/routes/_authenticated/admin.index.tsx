@@ -427,6 +427,24 @@ function CallingCredentialsTab() {
     queryKey: ["admin-calling-credentials"],
     queryFn: () => listFn(),
   });
+
+  // Realtime: refresh quota/usage cards instantly when any credential row
+  // changes (minutes_used_current_month, status, quota edits, add/remove).
+  useEffect(() => {
+    const channel = supabase
+      .channel("admin-calling-credentials-rt")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "calling_credentials" },
+        () => {
+          qc.invalidateQueries({ queryKey: ["admin-calling-credentials"] });
+        },
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [qc]);
   const [addOpen, setAddOpen] = useState(false);
   const [editOpen, setEditOpen] = useState<string | null>(null);
   const [provider, setProvider] = useState<"agora" | "100ms">("agora");
