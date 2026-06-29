@@ -1571,8 +1571,8 @@ function CallScreen() {
                 ref={videoRef}
                 className={
                   remoteJoined
-                    ? "absolute bottom-24 right-3 w-24 h-32 sm:w-28 sm:h-36 object-cover rounded-lg border-2 border-white/50 z-10 -scale-x-100 bg-black"
-                    : "absolute inset-0 size-full object-contain -scale-x-100 bg-black"
+                    ? `absolute bottom-24 right-3 w-24 h-32 sm:w-28 sm:h-36 object-cover rounded-lg border-2 border-white/50 z-10 bg-black ${mirrorSelf ? "-scale-x-100" : ""}`
+                    : `absolute inset-0 size-full object-contain bg-black ${mirrorSelf ? "-scale-x-100" : ""}`
                 }
                 muted
                 playsInline
