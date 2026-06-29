@@ -1270,7 +1270,7 @@ function CallScreen() {
         onOpenChange={setGiftOpen}
         receiverId={userId}
         callLogId={callLogIdRef.current}
-        balance={myBalance}
+        balance={coinsLeft}
         onSent={() => {
           qc.invalidateQueries({ queryKey: ["me"] });
         }}
