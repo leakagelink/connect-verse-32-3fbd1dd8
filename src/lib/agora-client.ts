@@ -171,6 +171,29 @@ export class AgoraSession {
     }
   }
 
+  /**
+   * Toggle "speaker" (loudspeaker) mode.
+   * Web/desktop: boosts remote audio volume to ~200 so it plays loud through
+   * the device's main speakers vs the muted/earpiece-like default.
+   * Native (Capacitor Android): also asks the OS to route audio to the
+   * loudspeaker via the SpeakerMode plugin if available; falls back silently.
+   */
+  async setSpeakerMode(on: boolean) {
+    this.speakerOn = on;
+    for (const t of this.remoteAudio) {
+      try { t.setVolume(on ? 200 : 100); } catch { /* ignore */ }
+    }
+    try {
+      const cap = (window as any).Capacitor;
+      if (cap?.isNativePlatform?.() && cap?.Plugins?.SpeakerMode?.set) {
+        await cap.Plugins.SpeakerMode.set({ on });
+      }
+    } catch { /* ignore — plugin optional */ }
+  }
+  isSpeakerOn() { return this.speakerOn; }
+
+
+
 
   async disableVideo() {
     if (this.cam && this.client) {
