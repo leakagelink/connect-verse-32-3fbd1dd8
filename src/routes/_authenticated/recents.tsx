@@ -143,26 +143,29 @@ function CallRow({ call, onOpenProfile }: { call: RecentCall; onOpenProfile: (id
   };
 
   return (
-    <Card className={`glass p-3 flex items-center gap-3 ${isMissed ? "border-destructive/30" : ""}`}>
-      <button
-        type="button"
-        onClick={openProfile}
-        aria-label={`Open ${call.partner.username ?? "user"}'s profile`}
-        className="size-11 rounded-full brand-gradient flex items-center justify-center text-primary-foreground font-bold shrink-0 overflow-hidden focus:outline-none focus:ring-2 focus:ring-primary"
-      >
+    <Card
+      role="button"
+      tabIndex={0}
+      onClick={openProfile}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          openProfile();
+        }
+      }}
+      aria-label={`Open ${call.partner.username ?? "user"}'s profile`}
+      className={`glass p-3 flex items-center gap-3 cursor-pointer hover:bg-accent/30 transition-colors focus:outline-none focus:ring-2 focus:ring-primary ${isMissed ? "border-destructive/30" : ""}`}
+    >
+      <div className="size-11 rounded-full brand-gradient flex items-center justify-center text-primary-foreground font-bold shrink-0 overflow-hidden">
         {call.partner.avatar_url ? (
           <img src={call.partner.avatar_url} alt="" className="size-full object-cover" />
         ) : (
           (call.partner.username ?? "U").slice(0, 1).toUpperCase()
         )}
-      </button>
-      <button
-        type="button"
-        onClick={openProfile}
-        className="min-w-0 flex-1 text-left"
-      >
+      </div>
+      <div className="min-w-0 flex-1">
         <div className="flex items-center gap-1.5">
-          <p className={`font-semibold truncate hover:underline ${isMissed ? "text-destructive" : ""}`}>
+          <p className={`font-semibold truncate ${isMissed ? "text-destructive" : ""}`}>
             {call.partner.username ?? "Unknown"}
           </p>
           <KindIcon className="size-3.5 text-muted-foreground shrink-0" />
@@ -173,7 +176,7 @@ function CallRow({ call, onOpenProfile }: { call: RecentCall; onOpenProfile: (id
           <span>·</span>
           <span>{fmtWhen(call.started_at)}</span>
         </div>
-      </button>
+      </div>
       <div className="text-right shrink-0">
         {isMissed ? (
           <Badge variant="outline" className="border-destructive/40 text-destructive text-[10px] py-0 px-1.5">
@@ -191,6 +194,7 @@ function CallRow({ call, onOpenProfile }: { call: RecentCall; onOpenProfile: (id
         )}
         <Link
           to="/connect"
+          onClick={(e) => e.stopPropagation()}
           className="text-[11px] text-primary hover:underline"
         >
           Call again
