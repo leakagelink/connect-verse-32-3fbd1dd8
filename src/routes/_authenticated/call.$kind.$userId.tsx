@@ -1761,6 +1761,12 @@ function CallScreen() {
 
 
 
+      <InCallPeerProfileSheet
+        userId={userId}
+        open={peerProfileOpen}
+        onOpenChange={setPeerProfileOpen}
+      />
+
       <AlertDialog
         open={confirmEnd}
         onOpenChange={(v) => {
