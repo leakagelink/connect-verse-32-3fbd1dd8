@@ -235,7 +235,6 @@ function Home() {
 
       {/* Languages — auto-sliding chips, filter creators by language */}
       <LanguagesSection onCall={startCall} />
-      </div>
 
       {/* Quick Actions Grid 2x2 */}
       <div className="mb-5">
