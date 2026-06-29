@@ -27,6 +27,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Users, Flag, Ban, IndianRupee, Radio, ShieldAlert, Settings as SettingsIcon, ShieldCheck, Wallet as WalletIcon, Bot, Siren, Phone, Activity } from "lucide-react";
 import { PerformanceTab } from "@/components/admin/PerformanceTab";
 import { CallAuditTab } from "@/components/admin/CallAuditTab";
+import { BusyResetE2E } from "@/components/admin/BusyResetE2E";
 
 import { adminListKyc, adminReviewKyc, adminListWithdrawals, adminProcessWithdrawal, getKycDocUrl, adminListKycPurgeLog } from "@/lib/kyc.functions";
 import {
@@ -113,6 +114,7 @@ function AdminPanel() {
         </TabsContent>
 
         <TabsContent value="call-audit" className="space-y-3">
+          <BusyResetE2E />
           <CallAuditTab />
         </TabsContent>
 
