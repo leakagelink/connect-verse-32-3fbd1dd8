@@ -1,0 +1,43 @@
+name: e2e
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  call-fullscreen:
+    name: Call Fullscreen + 3-Click End
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install deps
+        run: bun install --frozen-lockfile
+
+      - name: Install Playwright browser (chromium)
+        run: bunx playwright install --with-deps chromium
+
+      # Playwright's webServer block runs `bun run build && bun run preview`.
+      # Any regression that breaks fullscreen, leaks AppShell chrome into the
+      # call surface, navigates away mid-call, or shortcuts the 3-click end
+      # flow will fail this job and therefore fail the build.
+      - name: Run Playwright e2e
+        run: bunx playwright test
+        env:
+          CI: "1"
+
+      - name: Upload Playwright report on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            playwright-report
+            test-results
+          retention-days: 7

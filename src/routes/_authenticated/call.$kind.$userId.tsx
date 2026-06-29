@@ -2101,7 +2101,7 @@ function NetworkBars({ q }: { q: number }) {
  * confirmation, and (c) the surface refuses to leave the call route while
  * the dialog is active. Skips Agora / billing / invite effects on purpose.
  */
-function CallFullscreenE2EMock() {
+export function CallFullscreenE2EMock() {
   const [open, setOpen] = useState(false);
   const [step, setStep] = useState<1 | 2>(1);
   const [ended, setEnded] = useState(false);
