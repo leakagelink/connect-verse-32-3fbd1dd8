@@ -139,19 +139,22 @@ function AdminPanel() {
                   Password: hidden (securely hashed — cannot be displayed)
                 </p>
               </div>
-              {u.is_banned ? (
-                <Button size="sm" variant="outline" onClick={async () => {
-                  await unbanFn({ data: { userId: u.id } });
-                  toast.success("Unbanned");
-                  qc.invalidateQueries({ queryKey: ["admin"] });
-                }}>Unban</Button>
-              ) : (
-                <BanDialog onBan={async (reason, type, days) => {
-                  await banFn({ data: { userId: u.id, reason, type, days } });
-                  toast.success("User banned");
-                  qc.invalidateQueries({ queryKey: ["admin"] });
-                }} />
-              )}
+              <div className="flex items-center gap-2">
+                <AdjustCoinsDialog userId={u.id} username={u.username ?? "user"} />
+                {u.is_banned ? (
+                  <Button size="sm" variant="outline" onClick={async () => {
+                    await unbanFn({ data: { userId: u.id } });
+                    toast.success("Unbanned");
+                    qc.invalidateQueries({ queryKey: ["admin"] });
+                  }}>Unban</Button>
+                ) : (
+                  <BanDialog onBan={async (reason, type, days) => {
+                    await banFn({ data: { userId: u.id, reason, type, days } });
+                    toast.success("User banned");
+                    qc.invalidateQueries({ queryKey: ["admin"] });
+                  }} />
+                )}
+              </div>
             </Card>
           ))}
         </TabsContent>
