@@ -172,9 +172,24 @@ export function CallInviteDialog({
               <DialogTitle>{endState.title}</DialogTitle>
               <DialogDescription>{endState.body}</DialogDescription>
             </DialogHeader>
-            <Button className="w-full" onClick={onClose}>Close</Button>
+            <div className="flex flex-col gap-2">
+              <Button
+                className="w-full gap-2"
+                disabled={createMut.isPending}
+                onClick={() => {
+                  setInvite(null);
+                  setEndState(null);
+                  setMessage("Sending call request…");
+                  if (pendingCall) createMut.mutate(pendingCall);
+                }}
+              >
+                <Icon className="size-4" /> Try again
+              </Button>
+              <Button variant="outline" className="w-full" onClick={onClose}>Close</Button>
+            </div>
           </>
         ) : (
+
           <>
             <DialogHeader className="items-center text-center">
               <div className="relative mb-2 flex size-20 items-center justify-center rounded-full bg-primary/15">
