@@ -1274,6 +1274,7 @@ function CallScreen() {
           // newly added coins (without resetting elapsed time).
           setCoinStart(newBalance + coinsConsumed);
           outOfFundsTriggeredRef.current = false;
+          lowTimeWarnedRef.current = false;
           qc.invalidateQueries({ queryKey: ["me"] });
           if (newBalance >= CASE_GENERATION_COIN_COST) {
             toast.success("Coins added — call continues. Tap Host Mystery Case anytime.");
