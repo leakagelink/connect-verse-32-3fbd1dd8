@@ -67,17 +67,45 @@ export function pickDefaultStyle(
   return "avataaars";
 }
 
+function seedHash(seed: string): number {
+  let hash = 2166136261 >>> 0;
+  for (let i = 0; i < seed.length; i++) {
+    hash ^= seed.charCodeAt(i);
+    hash = Math.imul(hash, 16777619) >>> 0;
+  }
+  return hash >>> 0;
+}
+
+// Photoreal-style portrait service (avatar.iran.liara.run) gives much more
+// attractive, modern, gender-aware portraits than DiceBear's illustrated
+// styles. Pool: 100 girls + 100 boys, deterministic by user id.
+function premiumCreatorPortrait(seed: string, gender?: string | null): string {
+  const h = seedHash(seed || "talkora");
+  if (gender === "male") {
+    const n = (h % 100) + 1;
+    return `https://avatar.iran.liara.run/public/boy?id=${n}`;
+  }
+  // Default to "girl" pool for female + unspecified creators since the
+  // platform skews female-creator. Still deterministic per user id.
+  const n = (h % 100) + 1;
+  return `https://avatar.iran.liara.run/public/girl?id=${n}`;
+}
+
 export function aiAvatarUrl(
   seed: string,
   style?: string | null,
   gender?: string | null,
   isCreator?: boolean | null,
 ): string {
+  // Creators get premium photoreal-style portraits unless they've explicitly
+  // picked an illustrated DiceBear style from Settings.
+  if (isCreator && (!style || !STYLE_IDS.has(style))) {
+    return premiumCreatorPortrait(seed, gender);
+  }
   const safeStyle = style && STYLE_IDS.has(style) ? style : pickDefaultStyle(gender, isCreator);
   const safeSeed = encodeURIComponent(seed || "talkora");
   const params = new URLSearchParams({ seed: safeSeed, radius: "50" });
   if (isCreator) {
-    // Vibrant gradient + tighter framing makes creator cards pop.
     const [a, b] = gradientFor(seed);
     params.set("backgroundType", "gradientLinear");
     params.set("backgroundColor", `${a},${b}`);
