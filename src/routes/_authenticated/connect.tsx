@@ -162,7 +162,7 @@ function ConnectScreen() {
     });
   }, [all, me, language, country, state, activeOnly, filtersVisible]);
 
-  const [pendingCall, setPendingCall] = useState<{ kind: "voice" | "video"; userId: string } | null>(null);
+  // Pre-call permission dialog removed — permissions are requested silently in startCall.
   const [callInvite, setCallInvite] = useState<{ kind: "voice" | "video"; userId: string } | null>(null);
 
   async function startCall(kind: "voice" | "video", userId: string) {
