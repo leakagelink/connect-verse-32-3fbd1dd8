@@ -163,6 +163,10 @@ function ConnectScreen() {
     });
   }, [all, me, language, country, state, activeOnly, filtersVisible]);
 
+  // Warm the browser image cache for the visible creator list so cards
+  // paint instantly while the user scrolls.
+  useAvatarPrefetch(sorted.map((u) => u.avatar_url));
+
   // Pre-call permission dialog removed — permissions are requested silently in startCall.
   const [callInvite, setCallInvite] = useState<{ kind: "voice" | "video"; userId: string } | null>(null);
 
