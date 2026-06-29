@@ -66,7 +66,28 @@ async function expireIfNeeded(db: any, invite: any) {
     .eq("status", "pending")
     .select("*")
     .maybeSingle();
+  if (data) {
+    // Real pending -> expired transition: notify the callee about the missed call.
+    await sendMissedCallNotification(db, data).catch(() => {});
+  }
   return data ?? { ...invite, status: "expired" };
+}
+
+async function sendMissedCallNotification(db: any, invite: any) {
+  const { data: caller } = await db
+    .from("profiles")
+    .select("username")
+    .eq("id", invite.caller_id)
+    .maybeSingle();
+  const name = caller?.username ?? "Someone";
+  const isVideo = invite.kind === "video";
+  await notifyUser({
+    userId: invite.callee_id,
+    kind: "calls",
+    title: `Missed ${isVideo ? "video" : "audio"} call`,
+    body: `${name} tried to call you.`,
+    deepLink: `/calls`,
+  });
 }
 
 function statusDto(invite: any, userId: string, log?: any) {
@@ -341,13 +362,19 @@ export const cancelCallInvite = createServerFn({ method: "POST" })
     const db = supabaseAdmin as any;
     const { data: invite } = await db.from("call_invites").select("*").eq("id", data.inviteId).maybeSingle();
     if (!invite || invite.caller_id !== context.userId) throw new Error("Call invite not found.");
-    await db
+    const { data: cancelled } = await db
       .from("call_invites")
       .update({ status: "cancelled", cancelled_at: new Date().toISOString() })
       .eq("id", data.inviteId)
-      .eq("status", "pending");
+      .eq("status", "pending")
+      .select("*")
+      .maybeSingle();
     // Caller hung up before answer — dismiss the full-screen UI on the callee.
     await notifyCallEnded({ calleeId: invite.callee_id, inviteId: invite.id }).catch(() => ({ pushed: 0 }));
+    // If the ring actually reached the callee's device, surface it as a missed call.
+    if (cancelled && invite.delivered_at) {
+      await sendMissedCallNotification(db, cancelled).catch(() => {});
+    }
     return { ok: true };
   });
 
