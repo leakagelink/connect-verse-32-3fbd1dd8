@@ -59,6 +59,7 @@ export function PrecallPermissionDialog({ open, kind, onCancel, onReady }: Props
   useEffect(() => {
     if (!open) {
       setAskedOnce(false);
+      setStage("perm");
       return;
     }
     void refresh();
