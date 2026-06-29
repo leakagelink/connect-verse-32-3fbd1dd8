@@ -1745,20 +1745,49 @@ function CallScreen() {
 
 
 
-      <AlertDialog open={confirmEnd} onOpenChange={setConfirmEnd}>
+      <AlertDialog
+        open={confirmEnd}
+        onOpenChange={(v) => {
+          setConfirmEnd(v);
+          if (!v) setEndStep(1); // reset two-step state when dialog closes
+        }}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>End this call?</AlertDialogTitle>
+            <AlertDialogTitle>
+              {endStep === 1 ? "End this call?" : "Are you really sure?"}
+            </AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to disconnect? You will be charged for {Math.max(1, Math.ceil(elapsed / 60))} minute(s)
-              at {perMin} coins/min.
+              {endStep === 1 ? (
+                <>
+                  You will be charged for {Math.max(1, Math.ceil(elapsed / 60))} minute(s) at {perMin} coins/min.
+                  Tap “End call” to continue — we will ask once more before disconnecting.
+                </>
+              ) : (
+                <>
+                  This will disconnect the call immediately. Tap “Yes, disconnect now” to hang up,
+                  or “Stay on call” to keep talking.
+                </>
+              )}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Stay on call</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmEndCall} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-              Yes, end call
-            </AlertDialogAction>
+            <AlertDialogCancel onClick={() => setEndStep(1)}>Stay on call</AlertDialogCancel>
+            {endStep === 1 ? (
+              <Button
+                onClick={() => setEndStep(2)}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                End call
+              </Button>
+            ) : (
+              <AlertDialogAction
+                onClick={() => { setEndStep(1); confirmEndCall(); }}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                Yes, disconnect now
+              </AlertDialogAction>
+            )}
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
