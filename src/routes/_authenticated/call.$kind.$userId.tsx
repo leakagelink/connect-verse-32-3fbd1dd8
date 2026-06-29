@@ -186,8 +186,15 @@ function CallScreen() {
   const listGiftsFn = useServerFn(listGifts);
   const sendGiftFn = useServerFn(sendGift);
   const getWalletFn = useServerFn(getWallet);
+  const getPeerWalletsFn = useServerFn(getCallPeerWallets);
   const [e2eRunning, setE2eRunning] = useState(false);
   const [e2eResult, setE2eResult] = useState<{
+    ok: boolean;
+    summary: string;
+    details: Record<string, unknown>;
+    at: number;
+  } | null>(null);
+  const [callE2eResult, setCallE2eResult] = useState<{
     ok: boolean;
     summary: string;
     details: Record<string, unknown>;
