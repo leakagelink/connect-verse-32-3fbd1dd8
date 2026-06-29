@@ -14,6 +14,7 @@ import { registerDeviceToken } from "@/lib/push.functions";
 import { installDeepLinkHandler } from "@/lib/deep-links";
 import { useT, syncStoredLocale, type Locale } from "@/lib/i18n";
 import { IncomingCallDialog } from "@/components/incoming-call-dialog";
+import { PushPermissionGate } from "@/components/push-permission-gate";
 
 
 
