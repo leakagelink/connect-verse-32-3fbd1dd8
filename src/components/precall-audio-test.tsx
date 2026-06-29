@@ -41,9 +41,21 @@ export function PreCallAudioTest({ onPassed, onCancel }: Props) {
   const [speakers, setSpeakers] = useState<MediaDeviceInfo[]>([]);
   const [micId, setMicId] = useState<string>(() => localStorage.getItem(LS_MIC_KEY) || "");
   const [spkId, setSpkId] = useState<string>(() => localStorage.getItem(LS_SPK_KEY) || "");
+  const [lostDevice, setLostDevice] = useState<{ kind: "mic" | "speaker"; label: string } | null>(null);
   const supportsSinkId =
     typeof document !== "undefined" &&
     typeof (document.createElement("audio") as AudioElementWithSink).setSinkId === "function";
+
+  // Refs mirror state so the devicechange listener (registered once) sees
+  // the latest selected ids and previous device labels without re-binding.
+  const micIdRef = useRef(micId);
+  const spkIdRef = useRef(spkId);
+  const micsRef = useRef<MediaDeviceInfo[]>([]);
+  const speakersRef = useRef<MediaDeviceInfo[]>([]);
+  useEffect(() => { micIdRef.current = micId; }, [micId]);
+  useEffect(() => { spkIdRef.current = spkId; }, [spkId]);
+  useEffect(() => { micsRef.current = mics; }, [mics]);
+  useEffect(() => { speakersRef.current = speakers; }, [speakers]);
 
   const streamRef = useRef<MediaStream | null>(null);
   const audioCtxRef = useRef<AudioContext | null>(null);
