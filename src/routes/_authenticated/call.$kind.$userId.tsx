@@ -56,6 +56,14 @@ function CallScreen() {
   const [networkQ, setNetworkQ] = useState<number>(0); // 0=unknown,1=excellent..6=down
   const [remoteJoined, setRemoteJoined] = useState(false);
   const [audioBlocked, setAudioBlocked] = useState(false);
+  // Structured join failure so we can show actionable retry UI instead of a
+  // toast + redirect away from the call.
+  const [joinError, setJoinError] = useState<{
+    kind: "mic" | "camera" | "media" | "in-use" | "other";
+    message: string;
+  } | null>(null);
+  const [joinAttempt, setJoinAttempt] = useState(0);
+  const [retrying, setRetrying] = useState(false);
   
   
   const elapsedRef = useRef(0);
