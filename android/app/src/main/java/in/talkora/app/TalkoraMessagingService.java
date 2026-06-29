@@ -65,7 +65,7 @@ public class TalkoraMessagingService extends MessagingService {
     }
 
     private void showIncomingCall(Map<String, String> data) {
-        ensureChannel();
+        NotificationChannels.ensureAll(getApplicationContext());
 
         String inviteId   = nullSafe(data.get("invite_id"));
         String callerId   = nullSafe(data.get("caller_id"));
