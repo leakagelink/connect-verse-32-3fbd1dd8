@@ -50,6 +50,7 @@ export function CallAuditTab() {
             <SelectItem value="coins_exhausted">Coins exhausted</SelectItem>
             <SelectItem value="media_error">Media error</SelectItem>
             <SelectItem value="network">Network</SelectItem>
+            <SelectItem value="background_lost">Background lost</SelectItem>
             <SelectItem value="admin">Admin</SelectItem>
             <SelectItem value="unknown">Unknown</SelectItem>
           </SelectContent>
