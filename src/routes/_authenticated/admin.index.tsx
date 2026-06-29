@@ -120,6 +120,7 @@ function AdminPanel() {
           <BusyResetE2E />
           <CallEndE2E />
           <ConcurrentCallE2E />
+          <CreatorInitiatedCallE2E />
           <CallAuditTab />
         </TabsContent>
 
