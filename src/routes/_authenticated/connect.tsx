@@ -35,7 +35,7 @@ import {
   APP_LANGUAGES,
 } from "@/lib/constants";
 import { COUNTRIES, STATES_BY_COUNTRY } from "@/lib/locations";
-import { PrecallPermissionDialog } from "@/components/precall-permission-dialog";
+import { requestCallPermissions } from "@/lib/native";
 import { CallInviteDialog } from "@/components/call-invite-dialog";
 import { toast } from "sonner";
 
@@ -162,13 +162,14 @@ function ConnectScreen() {
     });
   }, [all, me, language, country, state, activeOnly, filtersVisible]);
 
-  const [pendingCall, setPendingCall] = useState<{ kind: "voice" | "video"; userId: string } | null>(null);
+  // Pre-call permission dialog removed — permissions are requested silently in startCall.
   const [callInvite, setCallInvite] = useState<{ kind: "voice" | "video"; userId: string } | null>(null);
 
-  function startCall(kind: "voice" | "video", userId: string) {
-    // Open the pre-call permission dialog so the user can see mic/camera
-    // status BEFORE we navigate to the live call screen.
-    setPendingCall({ kind, userId });
+  async function startCall(kind: "voice" | "video", userId: string) {
+    // Silently request mic/camera permissions and jump straight to the call
+    // screen — no pre-call audio/video check UI.
+    try { await requestCallPermissions(kind); } catch { /* ignore; call screen will surface errors */ }
+    setCallInvite({ kind, userId });
   }
 
   function autoConnect(kind: "voice" | "video") {
@@ -422,16 +423,6 @@ function ConnectScreen() {
         </div>
       )}
 
-      <PrecallPermissionDialog
-        open={!!pendingCall}
-        kind={pendingCall?.kind ?? "voice"}
-        onCancel={() => setPendingCall(null)}
-        onReady={() => {
-          const p = pendingCall;
-          setPendingCall(null);
-          if (p) setCallInvite(p);
-        }}
-      />
       <CallInviteDialog pendingCall={callInvite} onClose={() => setCallInvite(null)} />
     </AppShell>
   );

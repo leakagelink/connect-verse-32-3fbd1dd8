@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { ShieldCheck, BadgeCheck, Camera, Sparkles, Phone, Video, Lock, AlertTriangle, Loader2, RefreshCw, Radio, Trophy, Crown } from "lucide-react";
 import { getFanClubFor, joinFanClub } from "@/lib/creator.functions";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { PrecallPermissionDialog } from "@/components/precall-permission-dialog";
+import { requestCallPermissions } from "@/lib/native";
 
 
 type Props = {
@@ -114,8 +114,6 @@ export function CreatorPreviewDialog({ userId, kind, onOpenChange, onConfirm, on
     !offline && (liveOnline === true ||
       (liveOnline === null && !!p?.last_seen_at && Date.now() - new Date(p.last_seen_at).getTime() < 90_000));
 
-  const [permOpen, setPermOpen] = useState(false);
-
   async function handleConfirm() {
     if (!p) return;
     setChecking(true);
@@ -125,19 +123,14 @@ export function CreatorPreviewDialog({ userId, kind, onOpenChange, onConfirm, on
         setOffline(true);
         return;
       }
-      // Show the pre-call permission status BEFORE moving to the live call.
-      setPermOpen(true);
+      // Silently request permissions and go straight to the call screen.
+      try { await requestCallPermissions(kind); } catch { /* ignore */ }
+      onConfirm(p.id);
     } catch {
       setOffline(true);
     } finally {
       setChecking(false);
     }
-  }
-
-  function handlePermReady() {
-    if (!p) return;
-    setPermOpen(false);
-    onConfirm(p.id);
   }
 
   return (
@@ -319,12 +312,6 @@ export function CreatorPreviewDialog({ userId, kind, onOpenChange, onConfirm, on
         )}
       </DialogContent>
     </Dialog>
-    <PrecallPermissionDialog
-      open={permOpen}
-      kind={kind}
-      onCancel={() => setPermOpen(false)}
-      onReady={handlePermReady}
-    />
     </>
   );
 }
