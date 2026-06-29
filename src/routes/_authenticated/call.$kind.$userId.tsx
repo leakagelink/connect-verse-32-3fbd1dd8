@@ -1555,6 +1555,38 @@ function CallScreen() {
         );
       })()}
 
+      {/* Gift E2E test trigger — clickable; same debug gate */}
+      {(() => {
+        let show = false;
+        try {
+          show =
+            new URLSearchParams(window.location.search).get("debug") === "1" ||
+            localStorage.getItem("callDebug") === "1";
+        } catch { /* ignore */ }
+        if (!show) return null;
+        return (
+          <div className="fixed bottom-2 left-1/2 z-[9999] -translate-x-1/2 rounded-md border border-white/20 bg-black/85 px-2 py-1.5 font-mono text-[10px] text-white shadow-lg backdrop-blur-sm">
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                disabled={e2eRunning}
+                onClick={runGiftE2E}
+                className="rounded bg-fuchsia-600 px-2 py-1 text-[10px] font-semibold text-white hover:bg-fuchsia-500 disabled:opacity-50"
+              >
+                {e2eRunning ? "Running…" : "Run gift E2E"}
+              </button>
+              {e2eResult && (
+                <span className={e2eResult.ok ? "text-emerald-300" : "text-red-300"}>
+                  {e2eResult.summary}
+                </span>
+              )}
+            </div>
+          </div>
+        );
+      })()}
+
+
+
       {/* Recharge timeline overlay — gated by same debug flag */}
       {(() => {
         let show = false;
