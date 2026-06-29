@@ -90,6 +90,20 @@ function CallScreen() {
   // sent to endCallLog so the admin panel can audit who disconnected and why.
   const endReasonRef = useRef<"user_ended" | "peer_left" | "coins_exhausted" | "media_error" | "network" | "unknown">("user_ended");
 
+  // Distinguishing real hangup vs network drop:
+  // - peerLeaveReasonRef: why the remote peer left ("quit" = intentional hangup,
+  //   "timeout" = SDK gave up after ~20s of no signal — network drop).
+  // - peerGraceTimerRef: when the cause is a network timeout we DON'T end the
+  //   call immediately; we keep the session up for a grace window so the peer
+  //   can reconnect. If they rejoin (onRemoteJoined) the timer is cleared.
+  // - localDropReasonRef: most recent local connection-state drop reason; used
+  //   to surface "Network unstable…" without ending the call.
+  const peerLeaveReasonRef = useRef<"quit" | "timeout" | "audience" | "unknown" | null>(null);
+  const peerGraceTimerRef = useRef<number | null>(null);
+  const localDropReasonRef = useRef<"network" | "interrupt" | "leave" | "server" | "unknown" | null>(null);
+  const PEER_RECONNECT_GRACE_MS = 25_000;
+
+
 
   // Single-active-session enforcement: every mount mints a unique token and
   // writes it into the active_call localStorage slot. A newer tab claiming
@@ -274,11 +288,34 @@ function CallScreen() {
           partnerUserId: userId,
           kind: kind as "voice" | "video",
           events: {
-            onRemoteJoined: () => mounted && setRemoteJoined(true),
-            onRemoteLeft: () => mounted && setRemoteJoined(false),
+            onRemoteJoined: () => {
+              if (!mounted) return;
+              setRemoteJoined(true);
+              peerLeaveReasonRef.current = null;
+              if (peerGraceTimerRef.current) {
+                clearTimeout(peerGraceTimerRef.current);
+                peerGraceTimerRef.current = null;
+                toast.success("Peer reconnected");
+              }
+            },
+            onRemoteLeft: (reason) => {
+              if (!mounted) return;
+              peerLeaveReasonRef.current = reason ?? "unknown";
+              setRemoteJoined(false);
+            },
             onQuality: (q) => mounted && setNetworkQ(q),
-            onDisconnected: () => mounted && toast.warning("Network unstable — reconnecting…"),
-            onReconnected: () => mounted && toast.success("Reconnected"),
+            onDisconnected: (reason) => {
+              if (!mounted) return;
+              localDropReasonRef.current = reason ?? "unknown";
+              if (reason === "network" || reason === "interrupt") {
+                toast.warning("Network unstable — reconnecting…");
+              }
+            },
+            onReconnected: () => {
+              if (!mounted) return;
+              localDropReasonRef.current = null;
+              toast.success("Reconnected");
+            },
             onVideoFallback: () => {
               if (!mounted) return;
               setCamOff(true);
@@ -524,6 +561,33 @@ function CallScreen() {
   useEffect(() => {
     if (!connected || !wasJoinedRef.current || remoteJoined) return;
     if (endedRef.current) return;
+
+    const reason = peerLeaveReasonRef.current;
+
+    // Network drop on the peer's side: Agora signals "timeout" (or unknown
+    // when the remote SDK crashed without a clean leave). Keep the call up
+    // for a grace window so they can reconnect; only end if they don't.
+    if (reason === "timeout" || reason === "unknown") {
+      toast.warning("Peer disconnected — waiting for reconnect…", {
+        duration: PEER_RECONNECT_GRACE_MS,
+      });
+      if (peerGraceTimerRef.current) clearTimeout(peerGraceTimerRef.current);
+      peerGraceTimerRef.current = window.setTimeout(() => {
+        peerGraceTimerRef.current = null;
+        if (endedRef.current) return;
+        toast.error("Peer didn't reconnect — ending call.");
+        endReasonRef.current = "network";
+        endCallNowRef.current();
+      }, PEER_RECONNECT_GRACE_MS);
+      return () => {
+        if (peerGraceTimerRef.current) {
+          clearTimeout(peerGraceTimerRef.current);
+          peerGraceTimerRef.current = null;
+        }
+      };
+    }
+
+    // Intentional hangup ("quit") or role change → end immediately.
     toast.warning("Other person ended the call.");
     endReasonRef.current = "peer_left";
     const t = window.setTimeout(() => {

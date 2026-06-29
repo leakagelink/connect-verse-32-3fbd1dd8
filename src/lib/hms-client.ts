@@ -13,9 +13,9 @@
  */
 export type HmsEvents = {
   onRemoteJoined?: () => void;
-  onRemoteLeft?: () => void;
+  onRemoteLeft?: (reason: "quit" | "timeout" | "audience" | "unknown") => void;
   onQuality?: (q: number) => void;
-  onDisconnected?: () => void;
+  onDisconnected?: (reason: "network" | "interrupt" | "leave" | "server" | "unknown") => void;
   onReconnected?: () => void;
   onVideoFallback?: () => void;
 };
@@ -72,7 +72,7 @@ export class HmsSession {
           this.wasConnected = true;
         } else if (this.wasConnected) {
           this.disconnects += 1;
-          this.events.onDisconnected?.();
+          this.events.onDisconnected?.("unknown");
         }
       }, mod.selectIsConnectedToRoom),
     );
@@ -87,7 +87,7 @@ export class HmsSession {
             this.tryAttachRemote(remote.videoTrack);
           }
         } else if (this.wasConnected) {
-          this.events.onRemoteLeft?.();
+          this.events.onRemoteLeft?.("unknown");
           this.attachedRemoteTrackId = null;
         }
         const local = peers.find((p) => p.isLocal);
