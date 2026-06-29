@@ -981,6 +981,21 @@ function CallScreen() {
               <Coins className="size-3" /> {perMin} / min
             </div>
           </div>
+          {/* Low-time warning banner — last 3 minutes for the payer */}
+          {isPayer && perMin > 0 && totalSecondsLeft > 0 && totalSecondsLeft <= 180 && (
+            <div className="absolute top-12 left-3 right-3 rounded-xl bg-destructive/90 text-destructive-foreground px-3 py-2 shadow-lg backdrop-blur animate-pulse flex items-center justify-between gap-2">
+              <div className="text-[12px] leading-tight">
+                <div className="font-semibold">
+                  Sirf {String(Math.floor(totalSecondsLeft / 60)).padStart(2, "0")}:
+                  {String(totalSecondsLeft % 60).padStart(2, "0")} bache
+                </div>
+                <div className="opacity-90">Call timeout pe disconnect ho jayegi. Continue karne ke liye abhi coins le.</div>
+              </div>
+              <Button size="sm" variant="secondary" onClick={() => setRechargeOpen(true)} className="shrink-0">
+                <Coins className="size-3 mr-1" /> Recharge
+              </Button>
+            </div>
+          )}
           {/* Live free-time / coin-balance HUD — visible from call start */}
           {freeStart !== null && (
             <div className="absolute bottom-12 left-3 right-3 flex items-center justify-between gap-2 text-white">
@@ -994,8 +1009,12 @@ function CallScreen() {
                   : "Free minutes used"}
               </div>
               <div
-                className={`px-2.5 py-1 rounded-full text-[11px] font-semibold backdrop-blur ${
-                  !usingFree && coinsLeft < perMin ? "bg-destructive/80" : "bg-black/50"
+                className={`px-2.5 py-1 rounded-full text-[11px] font-semibold backdrop-blur transition-colors ${
+                  isPayer && totalSecondsLeft > 0 && totalSecondsLeft <= 180
+                    ? "bg-destructive text-destructive-foreground ring-2 ring-destructive-foreground/40 animate-pulse"
+                    : !usingFree && coinsLeft < perMin
+                      ? "bg-destructive/80"
+                      : "bg-black/50"
                 }`}
               >
                 <Coins className="inline size-3 -mt-0.5 mr-1" />
