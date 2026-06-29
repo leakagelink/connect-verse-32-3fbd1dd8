@@ -126,6 +126,7 @@ export async function connectCall(opts: {
             onDisconnected: opts.events.onDisconnected,
             onReconnected: opts.events.onReconnected,
             onVideoFallback: opts.events.onVideoFallback,
+            onAudioBlocked: opts.events.onAudioBlocked,
           },
         });
         // Track the remote container target so attachRemote() works post-join.
