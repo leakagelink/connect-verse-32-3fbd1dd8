@@ -165,10 +165,11 @@ function ConnectScreen() {
   const [pendingCall, setPendingCall] = useState<{ kind: "voice" | "video"; userId: string } | null>(null);
   const [callInvite, setCallInvite] = useState<{ kind: "voice" | "video"; userId: string } | null>(null);
 
-  function startCall(kind: "voice" | "video", userId: string) {
-    // Open the pre-call permission dialog so the user can see mic/camera
-    // status BEFORE we navigate to the live call screen.
-    setPendingCall({ kind, userId });
+  async function startCall(kind: "voice" | "video", userId: string) {
+    // Silently request mic/camera permissions and jump straight to the call
+    // screen — no pre-call audio/video check UI.
+    try { await requestCallPermissions(kind); } catch { /* ignore; call screen will surface errors */ }
+    setCallInvite({ kind, userId });
   }
 
   function autoConnect(kind: "voice" | "video") {
