@@ -42,6 +42,7 @@ function RecentsScreen() {
     queryKey: ["recent-calls"],
     queryFn: () => fn(),
   });
+  const [profileUserId, setProfileUserId] = useState<string | null>(null);
 
   const all = data ?? [];
   const voice = all.filter((c) => c.kind === "voice");
@@ -56,8 +57,13 @@ function RecentsScreen() {
           <Badge variant="secondary" className="ml-auto">{all.length}</Badge>
         </div>
 
-        <Tabs all={all} voice={voice} video={video} loading={isLoading} />
+        <Tabs all={all} voice={voice} video={video} loading={isLoading} onOpenProfile={setProfileUserId} />
       </div>
+      <InCallPeerProfileSheet
+        userId={profileUserId}
+        open={!!profileUserId}
+        onOpenChange={(v) => { if (!v) setProfileUserId(null); }}
+      />
     </AppShell>
   );
 }
