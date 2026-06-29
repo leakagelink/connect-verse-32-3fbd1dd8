@@ -94,6 +94,24 @@ function CallScreen() {
     bonus: number;
     newBalance: number;
   }>>([]);
+  // Gift send event timeline (debug overlay). Last 8 events kept.
+  const [giftEvents, setGiftEvents] = useState<Array<{
+    giftId: string;
+    giftName: string;
+    giftEmoji: string;
+    cost: number;
+    requestedAt: number;
+    serverRespondedAt: number;
+    uiRefreshedAt: number;
+    preBalance: number;
+    newBalance: number;
+    serverProcessedMs?: number;
+    receiverPreBalance?: number;
+    receiverNewBalance?: number;
+    ok: boolean;
+    error?: string;
+  }>>([]);
+
   const outOfFundsTriggeredRef = useRef(false);
   const lowTimeWarnedRef = useRef(false);
   // Ref bridge so auto-end effects (out-of-coins / peer-left) can invoke
