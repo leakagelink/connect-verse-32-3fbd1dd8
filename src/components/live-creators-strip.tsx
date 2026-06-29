@@ -4,6 +4,8 @@ import { Card } from "@/components/ui/card";
 import { Phone, Video, Coins, Sparkles } from "lucide-react";
 import { VOICE_CALL_COINS_PER_MINUTE, VIDEO_CALL_COINS_PER_MINUTE } from "@/lib/constants";
 import { useAvatarPrefetch } from "@/lib/avatar-prefetch";
+import { useFollowStatusMap } from "@/lib/use-follow-status";
+import { FollowStatusPill } from "@/components/follow-status-pill";
 
 type Creator = {
   id: string;
