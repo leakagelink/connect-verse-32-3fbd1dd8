@@ -157,6 +157,16 @@ export class AgoraSession {
     await this.cam?.setEnabled(on);
   }
 
+  /** Retry remote audio playback after a user gesture (autoplay unlock). */
+  retryAudio() {
+    const pending = this.pendingAudio;
+    this.pendingAudio = [];
+    for (const t of pending) {
+      try { t.play(); } catch { /* ignore */ }
+    }
+  }
+
+
   async disableVideo() {
     if (this.cam && this.client) {
       try {
