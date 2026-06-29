@@ -55,6 +55,8 @@ function CallScreen() {
   const [provider, setProvider] = useState<"mock" | "agora" | "100ms">("mock");
   const [networkQ, setNetworkQ] = useState<number>(0); // 0=unknown,1=excellent..6=down
   const [remoteJoined, setRemoteJoined] = useState(false);
+  const [audioBlocked, setAudioBlocked] = useState(false);
+  
   
   const elapsedRef = useRef(0);
   const [muted, setMuted] = useState(false);
