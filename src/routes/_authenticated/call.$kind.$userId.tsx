@@ -640,6 +640,90 @@ function CallScreen() {
     );
   }
 
+  if (!permReady) {
+    return (
+      <AppShell>
+        <CallPermissionGate
+          kind={kind as "voice" | "video"}
+          onReady={() => setPermReady(true)}
+          onCancel={() => navigate({ to: "/connect" })}
+        />
+      </AppShell>
+    );
+  }
+
+  if (joinError) {
+    const titles: Record<typeof joinError.kind, string> = {
+      mic: "Microphone unavailable",
+      camera: "Camera unavailable",
+      media: "Camera or microphone unavailable",
+      "in-use": "Mic / camera is busy",
+      other: "Couldn't start the call",
+    };
+    const tips: Record<typeof joinError.kind, string> = {
+      mic: "We couldn't capture your microphone. Make sure mic permission is granted and no other app is using it.",
+      camera: "We couldn't capture your camera. Grant camera permission and make sure no other app is using it.",
+      media: "We couldn't capture your camera or microphone. Grant access and try again.",
+      "in-use": "Another app (like WhatsApp or your browser) is using your mic or camera. Close it and retry.",
+      other: "Something went wrong while connecting. Please try again.",
+    };
+    const needsPerm = joinError.kind !== "in-use" && joinError.kind !== "other";
+
+    async function handleRetry() {
+      setRetrying(true);
+      try {
+        if (needsPerm) {
+          // Re-prompt the OS for permission inside the tap gesture.
+          try { await requestCallPermissions(kind as "voice" | "video"); } catch { /* ignore */ }
+        }
+        setJoinError(null);
+        setRemoteJoined(false);
+        setConnected(false);
+        setJoinAttempt((n) => n + 1);
+      } finally {
+        // The effect re-run flips retrying off via setRetrying(false) in the
+        // catch path or via successful connect (joinError === null).
+        setTimeout(() => setRetrying(false), 800);
+      }
+    }
+
+    async function handleOpenSettings() {
+      const ok = await openAppSettings();
+      if (!ok) toast.info("Open Settings → Apps → Talkora → Permissions and enable Microphone / Camera.");
+    }
+
+    return (
+      <AppShell>
+        <Card className="glass p-6 max-w-md mx-auto mt-6 space-y-4 text-center">
+          <div className="mx-auto size-14 rounded-full bg-destructive/15 text-destructive flex items-center justify-center">
+            <ShieldAlert className="size-7" />
+          </div>
+          <div className="space-y-1">
+            <h2 className="text-lg font-semibold">{titles[joinError.kind]}</h2>
+            <p className="text-sm text-muted-foreground">{tips[joinError.kind]}</p>
+          </div>
+          <details className="text-left text-xs text-muted-foreground bg-muted/40 rounded-md p-2">
+            <summary className="cursor-pointer select-none">Technical details</summary>
+            <p className="mt-1 break-words font-mono">{joinError.message}</p>
+          </details>
+          <div className="flex flex-col gap-2">
+            <Button onClick={handleRetry} disabled={retrying} className="w-full">
+              {retrying ? "Retrying…" : needsPerm ? "Grant access & retry" : "Try again"}
+            </Button>
+            {needsPerm && isNative() && (
+              <Button variant="outline" onClick={handleOpenSettings} className="w-full">
+                Open app settings
+              </Button>
+            )}
+            <Button variant="ghost" onClick={() => navigate({ to: "/connect" })} className="w-full">
+              Cancel call
+            </Button>
+          </div>
+        </Card>
+      </AppShell>
+    );
+  }
+
   return (
     <AppShell>
       <SafetyTipOverlay />
