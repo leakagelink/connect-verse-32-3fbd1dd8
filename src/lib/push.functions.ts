@@ -189,6 +189,75 @@ export async function notifyUser(opts: {
 }
 
 /* ------------------------------------------------------------------ */
+/* Incoming call — high-priority data-only FCM that wakes the device  */
+/* and triggers the full-screen IncomingCallActivity on Android even  */
+/* when the app is swiped away.                                        */
+/* ------------------------------------------------------------------ */
+
+export async function notifyIncomingCall(opts: {
+  calleeId: string;
+  callerId: string;
+  callerName: string;
+  callerAvatar?: string | null;
+  inviteId: string;
+  kind: "voice" | "video";
+}): Promise<{ pushed: number }> {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+  // honour the callee's "calls" preference
+  const { data: prefs } = await supabaseAdmin
+    .from("notification_prefs")
+    .select("calls")
+    .eq("user_id", opts.calleeId)
+    .maybeSingle();
+  const allow = (prefs as { calls?: boolean } | null)?.calls ?? true;
+  if (!allow) return { pushed: 0 };
+
+  const { data: tokens } = await supabaseAdmin
+    .from("device_tokens")
+    .select("token")
+    .eq("user_id", opts.calleeId);
+  const tokenList = (tokens ?? []).map((r: { token: string }) => r.token);
+  if (tokenList.length === 0) return { pushed: 0 };
+
+  const { sendDataOnlyFcm } = await import("./push.server");
+  const res = await sendDataOnlyFcm(tokenList, {
+    type: "incoming_call",
+    invite_id: opts.inviteId,
+    caller_id: opts.callerId,
+    caller_name: opts.callerName.slice(0, 64),
+    caller_avatar: (opts.callerAvatar ?? "").slice(0, 512),
+    call_kind: opts.kind,
+  });
+  if (res.invalidTokens.length > 0) {
+    await supabaseAdmin.from("device_tokens").delete().in("token", res.invalidTokens);
+  }
+  return { pushed: res.sent };
+}
+
+export async function notifyCallEnded(opts: {
+  calleeId: string;
+  inviteId: string;
+}): Promise<{ pushed: number }> {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { data: tokens } = await supabaseAdmin
+    .from("device_tokens")
+    .select("token")
+    .eq("user_id", opts.calleeId);
+  const tokenList = (tokens ?? []).map((r: { token: string }) => r.token);
+  if (tokenList.length === 0) return { pushed: 0 };
+
+  const { sendDataOnlyFcm } = await import("./push.server");
+  const res = await sendDataOnlyFcm(tokenList, {
+    type: "cancel_call",
+    invite_id: opts.inviteId,
+  });
+  return { pushed: res.sent };
+}
+
+
+
+/* ------------------------------------------------------------------ */
 /* Admin broadcast                                                     */
 /* ------------------------------------------------------------------ */
 

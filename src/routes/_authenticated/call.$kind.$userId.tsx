@@ -30,7 +30,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { recordCallMetrics } from "@/lib/calling.functions";
 import { connectCall, type AnySession } from "@/lib/call-session";
 import { Signal, SignalHigh, SignalLow, SignalMedium, SignalZero } from "lucide-react";
-import { getCallInviteStatus } from "@/lib/call-invites.functions";
+import { getCallInviteStatus, acceptCallInvite } from "@/lib/call-invites.functions";
 
 
 
@@ -38,13 +38,14 @@ import { getCallInviteStatus } from "@/lib/call-invites.functions";
 export const Route = createFileRoute("/_authenticated/call/$kind/$userId")({
   validateSearch: (search) => ({
     inviteId: typeof search.inviteId === "string" ? search.inviteId : undefined,
+    autoAccept: search.autoAccept === "1" || search.autoAccept === 1 || search.autoAccept === true,
   }),
   component: CallScreen,
 });
 
 function CallScreen() {
   const { kind, userId } = useParams({ from: "/_authenticated/call/$kind/$userId" });
-  const { inviteId } = Route.useSearch();
+  const { inviteId, autoAccept } = Route.useSearch();
   const navigate = useNavigate();
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const remoteContainerRef = useRef<HTMLDivElement | null>(null);
@@ -111,6 +112,7 @@ function CallScreen() {
   const endLogFn = useServerFn(endCallLog);
   const applyUsageFn = useServerFn(applyCallUsage);
   const inviteStatusFn = useServerFn(getCallInviteStatus);
+  const acceptInviteFn = useServerFn(acceptCallInvite);
   // Tracks how much we've already persisted to the server (server is the
   // source of truth across refresh / reconnect).
   const syncedFreeRef = useRef(0);
@@ -226,7 +228,17 @@ function CallScreen() {
         if (!inviteId) {
           throw new Error("Call request missing. Please start the call again from Connect.");
         }
-        const invite = await inviteStatusFn({ data: { inviteId } });
+        let invite = await inviteStatusFn({ data: { inviteId } });
+        // Auto-accept: launched from a full-screen incoming-call notification
+        // (lock-screen Accept button). The callee hasn't accepted yet through
+        // the in-app UI, so do it here before joining.
+        if (autoAccept && invite.status === "pending" && invite.role === "callee") {
+          try {
+            invite = await acceptInviteFn({ data: { inviteId } });
+          } catch (e: any) {
+            throw new Error(e?.message || "Could not accept this call.");
+          }
+        }
         if (invite.status !== "accepted") {
           throw new Error(
             invite.status === "pending"
@@ -392,7 +404,7 @@ function CallScreen() {
         (s.session as { leave: () => Promise<void> }).leave().catch(() => {});
       }
     };
-  }, [kind, navigate, myId, userId, permReady, inviteId, inviteStatusFn, joinAttempt]);
+  }, [kind, navigate, myId, userId, permReady, inviteId, inviteStatusFn, acceptInviteFn, autoAccept, joinAttempt]);
 
 
   useEffect(() => {
