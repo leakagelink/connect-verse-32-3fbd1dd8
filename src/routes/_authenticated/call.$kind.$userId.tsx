@@ -309,10 +309,18 @@ function CallScreen() {
           } catch { /* ignore log start failure */ }
         }, 1200);
       } catch (e: any) {
+        if (!mounted) return;
         const msg = String(e?.message ?? e ?? "");
-        const isMedia = /getUserMedia|NotAllowedError|NotFoundError|Permission|media|camera|mic/i.test(msg);
-        toast.error(isMedia ? `Could not access camera / mic: ${msg}` : `Couldn't start call: ${msg}`);
-        navigate({ to: "/connect" });
+        // Classify so we can show the right call-to-action.
+        let kindOfErr: "mic" | "camera" | "media" | "in-use" | "other" = "other";
+        if (/NotReadableError|in use|busy/i.test(msg)) kindOfErr = "in-use";
+        else if (/camera/i.test(msg) && /(NotAllowed|Permission|denied|NotFound)/i.test(msg)) kindOfErr = "camera";
+        else if (/(NotAllowed|Permission|denied)/i.test(msg) && /(mic|audio)/i.test(msg)) kindOfErr = "mic";
+        else if (/NotAllowedError|Permission/i.test(msg)) kindOfErr = kind === "video" ? "media" : "mic";
+        else if (/NotFoundError/i.test(msg)) kindOfErr = kind === "video" ? "media" : "mic";
+        else if (/getUserMedia|media|camera|mic/i.test(msg)) kindOfErr = "media";
+        setJoinError({ kind: kindOfErr, message: msg || "Unknown error" });
+        setRetrying(false);
       }
     }
     start();
@@ -324,7 +332,7 @@ function CallScreen() {
         (s.session as { leave: () => Promise<void> }).leave().catch(() => {});
       }
     };
-  }, [kind, navigate, myId, userId, permReady, inviteId, inviteStatusFn]);
+  }, [kind, navigate, myId, userId, permReady, inviteId, inviteStatusFn, joinAttempt]);
 
 
   useEffect(() => {
