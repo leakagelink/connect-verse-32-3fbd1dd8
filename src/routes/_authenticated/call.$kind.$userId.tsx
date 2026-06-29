@@ -663,6 +663,20 @@ function CallScreen() {
               </p>
             </div>
           )}
+          {audioBlocked && (
+            <button
+              type="button"
+              onClick={() => {
+                try {
+                  (sessionRef.current?.session as any)?.retryAudio?.();
+                } catch { /* ignore */ }
+                setAudioBlocked(false);
+              }}
+              className="absolute inset-x-6 top-1/2 -translate-y-1/2 z-20 mx-auto max-w-xs rounded-xl bg-amber-500 text-black font-semibold px-4 py-3 shadow-lg"
+            >
+              🔊 Tap to enable speaker audio
+            </button>
+          )}
           <div className="absolute top-3 left-3 right-3 flex items-center justify-between text-white">
             <div className="px-2.5 py-1 rounded-full bg-black/50 text-xs flex items-center gap-1.5">
               {connected ? `Connected · ${mm}:${ss}` : "Connecting…"}
