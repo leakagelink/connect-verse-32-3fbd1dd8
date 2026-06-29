@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Sparkles, Phone, Video } from "lucide-react";
 import { listForYouCreators } from "@/lib/discovery.functions";
 import { useAvatarPrefetch } from "@/lib/avatar-prefetch";
+import { useFollowStatusMap } from "@/lib/use-follow-status";
+import { FollowStatusPill } from "@/components/follow-status-pill";
 
 export function ForYouSection({
   onCall,
