@@ -1480,7 +1480,58 @@ function CallScreen() {
           </div>
         );
       })()}
+
+      {/* Gift send timeline overlay — same debug gate */}
+      {(() => {
+        let show = false;
+        try {
+          show =
+            new URLSearchParams(window.location.search).get("debug") === "1" ||
+            localStorage.getItem("callDebug") === "1";
+        } catch { /* ignore */ }
+        if (!show || giftEvents.length === 0) return null;
+        const fmt = (t: number) => {
+          const d = new Date(t);
+          return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}:${String(d.getSeconds()).padStart(2, "0")}.${String(d.getMilliseconds()).padStart(3, "0")}`;
+        };
+        return (
+          <div className="fixed top-2 right-2 z-[9999] max-h-[60vh] w-[320px] overflow-y-auto rounded-md border border-white/20 bg-black/80 px-2 py-1.5 font-mono text-[10px] leading-tight text-fuchsia-200 shadow-lg backdrop-blur-sm">
+            <div className="mb-1 flex items-center justify-between text-white/70">
+              <span>GIFT TIMELINE</span>
+              <button
+                type="button"
+                className="text-white/60 hover:text-white"
+                onClick={() => setGiftEvents([])}
+              >
+                clear
+              </button>
+            </div>
+            {giftEvents.map((ev, i) => {
+              const tServer = ev.serverRespondedAt - ev.requestedAt;
+              const tRefresh = ev.uiRefreshedAt - ev.serverRespondedAt;
+              const tTotal = ev.uiRefreshedAt - ev.requestedAt;
+              return (
+                <div key={i} className="mb-1.5 border-t border-white/10 pt-1 first:border-0 first:pt-0">
+                  <div className={ev.ok ? "text-white/80" : "text-red-300"}>
+                    #{giftEvents.length - i} · {ev.giftEmoji} {ev.giftName} · {ev.ok ? "OK" : "FAIL"}
+                  </div>
+                  <div>cost: <span className="text-white">{ev.cost}</span> · pre→post: <span className="text-white">{ev.preBalance}</span>→<span className="text-amber-300">{ev.newBalance}</span></div>
+                  {ev.receiverPreBalance !== undefined && (
+                    <div>receiver: <span className="text-white">{ev.receiverPreBalance}</span>→<span className="text-emerald-300">{ev.receiverNewBalance}</span></div>
+                  )}
+                  <div>requested: <span className="text-white">{fmt(ev.requestedAt)}</span></div>
+                  <div>server resp: <span className="text-white">{fmt(ev.serverRespondedAt)}</span> <span className="text-emerald-300">(+{tServer}ms{ev.serverProcessedMs !== undefined ? ` · srv ${ev.serverProcessedMs}ms` : ""})</span></div>
+                  <div>ui refresh: <span className="text-white">{fmt(ev.uiRefreshedAt)}</span> <span className="text-emerald-300">(+{tRefresh}ms)</span></div>
+                  <div className="text-amber-300">total: {tTotal}ms</div>
+                  {ev.error && <div className="text-red-300">err: {ev.error}</div>}
+                </div>
+              );
+            })}
+          </div>
+        );
+      })()}
     </AppShell>
+
 
 
 
