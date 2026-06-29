@@ -521,6 +521,25 @@ function CallingCredentialsTab() {
   const totalActive = creds.filter((c: any) => c.is_active).length;
   const poolHealth = totalActive === 0 ? "empty" : healthyCount === 0 ? "down" : healthyCount < totalActive ? "degraded" : "good";
 
+  // Per-provider quota rollup (active credentials only). A credential without
+  // a monthly_quota_minutes is treated as "unlimited" and excluded from the
+  // limit total, but its used minutes still count toward consumption.
+  const providerRollup = (() => {
+    const groups: Record<string, { used: number; quota: number; unlimited: number; count: number }> = {};
+    for (const c of creds as any[]) {
+      if (!c.is_active) continue;
+      const key = c.provider as string;
+      const g = groups[key] ?? { used: 0, quota: 0, unlimited: 0, count: 0 };
+      g.used += Number(c.minutes_used_current_month ?? 0);
+      g.count += 1;
+      if (c.monthly_quota_minutes) g.quota += Number(c.monthly_quota_minutes);
+      else g.unlimited += 1;
+      groups[key] = g;
+    }
+    return Object.entries(groups).map(([provider, g]) => ({ provider, ...g, remaining: Math.max(g.quota - g.used, 0) }));
+  })();
+
+
   return (
     <div className="space-y-3">
       <Card className="glass p-4">
