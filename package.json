@@ -9,7 +9,9 @@
     "build:dev": "vite build --mode development",
     "preview": "vite preview",
     "lint": "eslint .",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui"
   },
   "dependencies": {
     "@100mslive/hms-video-store": "^0.14.4",
