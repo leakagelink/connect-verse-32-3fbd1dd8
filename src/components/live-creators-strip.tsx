@@ -24,6 +24,7 @@ export function LiveCreatorsStrip({
   loading: boolean;
   onCall: (userId: string, kind: "voice" | "video") => void;
 }) {
+  useAvatarPrefetch(users.map((u) => u.avatar_url));
   if (loading) {
     return (
       <div className="flex gap-3 overflow-hidden pb-2">
