@@ -34,6 +34,9 @@ const DISMISS_KEY = "talkora.pushPromptDismissed";
 
 export function PushPermissionGate() {
   const [state, setState] = useState<PermState | null>(null);
+  // Android 14+ full-screen-intent runtime grant — without it, killed/backgrounded
+  // apps can't auto-launch the ringer screen even when FCM is delivered.
+  const [fsiNeeded, setFsiNeeded] = useState<boolean>(false);
   const [dismissed, setDismissed] = useState<boolean>(() => {
     try {
       return sessionStorage.getItem(DISMISS_KEY) === "1";
