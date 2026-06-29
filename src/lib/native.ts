@@ -257,6 +257,47 @@ export async function requestPushPermission(): Promise<PermState> {
   }
 }
 
+/* ---------------- Full-screen-intent permission (Android 14+) ----------------
+ * Without USE_FULL_SCREEN_INTENT granted at runtime, Android 14+ demotes our
+ * incoming-call full-screen launch to a regular heads-up notification, which
+ * means a killed/backgrounded app will NOT auto-pop the ringer screen.
+ * Bridged via FullScreenIntentPlugin.java.
+ */
+
+interface FullScreenIntentBridge {
+  check(): Promise<{ granted: boolean; required: boolean }>;
+  openSettings(): Promise<void>;
+}
+
+let fullScreenIntentPlugin: FullScreenIntentBridge | null = null;
+function fsiPlugin(): FullScreenIntentBridge | null {
+  if (!isNative()) return null;
+  if (!fullScreenIntentPlugin) {
+    try {
+      fullScreenIntentPlugin = registerPlugin<FullScreenIntentBridge>('FullScreenIntent');
+    } catch {
+      return null;
+    }
+  }
+  return fullScreenIntentPlugin;
+}
+
+export async function checkFullScreenIntentPermission(): Promise<{ granted: boolean; required: boolean }> {
+  const p = fsiPlugin();
+  if (!p) return { granted: true, required: false };
+  try {
+    return await p.check();
+  } catch {
+    return { granted: true, required: false };
+  }
+}
+
+export async function openFullScreenIntentSettings(): Promise<void> {
+  const p = fsiPlugin();
+  if (!p) return;
+  try { await p.openSettings(); } catch { /* ignore */ }
+}
+
 /* ---------------- Call permissions (mic / camera) ---------------- */
 
 /**

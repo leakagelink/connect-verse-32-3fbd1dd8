@@ -1,11 +1,13 @@
 import { useEffect, useState } from "react";
-import { Bell, BellOff, X, Settings } from "lucide-react";
+import { Bell, BellOff, X, Settings, PhoneIncoming } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   getPushPermissionState,
   requestPushPermission,
   openAppSettings,
   isNative,
+  checkFullScreenIntentPermission,
+  openFullScreenIntentSettings,
   type PermState,
 } from "@/lib/native";
 
@@ -32,6 +34,9 @@ const DISMISS_KEY = "talkora.pushPromptDismissed";
 
 export function PushPermissionGate() {
   const [state, setState] = useState<PermState | null>(null);
+  // Android 14+ full-screen-intent runtime grant — without it, killed/backgrounded
+  // apps can't auto-launch the ringer screen even when FCM is delivered.
+  const [fsiNeeded, setFsiNeeded] = useState<boolean>(false);
   const [dismissed, setDismissed] = useState<boolean>(() => {
     try {
       return sessionStorage.getItem(DISMISS_KEY) === "1";
@@ -43,15 +48,21 @@ export function PushPermissionGate() {
 
   useEffect(() => {
     let alive = true;
-    void (async () => {
+    const refresh = async () => {
       const s = await getPushPermissionState();
-      if (alive) setState(s);
-    })();
-    // Re-check when the tab regains focus (user may have toggled in Settings).
-    const onFocus = async () => {
-      const s = await getPushPermissionState();
-      if (alive) setState(s);
+      if (!alive) return;
+      setState(s);
+      // Only check FSI grant once notifications themselves are granted —
+      // otherwise the notification toggle is the more urgent fix.
+      if (s === "granted") {
+        const fsi = await checkFullScreenIntentPermission();
+        if (alive) setFsiNeeded(fsi.required && !fsi.granted);
+      } else {
+        setFsiNeeded(false);
+      }
     };
+    void refresh();
+    const onFocus = () => { void refresh(); };
     window.addEventListener("focus", onFocus);
     return () => {
       alive = false;
@@ -59,10 +70,14 @@ export function PushPermissionGate() {
     };
   }, []);
 
-  if (state === null || state === "granted" || state === "unknown") return null;
+  // Show FSI banner even when push state is "granted" (the early-return below
+  // would otherwise hide the gate entirely).
+  if (state === null || state === "unknown") return null;
+  if (state === "granted" && !fsiNeeded) return null;
 
   const isDenied = state === "denied";
-  if (!isDenied && dismissed) return null;
+  const showFsiOnly = state === "granted" && fsiNeeded;
+  if (!isDenied && !showFsiOnly && dismissed) return null;
 
   const handleEnable = async () => {
     setBusy(true);
@@ -83,6 +98,44 @@ export function PushPermissionGate() {
     await openAppSettings();
     setBusy(false);
   };
+
+  const handleOpenFsiSettings = async () => {
+    setBusy(true);
+    await openFullScreenIntentSettings();
+    setBusy(false);
+  };
+
+  // Dedicated FSI-only banner: notifications already granted, but Android 14+
+  // hasn't given us full-screen-intent — incoming calls will silently demote
+  // to a heads-up notification when the app is killed.
+  if (showFsiOnly) {
+    return (
+      <div
+        className="mx-auto max-w-3xl px-4 pt-3 animate-in fade-in slide-in-from-top-2"
+        role="region"
+        aria-label="Full-screen call permission"
+      >
+        <div className="glass relative flex items-start gap-3 rounded-2xl border border-amber-500/40 p-3.5 sm:p-4">
+          <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-amber-500/15 text-amber-500" aria-hidden>
+            <PhoneIncoming className="size-5" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-semibold">Allow full-screen incoming calls</p>
+            <p className="mt-0.5 text-xs text-muted-foreground">
+              Android needs one more permission so Talkora can ring and pop the call screen even when the app is closed or your phone is locked. Without it, calls only show as a small banner and may be missed.
+            </p>
+            <div className="mt-2.5 flex flex-wrap gap-2">
+              <Button size="sm" onClick={handleOpenFsiSettings} disabled={busy || !isNative()} className="h-8">
+                <Settings className="mr-1.5 size-3.5" />
+                Open Settings
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
 
   const handleDismiss = () => {
     try {
