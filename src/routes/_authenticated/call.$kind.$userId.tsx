@@ -725,6 +725,9 @@ function CallScreen() {
     try { localStorage.removeItem(`active_call:${userId}:${kind}:${inviteId ?? "direct"}`); } catch { /* ignore */ }
     navigate({ to: "/recents" });
   }
+  // Keep the ref pointing at the latest closure so auto-end effects work.
+  endCallNowRef.current = confirmEndCall;
+
 
 
   const totalElapsed = sessionStartElapsedRef.current + elapsed;
