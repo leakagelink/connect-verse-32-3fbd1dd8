@@ -149,6 +149,115 @@ export type Database = {
         }
         Relationships: []
       }
+      call_invites: {
+        Row: {
+          accepted_at: string | null
+          call_log_id: string | null
+          callee_id: string
+          caller_id: string
+          cancelled_at: string | null
+          created_at: string
+          expires_at: string
+          id: string
+          kind: string
+          rejected_at: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          call_log_id?: string | null
+          callee_id: string
+          caller_id: string
+          cancelled_at?: string | null
+          created_at?: string
+          expires_at?: string
+          id?: string
+          kind: string
+          rejected_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          accepted_at?: string | null
+          call_log_id?: string | null
+          callee_id?: string
+          caller_id?: string
+          cancelled_at?: string | null
+          created_at?: string
+          expires_at?: string
+          id?: string
+          kind?: string
+          rejected_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "call_invites_call_log_id_fkey"
+            columns: ["call_log_id"]
+            isOneToOne: false
+            referencedRelation: "call_logs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "call_invites_callee_id_fkey"
+            columns: ["callee_id"]
+            isOneToOne: false
+            referencedRelation: "creator_earnings_30d"
+            referencedColumns: ["creator_id"]
+          },
+          {
+            foreignKeyName: "call_invites_callee_id_fkey"
+            columns: ["callee_id"]
+            isOneToOne: false
+            referencedRelation: "creator_leaderboard_7d"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "call_invites_callee_id_fkey"
+            columns: ["callee_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "call_invites_callee_id_fkey"
+            columns: ["callee_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "call_invites_caller_id_fkey"
+            columns: ["caller_id"]
+            isOneToOne: false
+            referencedRelation: "creator_earnings_30d"
+            referencedColumns: ["creator_id"]
+          },
+          {
+            foreignKeyName: "call_invites_caller_id_fkey"
+            columns: ["caller_id"]
+            isOneToOne: false
+            referencedRelation: "creator_leaderboard_7d"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "call_invites_caller_id_fkey"
+            columns: ["caller_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "call_invites_caller_id_fkey"
+            columns: ["caller_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       call_logs: {
         Row: {
           callee_id: string

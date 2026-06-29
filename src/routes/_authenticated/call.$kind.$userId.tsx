@@ -12,7 +12,7 @@ import { Mic, MicOff, Video as VideoIcon, VideoOff, PhoneOff, Coins, Search, Gif
 import { AppShell } from "@/components/app-shell";
 import { toast } from "sonner";
 import { VOICE_CALL_COINS_PER_MINUTE, VIDEO_CALL_COINS_PER_MINUTE } from "@/lib/constants";
-import { startCallLog, endCallLog, applyCallUsage } from "@/lib/calls.functions";
+import { endCallLog, applyCallUsage } from "@/lib/calls.functions";
 import { generateMysteryCase, CASE_GENERATION_COIN_COST } from "@/lib/mystery.functions";
 import { getMyProfile } from "@/lib/onboarding.functions";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -30,16 +30,21 @@ import { supabase } from "@/integrations/supabase/client";
 import { recordCallMetrics } from "@/lib/calling.functions";
 import { connectCall, type AnySession } from "@/lib/call-session";
 import { Signal, SignalHigh, SignalLow, SignalMedium, SignalZero } from "lucide-react";
+import { getCallInviteStatus } from "@/lib/call-invites.functions";
 
 
 
 
 export const Route = createFileRoute("/_authenticated/call/$kind/$userId")({
+  validateSearch: (search) => ({
+    inviteId: typeof search.inviteId === "string" ? search.inviteId : undefined,
+  }),
   component: CallScreen,
 });
 
 function CallScreen() {
   const { kind, userId } = useParams({ from: "/_authenticated/call/$kind/$userId" });
+  const { inviteId } = Route.useSearch();
   const navigate = useNavigate();
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const remoteContainerRef = useRef<HTMLDivElement | null>(null);
@@ -92,9 +97,9 @@ function CallScreen() {
 
 
   const perMin = kind === "video" ? VIDEO_CALL_COINS_PER_MINUTE : VOICE_CALL_COINS_PER_MINUTE;
-  const startLogFn = useServerFn(startCallLog);
   const endLogFn = useServerFn(endCallLog);
   const applyUsageFn = useServerFn(applyCallUsage);
+  const inviteStatusFn = useServerFn(getCallInviteStatus);
   // Tracks how much we've already persisted to the server (server is the
   // source of truth across refresh / reconnect).
   const syncedFreeRef = useRef(0);
@@ -113,6 +118,7 @@ function CallScreen() {
   const [caseId, setCaseId] = useState<string | null>(null);
   const [casePanelOpen, setCasePanelOpen] = useState(false);
   const [generating, setGenerating] = useState(false);
+  const callRoleRef = useRef<"caller" | "callee" | null>(null);
 
   // Realtime: share generated case_id between caller & callee using a deterministic channel
   useEffect(() => {
@@ -183,6 +189,27 @@ function CallScreen() {
     if (!permReady) return; // wait for the user to grant mic/cam via the gate
     async function start() {
       try {
+        if (!inviteId) {
+          throw new Error("Call request missing. Please start the call again from Connect.");
+        }
+        const invite = await inviteStatusFn({ data: { inviteId } });
+        if (invite.status !== "accepted") {
+          throw new Error(
+            invite.status === "pending"
+              ? "Creator has not answered yet. Please wait for acceptance."
+              : "This call request is no longer active. Please start a new call.",
+          );
+        }
+        const expectedPartner = invite.role === "caller" ? invite.calleeId : invite.callerId;
+        if (invite.kind !== kind || expectedPartner !== userId || !invite.callLogId) {
+          throw new Error("Call invite does not match this call session.");
+        }
+        callRoleRef.current = invite.role as "caller" | "callee";
+        callLogIdRef.current = invite.callLogId;
+        syncedFreeRef.current = invite.baselineFreeSecondsUsed ?? 0;
+        syncedCoinsRef.current = invite.baselineCoinsSpent ?? 0;
+        sessionStartElapsedRef.current = invite.baselineDurationSeconds ?? 0;
+
         // Provider-agnostic connect with automatic failover across the
         // calling pool (multi-Agora + multi-100ms). On every credential
         // failure the factory reports it server-side and retries with the
@@ -242,34 +269,12 @@ function CallScreen() {
           setFreeStart(me?.profile?.free_seconds_remaining ?? 0);
           setCoinStart(me?.walletBalance ?? 0);
           try {
-            const resumeKey = `active_call:${userId}:${kind}`;
-            let resumeId: string | null = null;
-            try {
-              const raw = localStorage.getItem(resumeKey);
-              if (raw) {
-                const parsed = JSON.parse(raw);
-                if (
-                  parsed?.id &&
-                  parsed?.lastFlushedAt &&
-                  Date.now() - new Date(parsed.lastFlushedAt).getTime() < 5 * 60 * 1000
-                ) {
-                  resumeId = parsed.id as string;
-                }
-              }
-            } catch { /* ignore */ }
-
-            const res = await startLogFn({
-              data: { calleeId: userId, kind: kind as "voice" | "video", resumeId },
-            });
-            callLogIdRef.current = res.id;
-            syncedFreeRef.current = res.baselineFreeSecondsUsed ?? 0;
-            syncedCoinsRef.current = res.baselineCoinsSpent ?? 0;
-            sessionStartElapsedRef.current = res.baselineDurationSeconds ?? 0;
+            const resumeKey = `active_call:${userId}:${kind}:${inviteId}`;
             try {
               localStorage.setItem(
                 resumeKey,
                 JSON.stringify({
-                  id: res.id,
+                  id: invite.callLogId,
                   lastFlushedAt: new Date().toISOString(),
                   sessionToken: sessionTokenRef.current,
                 }),
@@ -290,9 +295,6 @@ function CallScreen() {
                   (fresh.profile.free_seconds_remaining ?? 0) === 0;
               }
             } catch { /* ignore profile refresh failure */ }
-            if (res.resumed) {
-              toast.info("Reconnected to your previous call — no duplicate charges.");
-            }
           } catch { /* ignore log start failure */ }
         }, 1200);
       } catch (e: any) {
@@ -311,7 +313,7 @@ function CallScreen() {
         (s.session as { leave: () => Promise<void> }).leave().catch(() => {});
       }
     };
-  }, [kind, navigate, myId, userId, permReady]);
+  }, [kind, navigate, myId, userId, permReady, inviteId, inviteStatusFn]);
 
 
   useEffect(() => {
@@ -334,7 +336,7 @@ function CallScreen() {
   // sessionToken, this tab pauses: no flushes, no elapsed tick, no recharge
   // prompts. Resuming requires reload of this tab (which mints a fresh token).
   useEffect(() => {
-    const resumeKey = `active_call:${userId}:${kind}`;
+    const resumeKey = `active_call:${userId}:${kind}:${inviteId ?? "direct"}`;
     function evaluate(raw: string | null) {
       if (!raw) return;
       try {
@@ -358,7 +360,7 @@ function CallScreen() {
     // Initial check in case another tab claimed ownership before this one mounted.
     try { evaluate(localStorage.getItem(resumeKey)); } catch { /* ignore */ }
     return () => window.removeEventListener("storage", onStorage);
-  }, [userId, kind]);
+  }, [userId, kind, inviteId]);
 
   // ---- Live billing ledger (free seconds first, then coins) ----
   const freeAvail = freeStart ?? 0;
@@ -372,7 +374,8 @@ function CallScreen() {
   const coinSecondsLeft = Math.floor((coinsLeft * 60) / perMin);
   const totalSecondsLeft = freeLeftSec + coinSecondsLeft;
   const usingFree = freeLeftSec > 0;
-  const outOfFunds = connected && totalSecondsLeft <= 0;
+  const isPayer = callRoleRef.current !== "callee";
+  const outOfFunds = connected && isPayer && totalSecondsLeft <= 0;
 
   // Seed live ledger snapshots the moment the profile is available — so the
   // "5:00 free" countdown is visible from the very start of the call screen.
@@ -419,6 +422,7 @@ function CallScreen() {
   flushUsage.current = () => {
     const callLogId = callLogIdRef.current;
     if (!callLogId) return;
+    if (callRoleRef.current === "callee") return;
     if (flushInFlightRef.current) return;
     // Paused (another tab took ownership) → don't push usage from this tab,
     // the authoritative tab is now responsible for billing.
@@ -426,7 +430,7 @@ function CallScreen() {
     // Also bail if the localStorage slot now belongs to a different session
     // token (e.g. storage event was missed in this tab).
     try {
-      const raw = localStorage.getItem(`active_call:${userId}:${kind}`);
+      const raw = localStorage.getItem(`active_call:${userId}:${kind}:${inviteId ?? "direct"}`);
       if (raw) {
         const parsed = JSON.parse(raw);
         if (parsed?.sessionToken && parsed.sessionToken !== sessionTokenRef.current) {
@@ -478,7 +482,7 @@ function CallScreen() {
         pendingFlushKeyRef.current = null;
         try {
           localStorage.setItem(
-            `active_call:${userId}:${kind}`,
+            `active_call:${userId}:${kind}:${inviteId ?? "direct"}`,
             JSON.stringify({
               id: callLogId,
               lastFlushedAt: new Date().toISOString(),
@@ -595,7 +599,7 @@ function CallScreen() {
       }).catch(() => {});
     }
 
-    try { localStorage.removeItem(`active_call:${userId}:${kind}`); } catch { /* ignore */ }
+    try { localStorage.removeItem(`active_call:${userId}:${kind}:${inviteId ?? "direct"}`); } catch { /* ignore */ }
     navigate({ to: "/recents" });
   }
 
