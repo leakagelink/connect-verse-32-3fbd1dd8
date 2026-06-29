@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Sparkles, Phone, Video } from "lucide-react";
 import { listForYouCreators } from "@/lib/discovery.functions";
+import { useAvatarPrefetch } from "@/lib/avatar-prefetch";
 
 export function ForYouSection({
   onCall,
