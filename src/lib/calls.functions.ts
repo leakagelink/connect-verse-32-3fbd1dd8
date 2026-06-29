@@ -465,3 +465,37 @@ export const listRecentCalls = createServerFn({ method: "GET" })
       };
     });
   });
+
+// E2E support: read both wallet balances for a call, scoped to a participant.
+// Used by the in-call debug E2E to verify that applyCallUsage debits the
+// caller and credits the callee. Returns null balances if not authorized.
+export const getCallPeerWallets = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((input: { callLogId: string }) => input)
+  .handler(async ({ data, context }) => {
+    const { userId } = context;
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: log } = await supabaseAdmin
+      .from("call_logs")
+      .select("id, caller_id, callee_id, coins_spent, free_seconds_used, duration_seconds")
+      .eq("id", data.callLogId)
+      .maybeSingle();
+    if (!log) return { ok: false as const, reason: "no-log" };
+    if (log.caller_id !== userId && log.callee_id !== userId) {
+      return { ok: false as const, reason: "forbidden" };
+    }
+    const [{ data: cw }, { data: kw }] = await Promise.all([
+      supabaseAdmin.from("wallets").select("coin_balance").eq("user_id", log.caller_id).maybeSingle(),
+      supabaseAdmin.from("wallets").select("coin_balance").eq("user_id", log.callee_id).maybeSingle(),
+    ]);
+    return {
+      ok: true as const,
+      callerId: log.caller_id as string,
+      calleeId: log.callee_id as string,
+      callerBalance: Number(cw?.coin_balance ?? 0),
+      calleeBalance: Number(kw?.coin_balance ?? 0),
+      storedCoinsSpent: Number(log.coins_spent ?? 0),
+      storedFreeUsed: Number(log.free_seconds_used ?? 0),
+      storedDuration: Number(log.duration_seconds ?? 0),
+    };
+  });
