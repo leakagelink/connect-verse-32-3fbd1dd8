@@ -408,11 +408,14 @@ export const diagSelfMissedCall = createServerFn({ method: "POST" })
     const { data: isAdmin } = await context.supabase.rpc("has_role", { _user_id: context.userId, _role: "admin" });
     if (!isAdmin) throw new Error("Forbidden");
 
+    // target callee = explicit arg, else self
+    const calleeId = data.targetUserId ?? context.userId;
+
     // pick any other onboarded user as the fake caller
     const { data: other } = await db
       .from("profiles")
       .select("id, username")
-      .neq("id", context.userId)
+      .neq("id", calleeId)
       .eq("is_banned", false)
       .eq("onboarded", true)
       .is("deleted_at", null)
