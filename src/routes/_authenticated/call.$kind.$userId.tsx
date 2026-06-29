@@ -1095,7 +1095,13 @@ function CallScreen() {
             {muted ? <MicOff className="size-5" /> : <Mic className="size-5" />}
           </Button>
           {kind === "video" && (
-            <Button size="icon" variant={camOff ? "destructive" : "secondary"} onClick={toggleCam}>
+            <Button
+              size="icon"
+              variant={camOff ? "destructive" : "secondary"}
+              onClick={toggleCam}
+              disabled={criticalTime}
+              title={criticalTime ? "Disabled — last 60 seconds" : undefined}
+            >
               {camOff ? <VideoOff className="size-5" /> : <VideoIcon className="size-5" />}
             </Button>
           )}
