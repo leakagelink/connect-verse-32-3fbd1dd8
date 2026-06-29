@@ -21,6 +21,9 @@ export function ForYouSection({
     staleTime: 2 * 60_000,
   });
 
+  const list = (data ?? []).slice(0, 6);
+  useAvatarPrefetch(list.map((u: any) => u.avatar_url));
+
   if (!data?.length) return null;
 
   return (
