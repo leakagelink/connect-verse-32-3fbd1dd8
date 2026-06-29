@@ -96,7 +96,7 @@ export class AgoraSession {
       }
       if (mediaType === "audio" && user.audioTrack) {
         this.remoteAudio.push(user.audioTrack as any);
-        try { (user.audioTrack as any).setVolume(this.speakerOn ? 200 : 100); } catch { /* ignore */ }
+        try { (user.audioTrack as any).setVolume(this.speakerOn ? 400 : 100); } catch { /* ignore */ }
         try {
           user.audioTrack.play();
         } catch (err) {
