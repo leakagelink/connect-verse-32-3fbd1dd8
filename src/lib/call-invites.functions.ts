@@ -328,6 +328,8 @@ export const rejectCallInvite = createServerFn({ method: "POST" })
       .update({ status: "rejected", rejected_at: new Date().toISOString() })
       .eq("id", data.inviteId)
       .eq("status", "pending");
+    // Dismiss the lock-screen UI on the callee's other devices.
+    await notifyCallEnded({ calleeId: invite.callee_id, inviteId: invite.id }).catch(() => ({ pushed: 0 }));
     return { ok: true };
   });
 
@@ -344,6 +346,8 @@ export const cancelCallInvite = createServerFn({ method: "POST" })
       .update({ status: "cancelled", cancelled_at: new Date().toISOString() })
       .eq("id", data.inviteId)
       .eq("status", "pending");
+    // Caller hung up before answer — dismiss the full-screen UI on the callee.
+    await notifyCallEnded({ calleeId: invite.callee_id, inviteId: invite.id }).catch(() => ({ pushed: 0 }));
     return { ok: true };
   });
 
