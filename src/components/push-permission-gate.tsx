@@ -1,11 +1,13 @@
 import { useEffect, useState } from "react";
-import { Bell, BellOff, X, Settings } from "lucide-react";
+import { Bell, BellOff, X, Settings, PhoneIncoming } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   getPushPermissionState,
   requestPushPermission,
   openAppSettings,
   isNative,
+  checkFullScreenIntentPermission,
+  openFullScreenIntentSettings,
   type PermState,
 } from "@/lib/native";
 
