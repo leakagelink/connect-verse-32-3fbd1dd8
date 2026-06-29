@@ -76,6 +76,10 @@ export function CallInviteDialog({
   useEffect(() => {
     if (!invite?.id || invite.status !== "pending") return;
     let done = false;
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+    let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+    let expiryTimer: ReturnType<typeof setTimeout> | null = null;
+
     const normalizeStatus = (raw: any): InviteStatus => ({
       id: raw.id,
       kind: raw.kind,
@@ -116,29 +120,51 @@ export function CallInviteDialog({
       }
     };
 
-
-    const channel = supabase
-      .channel(`outgoing-call-invite-${invite.id}`)
-      .on(
-        "postgres_changes",
-        { event: "UPDATE", schema: "public", table: "call_invites", filter: `id=eq.${invite.id}` },
-        (payload) => applyStatus(normalizeStatus(payload.new)),
-      )
-      .subscribe();
-
-    const poll = setInterval(async () => {
+    const checkOnce = async () => {
       try {
         const res = await statusFn({ data: { inviteId: invite.id } });
         applyStatus(normalizeStatus(res));
-      } catch { /* keep ringing UI */ }
-    }, 2000);
+      } catch { /* ignore */ }
+    };
+
+    const connect = () => {
+      channel = supabase
+        .channel(`outgoing-call-invite-${invite.id}`)
+        .on(
+          "postgres_changes",
+          { event: "UPDATE", schema: "public", table: "call_invites", filter: `id=eq.${invite.id}` },
+          (payload) => applyStatus(normalizeStatus(payload.new)),
+        )
+        .subscribe((status) => {
+          if (status === "SUBSCRIBED") {
+            // sync once after subscribe in case status changed before channel was ready
+            checkOnce();
+          } else if (status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED") {
+            if (channel) { try { supabase.removeChannel(channel); } catch {} channel = null; }
+            if (!done) reconnectTimer = setTimeout(connect, 2000);
+          }
+        });
+    };
+    connect();
+
+    // One-shot reconciliation at expiry so caller never gets stuck on "Ringing…"
+    const ms = Math.max(1000, new Date(invite.expiresAt).getTime() - Date.now() + 1500);
+    expiryTimer = setTimeout(checkOnce, ms);
+
+    const onVisible = () => { if (document.visibilityState === "visible") checkOnce(); };
+    document.addEventListener("visibilitychange", onVisible);
+    window.addEventListener("online", checkOnce);
 
     return () => {
       done = true;
-      clearInterval(poll);
-      supabase.removeChannel(channel);
+      if (reconnectTimer) clearTimeout(reconnectTimer);
+      if (expiryTimer) clearTimeout(expiryTimer);
+      document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("online", checkOnce);
+      if (channel) supabase.removeChannel(channel);
     };
   }, [invite?.id, invite?.status, navigate, onClose, statusFn]);
+
 
   const secondsLeft = useMemo(() => {
     if (!invite?.expiresAt) return 45;
