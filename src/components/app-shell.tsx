@@ -140,11 +140,12 @@ export function AppShell({ children, isAdmin }: { children: ReactNode; isAdmin?:
 
       {me?.profile?.id && <PushPermissionGate />}
       {me?.profile?.id && <BackgroundReliabilityGate />}
-      <main className="mx-auto max-w-3xl px-4 pt-4">{children}</main>
+      <main className="mx-auto max-w-3xl px-4 pt-4 pb-[calc(env(safe-area-inset-bottom,0px)+5.5rem)]">{children}</main>
       <SafetySignalsProbe />
       <IncomingCallDialog disabled={pathname.startsWith("/call/")} />
 
-      <nav className="fixed inset-x-0 bottom-0 z-50 glass border-t safe-bottom">
+      <nav className="fixed inset-x-0 bottom-0 z-50 nav-surface safe-bottom">
+
         <div className="mx-auto flex max-w-3xl items-stretch justify-around gap-0.5 px-1 relative">
 
           {nav.slice(0, 2).map((n) => {
