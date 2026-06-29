@@ -96,7 +96,7 @@ export class AgoraSession {
       }
       if (mediaType === "audio" && user.audioTrack) {
         this.remoteAudio.push(user.audioTrack as any);
-        try { (user.audioTrack as any).setVolume(this.speakerOn ? 200 : 100); } catch { /* ignore */ }
+        try { (user.audioTrack as any).setVolume(this.speakerOn ? 400 : 100); } catch { /* ignore */ }
         try {
           user.audioTrack.play();
         } catch (err) {
@@ -204,15 +204,25 @@ export class AgoraSession {
    */
   async setSpeakerMode(on: boolean) {
     this.speakerOn = on;
+    // Agora's setVolume accepts 0–1000 (100 = original). Push to ~400 for the
+    // loudspeaker mode so it's clearly louder than the default earpiece-like
+    // playback on web/desktop browsers.
     for (const t of this.remoteAudio) {
-      try { t.setVolume(on ? 200 : 100); } catch { /* ignore */ }
+      try { t.setVolume(on ? 400 : 100); } catch { /* ignore */ }
     }
+    // Native (Capacitor Android): flip the OS audio route to the loudspeaker
+    // via our SpeakerMode plugin (AudioManager under the hood). This is the
+    // only thing that actually makes the call audible on phone speakers —
+    // volume boosts alone don't change routing.
     try {
       const cap = (window as any).Capacitor;
       if (cap?.isNativePlatform?.() && cap?.Plugins?.SpeakerMode?.set) {
         await cap.Plugins.SpeakerMode.set({ on });
       }
-    } catch { /* ignore — plugin optional */ }
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.warn("[agora] SpeakerMode plugin failed", err);
+    }
   }
   isSpeakerOn() { return this.speakerOn; }
 
