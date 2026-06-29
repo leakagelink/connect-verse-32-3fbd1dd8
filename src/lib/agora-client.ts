@@ -116,7 +116,14 @@ export class AgoraSession {
 
     await this.client.join(opts.appId, opts.channel, opts.token, opts.account);
 
-    this.mic = await AgoraRTC.createMicrophoneAudioTrack();
+    this.mic = await AgoraRTC.createMicrophoneAudioTrack({
+      AEC: true,
+      ANS: true,
+      AGC: true,
+      encoderConfig: "speech_standard",
+    });
+    // Make sure capture is hot before publishing.
+    try { await this.mic.setEnabled(true); } catch { /* ignore */ }
     const tracksToPublish: (IMicrophoneAudioTrack | ICameraVideoTrack)[] = [this.mic];
 
     if (opts.kind === "video") {
