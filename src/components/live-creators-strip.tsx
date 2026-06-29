@@ -79,6 +79,9 @@ export function LiveCreatorsStrip({
             <p className="text-[10px] text-muted-foreground truncate">
               {[u.country, u.language].filter(Boolean).join(" · ") || "Online"}
             </p>
+            <div className="mt-1.5">
+              <FollowStatusPill status={statusMap?.[u.id] ?? null} size="xs" />
+            </div>
             <div className="mt-2 grid grid-cols-2 gap-1.5">
               <button
                 onClick={() => onCall(u.id, "voice")}
