@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
+import { useState } from "react";
 import { AppShell } from "@/components/app-shell";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -9,6 +10,7 @@ import {
   Mic, Coins, Clock, History,
 } from "lucide-react";
 import { listRecentCalls } from "@/lib/calls.functions";
+import { InCallPeerProfileSheet } from "@/components/in-call-peer-profile-sheet";
 
 export const Route = createFileRoute("/_authenticated/recents")({
   component: RecentsScreen,
@@ -40,6 +42,7 @@ function RecentsScreen() {
     queryKey: ["recent-calls"],
     queryFn: () => fn(),
   });
+  const [profileUserId, setProfileUserId] = useState<string | null>(null);
 
   const all = data ?? [];
   const voice = all.filter((c) => c.kind === "voice");
@@ -54,8 +57,13 @@ function RecentsScreen() {
           <Badge variant="secondary" className="ml-auto">{all.length}</Badge>
         </div>
 
-        <Tabs all={all} voice={voice} video={video} loading={isLoading} />
+        <Tabs all={all} voice={voice} video={video} loading={isLoading} onOpenProfile={setProfileUserId} />
       </div>
+      <InCallPeerProfileSheet
+        userId={profileUserId}
+        open={!!profileUserId}
+        onOpenChange={(v) => { if (!v) setProfileUserId(null); }}
+      />
     </AppShell>
   );
 }
@@ -63,7 +71,7 @@ function RecentsScreen() {
 import { Tabs as UITabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { RecentCall } from "@/lib/calls.functions";
 
-function Tabs({ all, voice, video, loading }: { all: RecentCall[]; voice: RecentCall[]; video: RecentCall[]; loading: boolean }) {
+function Tabs({ all, voice, video, loading, onOpenProfile }: { all: RecentCall[]; voice: RecentCall[]; video: RecentCall[]; loading: boolean; onOpenProfile: (id: string) => void }) {
   return (
     <UITabs defaultValue="all">
       <TabsList className="w-full">
@@ -71,14 +79,14 @@ function Tabs({ all, voice, video, loading }: { all: RecentCall[]; voice: Recent
         <TabsTrigger value="voice" className="flex-1">Voice</TabsTrigger>
         <TabsTrigger value="video" className="flex-1">Video</TabsTrigger>
       </TabsList>
-      <TabsContent value="all"><CallList items={all} loading={loading} /></TabsContent>
-      <TabsContent value="voice"><CallList items={voice} loading={loading} /></TabsContent>
-      <TabsContent value="video"><CallList items={video} loading={loading} /></TabsContent>
+      <TabsContent value="all"><CallList items={all} loading={loading} onOpenProfile={onOpenProfile} /></TabsContent>
+      <TabsContent value="voice"><CallList items={voice} loading={loading} onOpenProfile={onOpenProfile} /></TabsContent>
+      <TabsContent value="video"><CallList items={video} loading={loading} onOpenProfile={onOpenProfile} /></TabsContent>
     </UITabs>
   );
 }
 
-function CallList({ items, loading }: { items: RecentCall[]; loading: boolean }) {
+function CallList({ items, loading, onOpenProfile }: { items: RecentCall[]; loading: boolean; onOpenProfile: (id: string) => void }) {
   if (loading) {
     return <p className="text-sm text-muted-foreground py-8 text-center">Loading history…</p>;
   }
@@ -95,7 +103,7 @@ function CallList({ items, loading }: { items: RecentCall[]; loading: boolean })
   }
   return (
     <div className="space-y-2">
-      {items.map((c) => <CallRow key={c.id} call={c} />)}
+      {items.map((c) => <CallRow key={c.id} call={c} onOpenProfile={onOpenProfile} />)}
     </div>
   );
 }
@@ -115,7 +123,7 @@ function missedReasonLabel(call: RecentCall): string | null {
   }
 }
 
-function CallRow({ call }: { call: RecentCall }) {
+function CallRow({ call, onOpenProfile }: { call: RecentCall; onOpenProfile: (id: string) => void }) {
   const KindIcon = call.kind === "video" ? VideoIcon : Mic;
   const isMissed = call.status === "missed";
   const DirIcon = isMissed ? PhoneMissed : call.direction === "outgoing" ? PhoneOutgoing : PhoneIncoming;
@@ -130,19 +138,31 @@ function CallRow({ call }: { call: RecentCall }) {
     : call.direction === "outgoing"
     ? "Outgoing"
     : "Incoming";
+  const openProfile = () => {
+    if (call.partner.id) onOpenProfile(call.partner.id);
+  };
 
   return (
     <Card className={`glass p-3 flex items-center gap-3 ${isMissed ? "border-destructive/30" : ""}`}>
-      <div className="size-11 rounded-full brand-gradient flex items-center justify-center text-primary-foreground font-bold shrink-0 overflow-hidden">
+      <button
+        type="button"
+        onClick={openProfile}
+        aria-label={`Open ${call.partner.username ?? "user"}'s profile`}
+        className="size-11 rounded-full brand-gradient flex items-center justify-center text-primary-foreground font-bold shrink-0 overflow-hidden focus:outline-none focus:ring-2 focus:ring-primary"
+      >
         {call.partner.avatar_url ? (
           <img src={call.partner.avatar_url} alt="" className="size-full object-cover" />
         ) : (
           (call.partner.username ?? "U").slice(0, 1).toUpperCase()
         )}
-      </div>
-      <div className="min-w-0 flex-1">
+      </button>
+      <button
+        type="button"
+        onClick={openProfile}
+        className="min-w-0 flex-1 text-left"
+      >
         <div className="flex items-center gap-1.5">
-          <p className={`font-semibold truncate ${isMissed ? "text-destructive" : ""}`}>
+          <p className={`font-semibold truncate hover:underline ${isMissed ? "text-destructive" : ""}`}>
             {call.partner.username ?? "Unknown"}
           </p>
           <KindIcon className="size-3.5 text-muted-foreground shrink-0" />
@@ -153,7 +173,7 @@ function CallRow({ call }: { call: RecentCall }) {
           <span>·</span>
           <span>{fmtWhen(call.started_at)}</span>
         </div>
-      </div>
+      </button>
       <div className="text-right shrink-0">
         {isMissed ? (
           <Badge variant="outline" className="border-destructive/40 text-destructive text-[10px] py-0 px-1.5">
