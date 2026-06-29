@@ -228,7 +228,17 @@ function CallScreen() {
         if (!inviteId) {
           throw new Error("Call request missing. Please start the call again from Connect.");
         }
-        const invite = await inviteStatusFn({ data: { inviteId } });
+        let invite = await inviteStatusFn({ data: { inviteId } });
+        // Auto-accept: launched from a full-screen incoming-call notification
+        // (lock-screen Accept button). The callee hasn't accepted yet through
+        // the in-app UI, so do it here before joining.
+        if (autoAccept && invite.status === "pending" && invite.role === "callee") {
+          try {
+            invite = await acceptInviteFn({ data: { inviteId } });
+          } catch (e: any) {
+            throw new Error(e?.message || "Could not accept this call.");
+          }
+        }
         if (invite.status !== "accepted") {
           throw new Error(
             invite.status === "pending"
