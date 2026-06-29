@@ -911,6 +911,17 @@ function CallScreen() {
           </Button>
         </div>
 
+        {wasDowngraded && kind === "voice" && (
+          <div className="px-4 pb-2 flex items-center justify-between gap-2 text-xs">
+            <span className="text-muted-foreground flex items-center gap-1">
+              <VideoOff className="size-3" /> Camera was unavailable — call continued as voice.
+            </span>
+            <Button size="sm" variant="secondary" onClick={tryCameraAgain}>
+              <VideoIcon className="size-4 mr-1" /> Try camera again
+            </Button>
+          </div>
+        )}
+
         {/* SOS panic row — Play Store UGC safety requirement */}
         <div className="px-4 pb-2 flex items-center justify-between gap-2">
           <p className="text-[11px] text-muted-foreground flex items-center gap-1">
