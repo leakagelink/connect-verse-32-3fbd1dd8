@@ -96,10 +96,10 @@ export function PrecallPermissionDialog({ open, kind, onCancel, onReady }: Props
   // Auto-proceed as soon as the device reports all permissions are already
   // granted (e.g. user previously allowed).
   useEffect(() => {
-    if (open && stage === "perm" && allGranted && !checking) {
+    if (open && allGranted && !checking) {
       onReady();
     }
-  }, [open, stage, allGranted, checking, onReady]);
+  }, [open, allGranted, checking, onReady]);
 
 
 
