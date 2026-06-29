@@ -82,6 +82,7 @@ function CallScreen() {
   const [freeStart, setFreeStart] = useState<number | null>(null);
   const [coinStart, setCoinStart] = useState<number | null>(null);
   const outOfFundsTriggeredRef = useRef(false);
+  const lowTimeWarnedRef = useRef(false);
   // Ref bridge so auto-end effects (out-of-coins / peer-left) can invoke
   // confirmEndCall before it's defined later in the component.
   const endCallNowRef = useRef<() => void>(() => {});
