@@ -22,6 +22,8 @@ export type AgoraEvents = {
   onDisconnected?: () => void;
   onReconnected?: () => void;
   onVideoFallback?: () => void;
+  /** Fired when a remote audio track was subscribed but autoplay was blocked. */
+  onAudioBlocked?: () => void;
 };
 
 const FALLBACK_AFTER_BAD_SAMPLES = 4; // ≈8 seconds of poor uplink
@@ -38,6 +40,8 @@ export class AgoraSession {
   private kind: "voice" | "video" = "video";
   private channel = "";
   private events: AgoraEvents = {};
+  /** Remote audio tracks whose autoplay was blocked, kept so retryAudio() can play them. */
+  private pendingAudio: Array<{ play: () => void }> = [];
 
   async join(opts: {
     appId: string;
@@ -58,8 +62,23 @@ export class AgoraSession {
     this.client.on("user-published", async (user, mediaType) => {
       if (!this.client) return;
       if (mediaType !== "audio" && mediaType !== "video") return;
-      await this.client.subscribe(user, mediaType);
-      if (mediaType === "audio") user.audioTrack?.play();
+      try {
+        await this.client.subscribe(user, mediaType);
+      } catch (err) {
+        // eslint-disable-next-line no-console
+        console.warn("[agora] subscribe failed", mediaType, err);
+        return;
+      }
+      if (mediaType === "audio" && user.audioTrack) {
+        try {
+          user.audioTrack.play();
+        } catch (err) {
+          // eslint-disable-next-line no-console
+          console.warn("[agora] remote audio autoplay blocked", err);
+          this.pendingAudio.push(user.audioTrack);
+          this.events.onAudioBlocked?.();
+        }
+      }
       this.events.onRemoteUser?.(user, mediaType);
     });
     this.client.on("user-left", (user) => this.events.onRemoteLeft?.(user));
@@ -97,7 +116,14 @@ export class AgoraSession {
 
     await this.client.join(opts.appId, opts.channel, opts.token, opts.account);
 
-    this.mic = await AgoraRTC.createMicrophoneAudioTrack();
+    this.mic = await AgoraRTC.createMicrophoneAudioTrack({
+      AEC: true,
+      ANS: true,
+      AGC: true,
+      encoderConfig: "speech_standard",
+    });
+    // Make sure capture is hot before publishing.
+    try { await this.mic.setEnabled(true); } catch { /* ignore */ }
     const tracksToPublish: (IMicrophoneAudioTrack | ICameraVideoTrack)[] = [this.mic];
 
     if (opts.kind === "video") {
@@ -130,6 +156,16 @@ export class AgoraSession {
   async setCamEnabled(on: boolean) {
     await this.cam?.setEnabled(on);
   }
+
+  /** Retry remote audio playback after a user gesture (autoplay unlock). */
+  retryAudio() {
+    const pending = this.pendingAudio;
+    this.pendingAudio = [];
+    for (const t of pending) {
+      try { t.play(); } catch { /* ignore */ }
+    }
+  }
+
 
   async disableVideo() {
     if (this.cam && this.client) {

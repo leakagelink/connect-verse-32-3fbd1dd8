@@ -55,6 +55,8 @@ function CallScreen() {
   const [provider, setProvider] = useState<"mock" | "agora" | "100ms">("mock");
   const [networkQ, setNetworkQ] = useState<number>(0); // 0=unknown,1=excellent..6=down
   const [remoteJoined, setRemoteJoined] = useState(false);
+  const [audioBlocked, setAudioBlocked] = useState(false);
+  
   
   const elapsedRef = useRef(0);
   const [muted, setMuted] = useState(false);
@@ -229,6 +231,7 @@ function CallScreen() {
               setCamOff(true);
               toast.warning("Switched to audio-only due to poor network.");
             },
+            onAudioBlocked: () => mounted && setAudioBlocked(true),
           },
         });
 
@@ -659,6 +662,20 @@ function CallScreen() {
                 {provider === "agora" && !remoteJoined ? "Ringing…" : "Voice call"}
               </p>
             </div>
+          )}
+          {audioBlocked && (
+            <button
+              type="button"
+              onClick={() => {
+                try {
+                  (sessionRef.current?.session as any)?.retryAudio?.();
+                } catch { /* ignore */ }
+                setAudioBlocked(false);
+              }}
+              className="absolute inset-x-6 top-1/2 -translate-y-1/2 z-20 mx-auto max-w-xs rounded-xl bg-amber-500 text-black font-semibold px-4 py-3 shadow-lg"
+            >
+              🔊 Tap to enable speaker audio
+            </button>
           )}
           <div className="absolute top-3 left-3 right-3 flex items-center justify-between text-white">
             <div className="px-2.5 py-1 rounded-full bg-black/50 text-xs flex items-center gap-1.5">
