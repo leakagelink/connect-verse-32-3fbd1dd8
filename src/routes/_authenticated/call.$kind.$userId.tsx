@@ -82,6 +82,7 @@ function CallScreen() {
   const [freeStart, setFreeStart] = useState<number | null>(null);
   const [coinStart, setCoinStart] = useState<number | null>(null);
   const outOfFundsTriggeredRef = useRef(false);
+  const lowTimeWarnedRef = useRef(false);
   // Ref bridge so auto-end effects (out-of-coins / peer-left) can invoke
   // confirmEndCall before it's defined later in the component.
   const endCallNowRef = useRef<() => void>(() => {});
@@ -547,8 +548,21 @@ function CallScreen() {
         if (!endedRef.current) endCallNowRef.current();
       }, 900);
     }
+    if (
+      isPayer &&
+      perMin > 0 &&
+      totalSecondsLeft > 0 &&
+      totalSecondsLeft <= 180 &&
+      !lowTimeWarnedRef.current
+    ) {
+      lowTimeWarnedRef.current = true;
+      toast.warning("3 minute se kam bache — call jaldi disconnect ho jayegi.", {
+        duration: 8000,
+        action: { label: "Recharge", onClick: () => setRechargeOpen(true) },
+      });
+    }
 
-  }, [connected, outOfFunds, paused]);
+  }, [connected, outOfFunds, paused, isPayer, perMin, totalSecondsLeft]);
 
   // Auto-end when the remote peer leaves the channel. Agora fires `user-left`
   // on an intentional leave or after the ~20s connection timeout, so this is
@@ -981,6 +995,21 @@ function CallScreen() {
               <Coins className="size-3" /> {perMin} / min
             </div>
           </div>
+          {/* Low-time warning banner — last 3 minutes for the payer */}
+          {isPayer && perMin > 0 && totalSecondsLeft > 0 && totalSecondsLeft <= 180 && (
+            <div className="absolute top-12 left-3 right-3 rounded-xl bg-destructive/90 text-destructive-foreground px-3 py-2 shadow-lg backdrop-blur animate-pulse flex items-center justify-between gap-2">
+              <div className="text-[12px] leading-tight">
+                <div className="font-semibold">
+                  Sirf {String(Math.floor(totalSecondsLeft / 60)).padStart(2, "0")}:
+                  {String(totalSecondsLeft % 60).padStart(2, "0")} bache
+                </div>
+                <div className="opacity-90">Call timeout pe disconnect ho jayegi. Continue karne ke liye abhi coins le.</div>
+              </div>
+              <Button size="sm" variant="secondary" onClick={() => setRechargeOpen(true)} className="shrink-0">
+                <Coins className="size-3 mr-1" /> Recharge
+              </Button>
+            </div>
+          )}
           {/* Live free-time / coin-balance HUD — visible from call start */}
           {freeStart !== null && (
             <div className="absolute bottom-12 left-3 right-3 flex items-center justify-between gap-2 text-white">
@@ -994,8 +1023,12 @@ function CallScreen() {
                   : "Free minutes used"}
               </div>
               <div
-                className={`px-2.5 py-1 rounded-full text-[11px] font-semibold backdrop-blur ${
-                  !usingFree && coinsLeft < perMin ? "bg-destructive/80" : "bg-black/50"
+                className={`px-2.5 py-1 rounded-full text-[11px] font-semibold backdrop-blur transition-colors ${
+                  isPayer && totalSecondsLeft > 0 && totalSecondsLeft <= 180
+                    ? "bg-destructive text-destructive-foreground ring-2 ring-destructive-foreground/40 animate-pulse"
+                    : !usingFree && coinsLeft < perMin
+                      ? "bg-destructive/80"
+                      : "bg-black/50"
                 }`}
               >
                 <Coins className="inline size-3 -mt-0.5 mr-1" />
@@ -1241,6 +1274,7 @@ function CallScreen() {
           // newly added coins (without resetting elapsed time).
           setCoinStart(newBalance + coinsConsumed);
           outOfFundsTriggeredRef.current = false;
+          lowTimeWarnedRef.current = false;
           qc.invalidateQueries({ queryKey: ["me"] });
           if (newBalance >= CASE_GENERATION_COIN_COST) {
             toast.success("Coins added — call continues. Tap Host Mystery Case anytime.");
