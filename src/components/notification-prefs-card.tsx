@@ -14,13 +14,15 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
 
-const ROWS: Array<{ key: keyof NotificationPrefs; tKey: string }> = [
-  { key: "chat", tKey: "notif.prefs.chat" },
-  { key: "calls", tKey: "notif.prefs.calls" },
-  { key: "gifts", tKey: "notif.prefs.gifts" },
-  { key: "follows", tKey: "notif.prefs.follows" },
-  { key: "system", tKey: "notif.prefs.system" },
-  { key: "marketing", tKey: "notif.prefs.marketing" },
+const ROWS: Array<{ key: keyof NotificationPrefs; tKey: string; fallback: string }> = [
+  { key: "chat", tKey: "notif.prefs.chat", fallback: "Chat messages" },
+  { key: "calls", tKey: "notif.prefs.calls", fallback: "Calls" },
+  { key: "gifts", tKey: "notif.prefs.gifts", fallback: "Gifts" },
+  { key: "follows", tKey: "notif.prefs.follows", fallback: "Follows & friend requests" },
+  { key: "online_followers", tKey: "notif.prefs.online_followers", fallback: "“Online aa gaya” — users I follow" },
+  { key: "online_creators", tKey: "notif.prefs.online_creators", fallback: "“Online aa gaya” — creators I follow" },
+  { key: "system", tKey: "notif.prefs.system", fallback: "System updates" },
+  { key: "marketing", tKey: "notif.prefs.marketing", fallback: "Promotions & marketing" },
 ];
 
 export function NotificationPrefsCard() {
