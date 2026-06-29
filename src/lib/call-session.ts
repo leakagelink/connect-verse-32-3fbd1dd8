@@ -179,18 +179,9 @@ export async function connectCall(opts: {
     }
   }
 
-  // All credentials in the pool failed — fall back to mock so the user
-  // still gets the legacy P2P experience instead of a hard error.
-  const stream = await navigator.mediaDevices.getUserMedia({
-    audio: true,
-    video: opts.kind === "video" ? { width: 640, height: 480, facingMode: "user" } : false,
-  });
-  return {
-    provider: "mock",
-    credentialId: null,
-    channel,
-    session: null,
-    localStream: stream,
-    failoverChain,
-  };
+  // All credentials in the pool failed. Do NOT fall back to mock for a real
+  // 2-party call — mock only captures local media and cannot exchange audio
+  // between two devices, which silently produces "no voice on both sides".
+  const reasons = failoverChain.map((f) => `${f.provider}:${f.error}`).join(" | ") || "no credentials";
+  throw new Error(`Calling provider unavailable. Audio cannot connect. (${reasons})`);
 }
