@@ -24,18 +24,35 @@ export const sendGift = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((d: unknown) => SendInput.parse(d))
   .handler(async ({ data, context }) => {
+    const t0 = Date.now();
     const { supabase, userId } = context;
-    if (data.receiverId === userId) throw new Error("Cannot send a gift to yourself");
+    const log = (stage: string, extra: Record<string, unknown> = {}) => {
+      // Structured server-side trace for end-to-end gift testing.
+      console.log(`[gift-send] ${stage}`, {
+        t: Date.now() - t0,
+        userId,
+        receiverId: data.receiverId,
+        giftId: data.giftId,
+        callLogId: data.callLogId ?? null,
+        ...extra,
+      });
+    };
+    log("start");
+    if (data.receiverId === userId) {
+      log("error.self");
+      throw new Error("Cannot send a gift to yourself");
+    }
 
     const { data: gift, error: giftErr } = await supabase
       .from("gifts")
       .select("id, name, emoji, coin_cost, is_active")
       .eq("id", data.giftId)
       .maybeSingle();
-    if (giftErr) throw new Error(giftErr.message);
-    if (!gift || !gift.is_active) throw new Error("Gift unavailable");
+    if (giftErr) { log("error.gift_lookup", { msg: giftErr.message }); throw new Error(giftErr.message); }
+    if (!gift || !gift.is_active) { log("error.gift_unavailable"); throw new Error("Gift unavailable"); }
 
     const cost = Number(gift.coin_cost);
+    log("gift_loaded", { name: gift.name, cost });
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
@@ -45,10 +62,14 @@ export const sendGift = createServerFn({ method: "POST" })
       .select("coin_balance")
       .eq("user_id", userId)
       .maybeSingle();
-    if (swErr) throw new Error(swErr.message);
-    if (!senderWallet) throw new Error("Wallet missing");
+    if (swErr) { log("error.sender_wallet", { msg: swErr.message }); throw new Error(swErr.message); }
+    if (!senderWallet) { log("error.wallet_missing"); throw new Error("Wallet missing"); }
     const senderBal = Number(senderWallet.coin_balance);
-    if (senderBal < cost) throw new Error(`Need ${cost} coins. You have ${senderBal}.`);
+    log("sender_balance", { senderBal });
+    if (senderBal < cost) {
+      log("error.insufficient", { senderBal, cost });
+      throw new Error(`Need ${cost} coins. You have ${senderBal}.`);
+    }
 
     // Receiver wallet (auto-row if missing)
     const { data: recvWallet } = await supabaseAdmin
@@ -57,25 +78,30 @@ export const sendGift = createServerFn({ method: "POST" })
       .eq("user_id", data.receiverId)
       .maybeSingle();
     const recvBal = Number(recvWallet?.coin_balance ?? 0);
+    log("receiver_balance", { recvBal, exists: !!recvWallet });
 
     // Debit sender
+    const newSenderBal = senderBal - cost;
     const { error: debitErr } = await supabaseAdmin
       .from("wallets")
-      .update({ coin_balance: senderBal - cost, updated_at: new Date().toISOString() })
+      .update({ coin_balance: newSenderBal, updated_at: new Date().toISOString() })
       .eq("user_id", userId);
-    if (debitErr) throw new Error(debitErr.message);
+    if (debitErr) { log("error.debit", { msg: debitErr.message }); throw new Error(debitErr.message); }
+    log("debited", { newSenderBal });
 
     // Credit receiver
+    const newRecvBal = recvBal + cost;
     if (recvWallet) {
       await supabaseAdmin
         .from("wallets")
-        .update({ coin_balance: recvBal + cost, updated_at: new Date().toISOString() })
+        .update({ coin_balance: newRecvBal, updated_at: new Date().toISOString() })
         .eq("user_id", data.receiverId);
     } else {
       await supabaseAdmin
         .from("wallets")
         .insert({ user_id: data.receiverId, coin_balance: cost });
     }
+    log("credited", { newRecvBal });
 
     // Insert log row
     const { data: sendRow, error: sendErr } = await supabaseAdmin
@@ -89,7 +115,7 @@ export const sendGift = createServerFn({ method: "POST" })
       })
       .select("id")
       .single();
-    if (sendErr) throw new Error(sendErr.message);
+    if (sendErr) { log("error.send_log", { msg: sendErr.message }); throw new Error(sendErr.message); }
 
     // Transactions for both sides
     await supabaseAdmin.from("transactions").insert([
@@ -109,10 +135,18 @@ export const sendGift = createServerFn({ method: "POST" })
       },
     ]);
 
+    const elapsedMs = Date.now() - t0;
+    log("done", { elapsedMs, newSenderBal });
+
     return {
       ok: true,
       sendId: sendRow.id,
-      newBalance: senderBal - cost,
+      newBalance: newSenderBal,
+      preBalance: senderBal,
+      receiverPreBalance: recvBal,
+      receiverNewBalance: newRecvBal,
+      serverProcessedMs: elapsedMs,
       gift: { id: gift.id, name: gift.name, emoji: gift.emoji, coin_cost: cost },
     };
   });
+
