@@ -1337,6 +1337,36 @@ function CallScreen() {
           }
         }}
       />
+
+      {/* Dev/debug overlay — toggle with ?debug=1 in URL or localStorage.callDebug=1 */}
+      {(() => {
+        let show = false;
+        try {
+          show =
+            new URLSearchParams(window.location.search).get("debug") === "1" ||
+            localStorage.getItem("callDebug") === "1";
+        } catch { /* ignore */ }
+        if (!show) return null;
+        const mm = String(Math.floor(totalSecondsLeft / 60)).padStart(2, "0");
+        const ss = String(totalSecondsLeft % 60).padStart(2, "0");
+        return (
+          <div
+            className="fixed bottom-2 left-2 z-[9999] rounded-md border border-white/20 bg-black/80 px-2 py-1.5 font-mono text-[10px] leading-tight text-emerald-300 shadow-lg backdrop-blur-sm"
+            style={{ pointerEvents: "none" }}
+          >
+            <div className="text-white/70">DEBUG · {kind} · {isPayer ? "payer" : "callee"}</div>
+            <div>perMin: <span className="text-white">{perMin}</span></div>
+            <div>elapsed: <span className="text-white">{elapsed}s</span></div>
+            <div>freeAvail: <span className="text-white">{freeAvail}</span> · freeLeft: <span className="text-white">{freeLeftSec}</span></div>
+            <div>coinsAvail: <span className="text-white">{coinsAvail}</span></div>
+            <div>coinsConsumed: <span className="text-white">{coinsConsumed}</span></div>
+            <div>coinsLeft: <span className="text-amber-300">{coinsLeft}</span></div>
+            <div>coinSecondsLeft: <span className="text-amber-300">{coinSecondsLeft}s</span></div>
+            <div>totalSecondsLeft: <span className="text-emerald-200">{totalSecondsLeft}s ({mm}:{ss})</span></div>
+            <div>flags: <span className="text-white">{usingFree ? "FREE " : ""}{criticalTime ? "CRIT " : ""}{outOfFunds ? "OOF" : ""}</span></div>
+          </div>
+        );
+      })()}
     </AppShell>
 
 
