@@ -168,15 +168,19 @@ function CallRow({ call, onOpenProfile }: { call: RecentCall; onOpenProfile: (id
           <p className={`font-semibold truncate ${isMissed ? "text-destructive" : ""}`}>
             {call.partner.username ?? "Unknown"}
           </p>
-          <KindIcon className="size-3.5 text-muted-foreground shrink-0" />
+          <Badge variant="secondary" className="text-[10px] py-0 px-1.5 gap-1 shrink-0">
+            <KindIcon className="size-3" />
+            {call.kind === "video" ? "Video" : "Voice"}
+          </Badge>
         </div>
         <div className="flex items-center gap-1.5 text-xs text-muted-foreground flex-wrap">
           <DirIcon className={`size-3.5 ${dirColor}`} />
           <span className={isMissed ? "text-destructive font-medium" : ""}>{primaryLabel}</span>
           <span>·</span>
-          <span>{fmtWhen(call.started_at)}</span>
+          <span title={new Date(call.started_at).toLocaleString()}>{fmtWhen(call.started_at)}</span>
         </div>
       </div>
+
       <div className="text-right shrink-0">
         {isMissed ? (
           <Badge variant="outline" className="border-destructive/40 text-destructive text-[10px] py-0 px-1.5">
