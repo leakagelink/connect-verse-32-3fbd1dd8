@@ -1507,6 +1507,49 @@ function CallScreen() {
             Paused — another call window is now active. Close this tab or reload to take over.
           </div>
         )}
+        {bgState && (
+          <div
+            role="status"
+            aria-live="polite"
+            className={`flex items-center gap-3 px-3 py-2 text-xs font-semibold ${
+              bgState === "reconnecting"
+                ? "bg-amber-500/90 text-black"
+                : bgState === "resumed"
+                ? "bg-emerald-500/90 text-black"
+                : "bg-destructive text-destructive-foreground"
+            }`}
+          >
+            <span
+              aria-hidden
+              className={`inline-block size-2 rounded-full ${
+                bgState === "reconnecting"
+                  ? "bg-black animate-pulse"
+                  : bgState === "resumed"
+                  ? "bg-black"
+                  : "bg-white"
+              }`}
+            />
+            <span className="flex-1 min-w-0">
+              {bgState === "reconnecting" &&
+                "Reconnecting call after returning from background…"}
+              {bgState === "resumed" && "Call resumed — you're back online."}
+              {bgState === "lost" &&
+                "Connection lost while the app was in background. Ending call."}
+            </span>
+            {bgState === "lost" && (
+              <button
+                type="button"
+                onClick={() => {
+                  if (!endedRef.current) endCallNowRef.current();
+                  navigate({ to: "/connect" });
+                }}
+                className="rounded-md bg-white/95 text-destructive px-2.5 py-1 text-xs font-semibold whitespace-nowrap"
+              >
+                Return to lobby
+              </button>
+            )}
+          </div>
+        )}
         <div className="relative aspect-[3/4] sm:aspect-video bg-black flex items-center justify-center">
 
           {kind === "video" ? (
