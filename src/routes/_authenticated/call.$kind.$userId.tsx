@@ -30,7 +30,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { recordCallMetrics } from "@/lib/calling.functions";
 import { connectCall, type AnySession } from "@/lib/call-session";
 import { Signal, SignalHigh, SignalLow, SignalMedium, SignalZero } from "lucide-react";
-import { getCallInviteStatus } from "@/lib/call-invites.functions";
+import { getCallInviteStatus, acceptCallInvite } from "@/lib/call-invites.functions";
 
 
 
@@ -38,6 +38,7 @@ import { getCallInviteStatus } from "@/lib/call-invites.functions";
 export const Route = createFileRoute("/_authenticated/call/$kind/$userId")({
   validateSearch: (search) => ({
     inviteId: typeof search.inviteId === "string" ? search.inviteId : undefined,
+    autoAccept: search.autoAccept === "1" || search.autoAccept === 1 || search.autoAccept === true,
   }),
   component: CallScreen,
 });
