@@ -22,6 +22,8 @@ export type AgoraEvents = {
   onDisconnected?: () => void;
   onReconnected?: () => void;
   onVideoFallback?: () => void;
+  /** Fired when a remote audio track was subscribed but autoplay was blocked. */
+  onAudioBlocked?: () => void;
 };
 
 const FALLBACK_AFTER_BAD_SAMPLES = 4; // ≈8 seconds of poor uplink
