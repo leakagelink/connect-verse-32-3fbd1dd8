@@ -1005,7 +1005,7 @@ function CallScreen() {
           )}
           <div className="absolute top-3 left-3 right-3 flex items-center justify-between text-white">
             <div className="px-2.5 py-1 rounded-full bg-black/50 text-xs flex items-center gap-1.5">
-              {connected ? `Connected · ${mm}:${ss}` : "Connecting…"}
+              {connected && remoteJoined ? `Connected · ${mm}:${ss}` : (connected ? "Ringing…" : "Connecting…")}
               {provider === "agora" && networkQ > 0 && (
                 <NetworkBars q={networkQ} />
               )}
