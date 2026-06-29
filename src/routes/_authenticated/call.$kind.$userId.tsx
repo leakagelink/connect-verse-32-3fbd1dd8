@@ -1801,9 +1801,10 @@ function CallScreen() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setEndStep(1)}>Stay on call</AlertDialogCancel>
+            <AlertDialogCancel data-testid="end-stay" onClick={() => setEndStep(1)}>Stay on call</AlertDialogCancel>
             {endStep === 1 ? (
               <Button
+                data-testid="end-confirm-step1"
                 onClick={() => setEndStep(2)}
                 className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               >
@@ -1811,6 +1812,7 @@ function CallScreen() {
               </Button>
             ) : (
               <AlertDialogAction
+                data-testid="end-confirm-step2"
                 onClick={() => { setEndStep(1); confirmEndCall(); }}
                 className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               >
