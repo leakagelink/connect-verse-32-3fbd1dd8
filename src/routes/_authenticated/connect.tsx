@@ -147,7 +147,13 @@ function ConnectScreen() {
       if (me.country && u.country === me.country) s += 1;
       return s;
     };
-    return [...filtered].sort((a, b) => {
+    // Mobile app users were getting an empty Connect screen when their saved
+    // profile country/language did not match available creators. Keep filters
+    // as priority, not a hard blocker: if strict filtering returns nothing,
+    // show all online creators so calls can still start.
+    const visibleCreators = filtered.length ? filtered : all;
+
+    return [...visibleCreators].sort((a, b) => {
       const d = score(b) - score(a);
       if (d !== 0) return d;
       // tiebreak: more recently seen first
