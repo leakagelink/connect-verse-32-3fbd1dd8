@@ -19,6 +19,7 @@ import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
+import { Progress } from "@/components/ui/progress";
 import {
   Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger,
 } from "@/components/ui/dialog";
@@ -520,6 +521,25 @@ function CallingCredentialsTab() {
   const totalActive = creds.filter((c: any) => c.is_active).length;
   const poolHealth = totalActive === 0 ? "empty" : healthyCount === 0 ? "down" : healthyCount < totalActive ? "degraded" : "good";
 
+  // Per-provider quota rollup (active credentials only). A credential without
+  // a monthly_quota_minutes is treated as "unlimited" and excluded from the
+  // limit total, but its used minutes still count toward consumption.
+  const providerRollup = (() => {
+    const groups: Record<string, { used: number; quota: number; unlimited: number; count: number }> = {};
+    for (const c of creds as any[]) {
+      if (!c.is_active) continue;
+      const key = c.provider as string;
+      const g = groups[key] ?? { used: 0, quota: 0, unlimited: 0, count: 0 };
+      g.used += Number(c.minutes_used_current_month ?? 0);
+      g.count += 1;
+      if (c.monthly_quota_minutes) g.quota += Number(c.monthly_quota_minutes);
+      else g.unlimited += 1;
+      groups[key] = g;
+    }
+    return Object.entries(groups).map(([provider, g]) => ({ provider, ...g, remaining: Math.max(g.quota - g.used, 0) }));
+  })();
+
+
   return (
     <div className="space-y-3">
       <Card className="glass p-4">
@@ -555,7 +575,56 @@ function CallingCredentialsTab() {
         </p>
       </Card>
 
+      {/* Per-provider monthly quota rollup — at-a-glance how many minutes
+          are left across every active credential of each provider. */}
+      {providerRollup.length > 0 && (
+        <Card className="glass p-4">
+          <div className="flex items-center gap-2 mb-3">
+            <Activity className="size-4 text-primary" />
+            <h3 className="font-semibold text-sm">Monthly minutes remaining</h3>
+            <span className="text-[11px] text-muted-foreground">· resets at provider's billing cycle</span>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            {providerRollup.map((g) => {
+              const pct = g.quota > 0 ? Math.min(100, Math.round((g.used / g.quota) * 100)) : 0;
+              const tone = pct >= 90 ? "text-destructive" : pct >= 75 ? "text-amber-500" : "text-foreground";
+              return (
+                <div key={g.provider} className="rounded-md border border-border/40 p-3 space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <span className="font-semibold text-sm">{g.provider.toUpperCase()}</span>
+                    <span className="text-[11px] text-muted-foreground">{g.count} active</span>
+                  </div>
+                  {g.quota > 0 ? (
+                    <>
+                      <Progress value={pct} className="h-2" />
+                      <div className="flex justify-between text-[11px]">
+                        <span className={tone}>
+                          {g.remaining.toLocaleString()} min left
+                        </span>
+                        <span className="text-muted-foreground">
+                          {g.used.toLocaleString()} / {g.quota.toLocaleString()} min
+                        </span>
+                      </div>
+                    </>
+                  ) : (
+                    <p className="text-[11px] text-muted-foreground">
+                      {g.used.toLocaleString()} min used · no quota set (unlimited)
+                    </p>
+                  )}
+                  {g.unlimited > 0 && g.quota > 0 && (
+                    <p className="text-[10px] text-muted-foreground">
+                      + {g.unlimited} credential{g.unlimited === 1 ? "" : "s"} without a quota cap
+                    </p>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </Card>
+      )}
+
       {isLoading && <p className="text-sm text-muted-foreground">Loading…</p>}
+
 
       <div className="space-y-2">
         {creds.map((c: any) => {
@@ -579,11 +648,25 @@ function CallingCredentialsTab() {
                       ? `App ID: ${c.app_id_masked || "—"}`
                       : `Access key: ${c.access_key_masked || "—"} · Template: ${c.template_id_masked || "—"}`}
                   </p>
-                  <p className="text-[11px] text-muted-foreground">
-                    Usage: {c.minutes_used_current_month} min
-                    {c.monthly_quota_minutes ? ` / ${c.monthly_quota_minutes} min` : " (no quota set)"}
-                    {c.consecutive_failures > 0 && ` · ${c.consecutive_failures} fails`}
-                  </p>
+                  {(() => {
+                    const used = Number(c.minutes_used_current_month ?? 0);
+                    const quota = c.monthly_quota_minutes ? Number(c.monthly_quota_minutes) : null;
+                    const remaining = quota ? Math.max(quota - used, 0) : null;
+                    const pct = quota ? Math.min(100, Math.round((used / quota) * 100)) : 0;
+                    const tone = pct >= 90 ? "text-destructive" : pct >= 75 ? "text-amber-500" : "text-muted-foreground";
+                    return (
+                      <div className="mt-1 space-y-1">
+                        <p className="text-[11px] text-muted-foreground">
+                          Usage: {used.toLocaleString()} min
+                          {quota ? ` / ${quota.toLocaleString()} min` : " (no quota set)"}
+                          {quota && <span className={`ml-1 ${tone}`}>· {remaining!.toLocaleString()} min left</span>}
+                          {c.consecutive_failures > 0 && ` · ${c.consecutive_failures} fails`}
+                        </p>
+                        {quota && <Progress value={pct} className="h-1.5" />}
+                      </div>
+                    );
+                  })()}
+
                   {c.last_error && (
                     <p className="text-[11px] text-destructive truncate" title={c.last_error}>
                       Last error: {c.last_error}
