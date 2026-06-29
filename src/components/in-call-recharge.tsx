@@ -19,7 +19,24 @@ type Props = {
   /** Minimum coins required for the action the user is trying to perform. Used to surface a "covers your case" hint. */
   requiredCoins?: number;
   /** Called after a successful recharge so the caller can refresh derived state. */
-  onRecharged?: (newBalance: number) => void;
+  onRecharged?: (newBalance: number, meta?: RechargeMeta) => void;
+};
+
+export type RechargeMeta = {
+  planId: string;
+  /** Mock has no order_id; Razorpay path passes the real one. */
+  orderId?: string;
+  paymentId?: string;
+  source: "mock" | "razorpay";
+  /** Client clock — request fired. */
+  requestedAt: number;
+  /** Client clock — server responded with credited balance. */
+  serverRespondedAt: number;
+  /** Client clock — wallet query refetched + onRecharged delivered. */
+  uiRefreshedAt: number;
+  added: number;
+  bonus: number;
+  newBalance: number;
 };
 
 export function InCallRecharge({ open, onOpenChange, requiredCoins, onRecharged }: Props) {
@@ -53,8 +70,10 @@ export function InCallRecharge({ open, onOpenChange, requiredCoins, onRecharged 
 
   async function buy(planId: string) {
     setBusy(planId);
+    const requestedAt = Date.now();
     try {
       const r = await rechargeFn({ data: { planId } });
+      const serverRespondedAt = Date.now();
       toast.success(`+${r.added.toLocaleString("en-IN")} coins${r.bonus > 0 ? ` (+${r.bonus} bonus)` : ""}`);
       // Refresh everything that depends on balance
       await Promise.all([
@@ -62,7 +81,17 @@ export function InCallRecharge({ open, onOpenChange, requiredCoins, onRecharged 
         qc.invalidateQueries({ queryKey: ["me"] }),
       ]);
       const fresh = await walletFn();
-      onRecharged?.(fresh?.balance ?? 0);
+      const uiRefreshedAt = Date.now();
+      onRecharged?.(fresh?.balance ?? 0, {
+        planId,
+        source: "mock",
+        requestedAt,
+        serverRespondedAt,
+        uiRefreshedAt,
+        added: r.added,
+        bonus: r.bonus,
+        newBalance: fresh?.balance ?? 0,
+      });
       // Auto-close when the user has enough for the gated action
       if (!requiredCoins || (fresh?.balance ?? 0) >= requiredCoins) {
         setTimeout(() => onOpenChange(false), 600);

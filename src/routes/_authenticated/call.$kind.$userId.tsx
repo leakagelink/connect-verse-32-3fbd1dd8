@@ -81,6 +81,19 @@ function CallScreen() {
   // Used to live-display remaining free time / coin time during the call.
   const [freeStart, setFreeStart] = useState<number | null>(null);
   const [coinStart, setCoinStart] = useState<number | null>(null);
+  // Recharge event timeline (debug overlay). Last 5 events kept.
+  const [rechargeEvents, setRechargeEvents] = useState<Array<{
+    planId: string;
+    orderId?: string;
+    paymentId?: string;
+    source: "mock" | "razorpay";
+    requestedAt: number;
+    serverRespondedAt: number;
+    uiRefreshedAt: number;
+    added: number;
+    bonus: number;
+    newBalance: number;
+  }>>([]);
   const outOfFundsTriggeredRef = useRef(false);
   const lowTimeWarnedRef = useRef(false);
   // Ref bridge so auto-end effects (out-of-coins / peer-left) can invoke
@@ -1323,13 +1336,19 @@ function CallScreen() {
         // Highlight plans that at minimum cover the next minute of this call
         // (or the mystery case cost, whichever is larger).
         requiredCoins={Math.max(perMin, CASE_GENERATION_COIN_COST)}
-        onRecharged={(newBalance) => {
+        onRecharged={(newBalance, meta) => {
           // Re-baseline the live ledger so the user keeps talking with the
           // newly added coins (without resetting elapsed time).
+          const baselinedAt = Date.now();
           setCoinStart(newBalance + coinsConsumed);
           outOfFundsTriggeredRef.current = false;
           lowTimeWarnedRef.current = false;
           qc.invalidateQueries({ queryKey: ["me"] });
+          if (meta) {
+            setRechargeEvents((prev) =>
+              [{ ...meta, uiRefreshedAt: baselinedAt }, ...prev].slice(0, 5),
+            );
+          }
           if (newBalance >= CASE_GENERATION_COIN_COST) {
             toast.success("Coins added — call continues. Tap Host Mystery Case anytime.");
           } else {
@@ -1364,6 +1383,57 @@ function CallScreen() {
             <div>coinSecondsLeft: <span className="text-amber-300">{coinSecondsLeft}s</span></div>
             <div>totalSecondsLeft: <span className="text-emerald-200">{totalSecondsLeft}s ({mm}:{ss})</span></div>
             <div>flags: <span className="text-white">{usingFree ? "FREE " : ""}{criticalTime ? "CRIT " : ""}{outOfFunds ? "OOF" : ""}</span></div>
+          </div>
+        );
+      })()}
+
+      {/* Recharge timeline overlay — gated by same debug flag */}
+      {(() => {
+        let show = false;
+        try {
+          show =
+            new URLSearchParams(window.location.search).get("debug") === "1" ||
+            localStorage.getItem("callDebug") === "1";
+        } catch { /* ignore */ }
+        if (!show || rechargeEvents.length === 0) return null;
+        const fmt = (t: number) => {
+          const d = new Date(t);
+          return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}:${String(d.getSeconds()).padStart(2, "0")}.${String(d.getMilliseconds()).padStart(3, "0")}`;
+        };
+        return (
+          <div className="fixed bottom-2 right-2 z-[9999] max-h-[60vh] w-[320px] overflow-y-auto rounded-md border border-white/20 bg-black/80 px-2 py-1.5 font-mono text-[10px] leading-tight text-sky-200 shadow-lg backdrop-blur-sm">
+            <div className="mb-1 flex items-center justify-between text-white/70">
+              <span>RECHARGE TIMELINE</span>
+              <button
+                type="button"
+                className="text-white/60 hover:text-white"
+                onClick={() => setRechargeEvents([])}
+              >
+                clear
+              </button>
+            </div>
+            {rechargeEvents.map((ev, i) => {
+              const tServer = ev.serverRespondedAt - ev.requestedAt;
+              const tRefresh = ev.uiRefreshedAt - ev.serverRespondedAt;
+              const tTotal = ev.uiRefreshedAt - ev.requestedAt;
+              return (
+                <div key={i} className="mb-1.5 border-t border-white/10 pt-1 first:border-0 first:pt-0">
+                  <div className="text-white/80">
+                    #{rechargeEvents.length - i} · {ev.source} · plan <span className="text-white">{ev.planId.slice(0, 8)}</span>
+                  </div>
+                  {ev.orderId && (
+                    <div>order: <span className="text-white break-all">{ev.orderId}</span></div>
+                  )}
+                  {ev.paymentId && (
+                    <div>payment: <span className="text-white break-all">{ev.paymentId}</span></div>
+                  )}
+                  <div>requested: <span className="text-white">{fmt(ev.requestedAt)}</span></div>
+                  <div>server credit: <span className="text-white">{fmt(ev.serverRespondedAt)}</span> <span className="text-emerald-300">(+{tServer}ms)</span></div>
+                  <div>ui refresh: <span className="text-white">{fmt(ev.uiRefreshedAt)}</span> <span className="text-emerald-300">(+{tRefresh}ms)</span></div>
+                  <div className="text-amber-300">total: {tTotal}ms · +{ev.added}{ev.bonus > 0 ? ` (+${ev.bonus} bonus)` : ""} → bal {ev.newBalance}</div>
+                </div>
+              );
+            })}
           </div>
         );
       })()}
