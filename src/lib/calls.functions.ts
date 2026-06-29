@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { withAiAvatars } from "./ai-avatar";
 
 // If `resumeId` is supplied AND it matches an in-progress call between the
 // same two users that was last touched within RESUME_WINDOW_SECONDS, we
@@ -22,6 +23,7 @@ export const startCallLog = createServerFn({ method: "POST" })
   }) => input)
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
     // ---- Pre-flight safety checks ----
@@ -360,11 +362,14 @@ export const listRecentCalls = createServerFn({ method: "GET" })
     );
     let profilesById = new Map<string, any>();
     if (partnerIds.length) {
-      const { data: profs } = await supabase
+      const { data: profs } = await supabaseAdmin
         .from("profiles")
-        .select("id, username, avatar_url, country, state")
-        .in("id", partnerIds);
-      profilesById = new Map((profs ?? []).map((p) => [p.id, p]));
+        .select("id, username, avatar_url, ai_avatar_style, gender, country, state, is_banned, onboarded, deleted_at")
+        .in("id", partnerIds)
+        .eq("is_banned", false)
+        .eq("onboarded", true)
+        .is("deleted_at", null);
+      profilesById = new Map(withAiAvatars(profs ?? []).map((p) => [p.id, p]));
     }
 
     return (data ?? []).map((r) => {

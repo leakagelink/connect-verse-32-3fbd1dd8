@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { CHAT_COINS_PER_MINUTE, MESSAGE_COIN_COST_MALE, containsBlockedContent } from "./constants";
+import { withAiAvatars } from "./ai-avatar";
 
 async function assertNotBanned(supabase: any, userId: string) {
   const { data } = await supabase.from("profiles").select("is_banned, onboarded").eq("id", userId).maybeSingle();
@@ -56,11 +57,15 @@ export const listConversations = createServerFn({ method: "GET" })
     if (!convs?.length) return [];
 
     const otherIds = convs.map((c) => (c.user_a === userId ? c.user_b : c.user_a));
-    const { data: profiles } = await supabase
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: profiles } = await supabaseAdmin
       .from("profiles")
-      .select("id, username, avatar_url, is_creator")
-      .in("id", otherIds);
-    const map = new Map((profiles ?? []).map((p) => [p.id, p]));
+      .select("id, username, avatar_url, ai_avatar_style, gender, is_creator, is_banned, onboarded, deleted_at")
+      .in("id", otherIds)
+      .eq("is_banned", false)
+      .eq("onboarded", true)
+      .is("deleted_at", null);
+    const map = new Map(withAiAvatars(profiles ?? []).map((p) => [p.id, p]));
     return convs.map((c) => {
       const other = c.user_a === userId ? c.user_b : c.user_a;
       return { id: c.id, otherUserId: other, lastMessageAt: c.last_message_at, other: map.get(other) };
