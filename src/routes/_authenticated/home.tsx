@@ -54,20 +54,10 @@ function Home() {
 
   const queryClient = useQueryClient();
   const [rtConnected, setRtConnected] = useState(true);
-  const [presentIds, setPresentIds] = useState<Set<string>>(new Set());
-
-  // Intersect server-side last_seen list with live presence state.
-  // A user is considered "online" only if both:
-  //   (a) their profiles.last_seen_at is within the cutoff (server query), and
-  //   (b) they are currently tracked in the realtime presence channel.
-  // While the presence channel is reconnecting we fall back to the server list
-  // so users never see an empty screen.
-  const liveOnlineUsers = (() => {
-    const base = onlineUsers ?? [];
-    if (!rtConnected || presentIds.size === 0) return base;
-    const meId = me?.profile?.id;
-    return base.filter((u: any) => presentIds.has(u.id) || u.id === meId);
-  })();
+  // Trust the server-side online list as source of truth. Realtime presence is
+  // used only as a refresh signal because mobile WebViews can reconnect with a
+  // partial presence state and would otherwise hide valid online creators.
+  const liveOnlineUsers = onlineUsers ?? [];
 
   // heartbeat every 60s
   useEffect(() => {
@@ -95,13 +85,6 @@ function Home() {
     if (!uid) return;
     const ch = supabase.channel("presence:online", { config: { presence: { key: uid } } });
     const syncPresence = () => {
-      const state = ch.presenceState() as Record<string, Array<{ uid?: string }>>;
-      const ids = new Set<string>();
-      for (const key of Object.keys(state)) {
-        ids.add(key);
-        for (const entry of state[key] ?? []) if (entry?.uid) ids.add(entry.uid);
-      }
-      setPresentIds(ids);
       queryClient.invalidateQueries({ queryKey: ["online"] });
     };
     ch.on("presence", { event: "sync" }, syncPresence)

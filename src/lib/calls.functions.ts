@@ -22,18 +22,21 @@ export const startCallLog = createServerFn({ method: "POST" })
   }) => input)
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
     // ---- Pre-flight safety checks ----
     const [{ data: caller }, { data: callee }] = await Promise.all([
-      supabase
+      supabaseAdmin
         .from("profiles")
         .select("id, gender, country, state, is_banned, created_at")
         .eq("id", userId)
+        .is("deleted_at", null)
         .maybeSingle(),
-      supabase
+      supabaseAdmin
         .from("profiles")
         .select("id, availability, blocked_countries, blocked_states, is_banned, onboarded")
         .eq("id", data.calleeId)
+        .is("deleted_at", null)
         .maybeSingle(),
     ]);
 
@@ -68,7 +71,7 @@ export const startCallLog = createServerFn({ method: "POST" })
       const accountAgeHours = (Date.now() - new Date(caller.created_at).getTime()) / 3600_000;
       if (accountAgeHours < NEW_ACCOUNT_WINDOW_HOURS) {
         const since = new Date(Date.now() - 24 * 3600_000).toISOString();
-        const { count } = await supabase
+        const { count } = await supabaseAdmin
           .from("call_logs")
           .select("id", { count: "exact", head: true })
           .eq("caller_id", userId)
@@ -109,7 +112,6 @@ export const startCallLog = createServerFn({ method: "POST" })
       }
     }
 
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: row, error } = await supabaseAdmin
       .from("call_logs")
       .insert({
