@@ -428,7 +428,7 @@ export const diagSelfMissedCall = createServerFn({ method: "POST" })
       .from("call_invites")
       .insert({
         caller_id: other.id,
-        callee_id: context.userId,
+        callee_id: calleeId,
         kind: "voice",
         status: "pending",
         expires_at: pastIso,
@@ -454,11 +454,11 @@ export const diagSelfMissedCall = createServerFn({ method: "POST" })
     const name = caller?.username ?? "Someone";
 
     // tokens snapshot
-    const { data: tokens } = await db.from("device_tokens").select("token, platform").eq("user_id", context.userId);
+    const { data: tokens } = await db.from("device_tokens").select("token, platform").eq("user_id", calleeId);
 
     const { notifyUser: notify } = await import("./push.functions");
     const pushResult = await notify({
-      userId: context.userId,
+      userId: calleeId,
       kind: "calls",
       title: `Missed audio call`,
       body: `${name} tried to call you.`,
@@ -467,7 +467,7 @@ export const diagSelfMissedCall = createServerFn({ method: "POST" })
 
     return {
       ok: true,
-      calleeId: context.userId,
+      calleeId,
       fakeCallerId: invite.caller_id,
       fakeCallerName: name,
       inviteId: invite.id,
