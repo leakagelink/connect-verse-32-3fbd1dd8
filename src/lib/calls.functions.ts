@@ -253,13 +253,14 @@ export const applyCallUsage = createServerFn({ method: "POST" })
     // Verify ownership of the call.
     const { data: log, error: logErr } = await supabaseAdmin
       .from("call_logs")
-      .select("id, caller_id, duration_seconds, coins_spent, free_seconds_used, ended_at")
+      .select("id, caller_id, callee_id, duration_seconds, coins_spent, free_seconds_used, ended_at")
       .eq("id", data.callLogId)
       .maybeSingle();
     if (logErr) throw logErr;
     if (!log || log.caller_id !== userId) {
       return { ok: false, freeSeconds: null, balance: null, reason: "no-log" };
     }
+    const calleeId = log.callee_id as string;
 
     const storedFree = Number(log.free_seconds_used ?? 0);
     const storedCoins = Number(log.coins_spent ?? 0);
