@@ -1729,7 +1729,13 @@ function CallScreen() {
           <GiftFloater callLogId={callLogIdRef.current} myUserId={myId || null} />
         </div>
         <div className="p-4 flex items-center justify-center gap-3">
-          <Button size="icon" variant={muted ? "destructive" : "secondary"} onClick={toggleMic}>
+          <Button
+            size="icon"
+            variant={muted ? "destructive" : "secondary"}
+            onClick={toggleMic}
+            aria-label={muted ? "Unmute microphone" : "Mute microphone"}
+            title={muted ? "Muted — tap to unmute" : "Tap to mute"}
+          >
             {muted ? <MicOff className="size-5" /> : <Mic className="size-5" />}
           </Button>
           {kind === "video" && (
