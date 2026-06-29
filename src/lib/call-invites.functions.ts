@@ -745,7 +745,7 @@ export const runBusyResetE2E = createServerFn({ method: "POST" })
       log("inject_busy_availability", true);
 
       // 4) Run reconciliation
-      const changed = await refreshStaleBusy(db, calleeId);
+      const changed = await refreshStaleBusy(db, calleeId!);
       log("refresh_stale_busy", changed === true, { changed });
 
       // 5) Verify availability reset
@@ -773,7 +773,7 @@ export const runBusyResetE2E = createServerFn({ method: "POST" })
       let assertOk = false;
       let assertErr: string | null = null;
       try {
-        await assertCallable(db, context.userId, calleeId);
+        await assertCallable(db, context.userId, calleeId!);
         assertOk = true;
       } catch (e: any) {
         assertErr = e?.message ?? String(e);
