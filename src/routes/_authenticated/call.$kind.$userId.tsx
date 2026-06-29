@@ -192,6 +192,29 @@ function CallScreen() {
 
 
   const [permReady, setPermReady] = useState(false);
+  // True when this voice call is the result of an auto-downgrade from a video
+  // call (camera failed). Drives the "Try camera again" affordance so the user
+  // can switch back without ending the call.
+  const [wasDowngraded, setWasDowngraded] = useState(false);
+  useEffect(() => {
+    if (kind !== "voice" || !inviteId) { setWasDowngraded(false); return; }
+    try {
+      setWasDowngraded(sessionStorage.getItem(`call:cam-fallback:${inviteId}`) === "1");
+    } catch { /* ignore */ }
+  }, [kind, inviteId]);
+
+  function tryCameraAgain() {
+    if (!inviteId) return;
+    try { sessionStorage.removeItem(`call:cam-fallback:${inviteId}`); } catch { /* ignore */ }
+    toast.info("Switching back to video…");
+    navigate({
+      to: "/call/$kind/$userId",
+      params: { kind: "video", userId },
+      search: { inviteId },
+      replace: true,
+    });
+  }
+
 
   useEffect(() => {
     let mounted = true;
@@ -887,6 +910,17 @@ function CallScreen() {
             <PhoneOff className="size-5" />
           </Button>
         </div>
+
+        {wasDowngraded && kind === "voice" && (
+          <div className="px-4 pb-2 flex items-center justify-between gap-2 text-xs">
+            <span className="text-muted-foreground flex items-center gap-1">
+              <VideoOff className="size-3" /> Camera was unavailable — call continued as voice.
+            </span>
+            <Button size="sm" variant="secondary" onClick={tryCameraAgain}>
+              <VideoIcon className="size-4 mr-1" /> Try camera again
+            </Button>
+          </div>
+        )}
 
         {/* SOS panic row — Play Store UGC safety requirement */}
         <div className="px-4 pb-2 flex items-center justify-between gap-2">
