@@ -138,7 +138,7 @@ function CallScreen() {
   // Audit reason for why this side ended the call. Set by the trigger
   // (out-of-coins / peer-left / media error) before invoking endCallNowRef;
   // sent to endCallLog so the admin panel can audit who disconnected and why.
-  const endReasonRef = useRef<"user_ended" | "peer_left" | "coins_exhausted" | "media_error" | "network" | "unknown">("user_ended");
+  const endReasonRef = useRef<"user_ended" | "peer_left" | "coins_exhausted" | "media_error" | "network" | "background_lost" | "unknown">("user_ended");
 
   // Distinguishing real hangup vs network drop:
   // - peerLeaveReasonRef: why the remote peer left ("quit" = intentional hangup,
