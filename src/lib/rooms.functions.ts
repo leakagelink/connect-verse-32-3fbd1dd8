@@ -1,11 +1,13 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { withAiAvatars } from "./ai-avatar";
 
 export const listRooms = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const { supabase } = context;
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: rooms } = await supabase
       .from("rooms")
       .select("id, host_id, title, topic, kind, max_seats, cover_url, gender_gate, created_at")
@@ -15,10 +17,16 @@ export const listRooms = createServerFn({ method: "GET" })
     if (!rooms?.length) return [];
     const hostIds = [...new Set(rooms.map((r) => r.host_id))];
     const [{ data: hosts }, { data: parts }] = await Promise.all([
-      supabase.from("profiles").select("id, username, avatar_url, gender").in("id", hostIds),
+      supabaseAdmin
+        .from("profiles")
+        .select("id, username, avatar_url, ai_avatar_style, gender, is_banned, onboarded, deleted_at")
+        .in("id", hostIds)
+        .eq("is_banned", false)
+        .eq("onboarded", true)
+        .is("deleted_at", null),
       supabase.from("room_participants").select("room_id").in("room_id", rooms.map((r) => r.id)),
     ]);
-    const hmap = new Map((hosts ?? []).map((h) => [h.id, h]));
+    const hmap = new Map(withAiAvatars(hosts ?? []).map((h) => [h.id, h]));
     const counts = new Map<string, number>();
     (parts ?? []).forEach((p) => counts.set(p.room_id, (counts.get(p.room_id) ?? 0) + 1));
     return rooms.map((r) => ({ ...r, host: hmap.get(r.host_id), participants: counts.get(r.id) ?? 0 }));
@@ -114,6 +122,7 @@ export const getRoom = createServerFn({ method: "POST" })
   .validator((d: unknown) => z.object({ roomId: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
     const { supabase } = context;
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: room } = await supabase
       .from("rooms")
       .select("id, host_id, title, topic, kind, max_seats, is_active, created_at")
@@ -125,6 +134,12 @@ export const getRoom = createServerFn({ method: "POST" })
       .select("user_id, joined_at")
       .eq("room_id", data.roomId);
     const ids = (parts ?? []).map((p) => p.user_id);
-    const { data: profiles } = await supabase.from("profiles").select("id, username, avatar_url, is_creator").in("id", ids);
-    return { room, participants: profiles ?? [] };
+    const { data: profiles } = await supabaseAdmin
+      .from("profiles")
+      .select("id, username, avatar_url, ai_avatar_style, gender, is_creator, is_banned, onboarded, deleted_at")
+      .in("id", ids)
+      .eq("is_banned", false)
+      .eq("onboarded", true)
+      .is("deleted_at", null);
+    return { room, participants: withAiAvatars(profiles ?? []) };
   });

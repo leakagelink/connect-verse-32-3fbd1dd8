@@ -12,6 +12,7 @@ export const getTrendingNow = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const { supabase } = context;
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const since24h = new Date(Date.now() - 24 * 3600_000).toISOString();
     const since1h = new Date(Date.now() - 3600_000).toISOString();
 
@@ -52,10 +53,13 @@ export const getTrendingNow = createServerFn({ method: "GET" })
     let hotHost: any = null;
     const profileIds = [topGiftedId, hot?.host_id].filter(Boolean) as string[];
     if (profileIds.length) {
-      const { data: profs } = await supabase
+      const { data: profs } = await supabaseAdmin
         .from("profiles")
-        .select("id, username, avatar_url, ai_avatar_style, country, language, is_creator, gender")
-        .in("id", profileIds);
+        .select("id, username, avatar_url, ai_avatar_style, country, language, is_creator, gender, is_banned, onboarded, deleted_at")
+        .in("id", profileIds)
+        .eq("is_banned", false)
+        .eq("onboarded", true)
+        .is("deleted_at", null);
       const mapped = withAiAvatars(profs ?? []);
       const map = new Map(mapped.map((p) => [p.id, p]));
       if (topGiftedId) topGifted = { ...map.get(topGiftedId), coins_received: topGiftedCoins };
@@ -77,6 +81,7 @@ export const listFeaturedFanClubs = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const { supabase } = context;
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: clubs } = await supabase
       .from("fan_clubs")
       .select("creator_id, name, tagline, perks, monthly_coins, is_open, created_at")
@@ -92,10 +97,13 @@ export const listFeaturedFanClubs = createServerFn({ method: "GET" })
         .select("creator_id, fan_id, expires_at")
         .in("creator_id", ids)
         .gt("expires_at", now),
-      supabase
+      supabaseAdmin
         .from("profiles")
-        .select("id, username, avatar_url, ai_avatar_style, country, language, gender")
-        .in("id", ids),
+        .select("id, username, avatar_url, ai_avatar_style, country, language, gender, is_banned, onboarded, deleted_at")
+        .in("id", ids)
+        .eq("is_banned", false)
+        .eq("onboarded", true)
+        .is("deleted_at", null),
     ]);
     const counts = new Map<string, number>();
     for (const m of members ?? []) {
@@ -121,6 +129,7 @@ export const listRecentPartners = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const { supabase, userId } = context;
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data } = await supabase
       .from("call_logs")
       .select("caller_id, callee_id, started_at, kind")
@@ -139,11 +148,13 @@ export const listRecentPartners = createServerFn({ method: "GET" })
     if (!partners.length) return [];
     const ids = partners.map((p) => p.id);
     const cutoff = new Date(Date.now() - ONLINE_WINDOW_SECONDS * 1000).toISOString();
-    const { data: profs } = await supabase
+    const { data: profs } = await supabaseAdmin
       .from("profiles")
       .select("id, username, avatar_url, ai_avatar_style, country, language, gender, is_creator, last_seen_at, availability")
       .in("id", ids)
-      .eq("is_banned", false);
+      .eq("is_banned", false)
+      .eq("onboarded", true)
+      .is("deleted_at", null);
     const map = new Map(withAiAvatars(profs ?? []).map((p) => [p.id, p]));
     return partners
       .map((p) => {
@@ -167,6 +178,7 @@ export const listForYouCreators = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const { supabase, userId } = context;
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: me } = await supabase
       .from("profiles")
       .select("language, country, state")
@@ -174,18 +186,18 @@ export const listForYouCreators = createServerFn({ method: "GET" })
       .maybeSingle();
 
     const cutoff = new Date(Date.now() - 24 * 3600_000).toISOString();
-    const { data: creators } = await supabase
+    const { data: creators } = await supabaseAdmin
       .from("profiles")
-      .select("id, username, gender, country, state, language, avatar_url, ai_avatar_style, is_creator, last_seen_at")
+      .select("id, username, gender, country, state, language, avatar_url, ai_avatar_style, is_creator, last_seen_at, is_banned, onboarded, deleted_at")
       .eq("is_banned", false)
       .eq("onboarded", true)
       .eq("is_creator", true)
-      .neq("id", userId)
+      .is("deleted_at", null)
       .gte("last_seen_at", cutoff)
       .limit(60);
 
     const onlineCutoff = new Date(Date.now() - ONLINE_WINDOW_SECONDS * 1000).toISOString();
-    const scored = withAiAvatars(creators ?? []).map((c) => {
+    const scored = withAiAvatars((creators ?? []).filter((c: any) => c.id !== userId)).map((c) => {
       let score = 0;
       if (me?.language && c.language === me.language) score += 5;
       if (me?.state && c.state === me.state) score += 3;
@@ -204,19 +216,20 @@ export const listForYouCreators = createServerFn({ method: "GET" })
 export const listNewJoiners = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { supabase, userId } = context;
+    const { userId } = context;
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const since = new Date(Date.now() - 24 * 3600_000).toISOString();
-    const { data } = await supabase
+    const { data } = await supabaseAdmin
       .from("profiles")
-      .select("id, username, gender, country, state, language, avatar_url, ai_avatar_style, is_creator, last_seen_at, created_at")
+      .select("id, username, gender, country, state, language, avatar_url, ai_avatar_style, is_creator, last_seen_at, created_at, is_banned, onboarded, deleted_at")
       .eq("is_banned", false)
       .eq("onboarded", true)
-      .neq("id", userId)
+      .is("deleted_at", null)
       .gte("created_at", since)
       .order("created_at", { ascending: false })
       .limit(60);
     const onlineCutoff = new Date(Date.now() - ONLINE_WINDOW_SECONDS * 1000).toISOString();
-    return withAiAvatars(data ?? []).map((u) => ({
+    return withAiAvatars((data ?? []).filter((u: any) => u.id !== userId)).map((u) => ({
       ...u,
       online: !!u.last_seen_at && u.last_seen_at >= onlineCutoff,
     }));
