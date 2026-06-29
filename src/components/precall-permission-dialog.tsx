@@ -96,6 +96,15 @@ export function PrecallPermissionDialog({ open, kind, onCancel, onReady }: Props
     if (!ok) toast.info("Open Settings → Apps → Talkora → Permissions and enable Microphone" + (needsCamera ? " and Camera." : "."));
   }
 
+  // Auto-advance to the audio test as soon as the device reports all
+  // permissions are already granted (e.g. user previously allowed).
+  useEffect(() => {
+    if (open && stage === "perm" && allGranted && !checking) {
+      setStage("audio");
+    }
+  }, [open, stage, allGranted, checking]);
+
+
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!v) onCancel(); }}>
       <DialogContent className="max-w-sm">
