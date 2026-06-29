@@ -50,7 +50,7 @@ const FcmSaveSchema = z.object({ serviceAccountJson: z.string().min(20).max(2000
 
 export const adminSaveFcmConfig = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: z.infer<typeof FcmSaveSchema>) => FcmSaveSchema.parse(d))
+  .validator((d: z.infer<typeof FcmSaveSchema>) => FcmSaveSchema.parse(d))
   .handler(async ({ context, data }) => {
     await assertAdmin(context);
     let parsed: any;
@@ -98,7 +98,7 @@ const TokenSchema = z.object({
 
 export const registerDeviceToken = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: z.infer<typeof TokenSchema>) => TokenSchema.parse(d))
+  .validator((d: z.infer<typeof TokenSchema>) => TokenSchema.parse(d))
   .handler(async ({ context, data }) => {
     const now = new Date().toISOString();
     // upsert by unique token; reassign owner if token rotated between accounts on the device.
@@ -119,7 +119,7 @@ export const registerDeviceToken = createServerFn({ method: "POST" })
 
 export const unregisterDeviceToken = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: { token: string }) => z.object({ token: z.string() }).parse(d))
+  .validator((d: { token: string }) => z.object({ token: z.string() }).parse(d))
   .handler(async ({ context, data }) => {
     await context.supabase.from("device_tokens").delete().eq("token", data.token).eq("user_id", context.userId);
     return { ok: true };
@@ -201,7 +201,7 @@ const BroadcastSchema = z.object({
 
 export const adminBroadcast = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: z.infer<typeof BroadcastSchema>) => BroadcastSchema.parse(d))
+  .validator((d: z.infer<typeof BroadcastSchema>) => BroadcastSchema.parse(d))
   .handler(async ({ context, data }) => {
     // admin check
     const { data: roleRow } = await context.supabase

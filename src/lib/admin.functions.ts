@@ -31,7 +31,7 @@ export const adminStats = createServerFn({ method: "GET" })
 
 export const adminListUsers = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => z.object({
+  .validator((d: unknown) => z.object({
     q: z.string().optional(),
     filter: z.enum(["all","banned","creators"]).default("all"),
   }).parse(d))
@@ -87,7 +87,7 @@ export const adminListReports = createServerFn({ method: "GET" })
 
 export const adminBanUser = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => z.object({
+  .validator((d: unknown) => z.object({
     userId: z.string().uuid(),
     reason: z.string().min(2).max(200),
     type: z.enum(["temp","perm"]).default("perm"),
@@ -111,7 +111,7 @@ export const adminBanUser = createServerFn({ method: "POST" })
 
 export const adminUnbanUser = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => z.object({ userId: z.string().uuid() }).parse(d))
+  .validator((d: unknown) => z.object({ userId: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
     await assertAdmin(context.supabase, context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -122,7 +122,7 @@ export const adminUnbanUser = createServerFn({ method: "POST" })
 
 export const adminUpdateReport = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => z.object({
+  .validator((d: unknown) => z.object({
     reportId: z.string().uuid(),
     status: z.enum(["reviewed","actioned","dismissed"]),
     notes: z.string().max(500).optional(),

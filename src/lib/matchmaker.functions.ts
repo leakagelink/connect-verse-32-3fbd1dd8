@@ -10,7 +10,7 @@ function makeChannel(): string {
 /** Create a new matchmaker room. Female creators only (enforced by RLS + here). */
 export const createMatchmakerRoom = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) =>
+  .validator((d: unknown) =>
     z.object({
       title: z.string().min(3).max(60),
       topic: z.string().max(120).optional(),
@@ -65,7 +65,7 @@ export const listLiveMatchmakerRooms = createServerFn({ method: "GET" })
 /** Get room details + candidates + my vote. */
 export const getMatchmakerRoom = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => z.object({ roomId: z.string().uuid() }).parse(d))
+  .validator((d: unknown) => z.object({ roomId: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
     const { data: room } = await supabase
@@ -118,7 +118,7 @@ export const getMatchmakerRoom = createServerFn({ method: "POST" })
 /** Male users join as candidate on a specific seat (1 or 2). */
 export const joinAsCandidate = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) =>
+  .validator((d: unknown) =>
     z.object({ roomId: z.string().uuid(), seat: z.number().int().min(1).max(2) }).parse(d),
   )
   .handler(async ({ data, context }) => {
@@ -167,7 +167,7 @@ async function getCount(supabase: any, table: string, col: string, val: string):
 /** Leave candidate seat. */
 export const leaveCandidate = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => z.object({ roomId: z.string().uuid() }).parse(d))
+  .validator((d: unknown) => z.object({ roomId: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
     await supabase
@@ -185,7 +185,7 @@ export const leaveCandidate = createServerFn({ method: "POST" })
 /** Cast or change a vote. One per voter per room. */
 export const castVote = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) =>
+  .validator((d: unknown) =>
     z.object({ roomId: z.string().uuid(), candidateId: z.string().uuid() }).parse(d),
   )
   .handler(async ({ data, context }) => {
@@ -234,7 +234,7 @@ export const castVote = createServerFn({ method: "POST" })
 /** Host ends the room, declares winner = highest (vote_score+gift_score). */
 export const endMatchmakerRoom = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => z.object({ roomId: z.string().uuid() }).parse(d))
+  .validator((d: unknown) => z.object({ roomId: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
     const { data: room } = await supabase
@@ -271,7 +271,7 @@ export const endMatchmakerRoom = createServerFn({ method: "POST" })
 /** Lightweight listener heartbeat — bumps listener_count occasionally. */
 export const matchmakerHeartbeat = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) =>
+  .validator((d: unknown) =>
     z.object({ roomId: z.string().uuid(), listenerCount: z.number().int().min(0).max(10000) }).parse(d),
   )
   .handler(async ({ data, context }) => {

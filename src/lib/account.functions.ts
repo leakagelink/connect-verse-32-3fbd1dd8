@@ -77,7 +77,7 @@ export const listBlockedUsers = createServerFn({ method: "GET" })
  */
 export const deleteMyAccount = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) =>
+  .validator((d: unknown) =>
     z.object({ confirm: z.literal("DELETE") }).parse(d),
   )
   .handler(async ({ context }) => {

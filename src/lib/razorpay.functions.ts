@@ -7,7 +7,7 @@ const CreateOrderInput = z.object({ planId: z.string().uuid() });
 
 export const createRazorpayOrder = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => CreateOrderInput.parse(d))
+  .validator((d: unknown) => CreateOrderInput.parse(d))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
     const settings = await getPaymentSettings();
@@ -91,7 +91,7 @@ const VerifyInput = z.object({
 // Client-side verification fallback (also handled by webhook). Idempotent.
 export const verifyRazorpayPayment = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => VerifyInput.parse(d))
+  .validator((d: unknown) => VerifyInput.parse(d))
   .handler(async ({ data, context }) => {
     const settings = await getPaymentSettings();
     const keySecret = settings.key_secret;

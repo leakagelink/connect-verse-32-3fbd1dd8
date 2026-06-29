@@ -8,7 +8,7 @@ const RechargeInput = z.object({ planId: z.string().uuid() });
 
 export const mockRecharge = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => RechargeInput.parse(d))
+  .validator((d: unknown) => RechargeInput.parse(d))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
 

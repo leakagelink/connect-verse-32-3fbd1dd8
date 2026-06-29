@@ -15,7 +15,7 @@ const NEW_ACCOUNT_WINDOW_HOURS = 24;
 
 export const startCallLog = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: {
+  .validator((input: {
     calleeId: string;
     kind: "voice" | "video";
     resumeId?: string | null;
@@ -134,7 +134,7 @@ export const startCallLog = createServerFn({ method: "POST" })
 
 export const endCallLog = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: {
+  .validator((input: {
     id: string;
     durationSeconds: number;
     coinsSpent: number;
@@ -180,7 +180,7 @@ export const endCallLog = createServerFn({ method: "POST" })
 //   - if a flush is lost, the next one self-heals via the stored cumulative
 export const applyCallUsage = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: {
+  .validator((input: {
     callLogId: string;
     idempotencyKey: string;
     totalFreeSeconds: number;

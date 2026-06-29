@@ -47,7 +47,7 @@ export const getMyKyc = createServerFn({ method: "GET" })
 
 export const submitKyc = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => KycInput.parse(d))
+  .validator((d: unknown) => KycInput.parse(d))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
     // Block resubmission if an approved or pending one exists
@@ -88,7 +88,7 @@ const WithdrawInput = z.object({
 
 export const requestWithdrawal = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => WithdrawInput.parse(d))
+  .validator((d: unknown) => WithdrawInput.parse(d))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
 
@@ -191,7 +191,7 @@ export const listMyWithdrawals = createServerFn({ method: "GET" })
 // Signed URL for uploaded KYC doc preview
 export const getKycDocUrl = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => z.object({ path: z.string() }).parse(d))
+  .validator((d: unknown) => z.object({ path: z.string() }).parse(d))
   .handler(async ({ data, context }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     // Only allow if owner OR admin
@@ -206,7 +206,7 @@ export const getKycDocUrl = createServerFn({ method: "POST" })
 // Admin
 export const adminListKyc = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => z.object({ status: z.enum(["pending","approved","rejected","all"]).default("pending") }).parse(d))
+  .validator((d: unknown) => z.object({ status: z.enum(["pending","approved","rejected","all"]).default("pending") }).parse(d))
   .handler(async ({ data, context }) => {
     const { data: isAdmin } = await context.supabase.rpc("has_role", { _user_id: context.userId, _role: "admin" });
     if (!isAdmin) throw new Error("Forbidden");
@@ -225,7 +225,7 @@ export const adminListKyc = createServerFn({ method: "POST" })
 
 export const adminReviewKyc = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => z.object({
+  .validator((d: unknown) => z.object({
     id: z.string().uuid(),
     decision: z.enum(["approved","rejected"]),
     notes: z.string().max(500).optional(),
@@ -246,7 +246,7 @@ export const adminReviewKyc = createServerFn({ method: "POST" })
 
 export const adminListWithdrawals = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => z.object({ status: z.enum(["pending","processing","paid","rejected","all"]).default("pending") }).parse(d))
+  .validator((d: unknown) => z.object({ status: z.enum(["pending","processing","paid","rejected","all"]).default("pending") }).parse(d))
   .handler(async ({ data, context }) => {
     const { data: isAdmin } = await context.supabase.rpc("has_role", { _user_id: context.userId, _role: "admin" });
     if (!isAdmin) throw new Error("Forbidden");
@@ -264,7 +264,7 @@ export const adminListWithdrawals = createServerFn({ method: "POST" })
 
 export const adminProcessWithdrawal = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => z.object({
+  .validator((d: unknown) => z.object({
     id: z.string().uuid(),
     decision: z.enum(["processing","paid","rejected"]),
     utr_reference: z.string().max(64).optional(),
@@ -313,7 +313,7 @@ export const adminProcessWithdrawal = createServerFn({ method: "POST" })
 // Admin: KYC document purge audit log (retention compliance)
 export const adminListKycPurgeLog = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => z.object({
+  .validator((d: unknown) => z.object({
     cron_run_id: z.string().uuid().optional(),
     kyc_request_id: z.string().uuid().optional(),
     limit: z.number().int().min(1).max(500).default(200),

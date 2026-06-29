@@ -89,7 +89,7 @@ const SaveInput = z.object({
 
 export const adminSavePaymentConfig = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => SaveInput.parse(d))
+  .validator((d: unknown) => SaveInput.parse(d))
   .handler(async ({ context, data }) => {
     await assertAdmin(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");

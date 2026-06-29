@@ -117,7 +117,7 @@ async function generateCaseFromAI(): Promise<z.infer<typeof CaseSchema>> {
 
 export const generateMysteryCase = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) =>
+  .validator((d: unknown) =>
     z
       .object({
         partnerId: z.string().uuid(),
@@ -210,7 +210,7 @@ export const generateMysteryCase = createServerFn({ method: "POST" })
 
 export const getMysteryCase = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => z.object({ caseId: z.string().uuid() }).parse(d))
+  .validator((d: unknown) => z.object({ caseId: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
     const { data: c, error } = await supabase
@@ -248,7 +248,7 @@ export const getMysteryCase = createServerFn({ method: "GET" })
 
 export const submitGuess = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) =>
+  .validator((d: unknown) =>
     z.object({ caseId: z.string().uuid(), personId: z.string().min(1) }).parse(d)
   )
   .handler(async ({ data, context }) => {
