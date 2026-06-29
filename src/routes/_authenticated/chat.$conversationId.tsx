@@ -19,7 +19,7 @@ import { CoinBadge } from "@/components/coin-badge";
 import { ReportDialog } from "@/components/report-dialog";
 import { ArrowLeft, Send, Sparkles, UserPlus, UserCheck, UserX, Check, X } from "lucide-react";
 import { toast } from "sonner";
-import { CHAT_COINS_PER_MINUTE, MESSAGE_COIN_COST_MALE } from "@/lib/constants";
+import { CHAT_COINS_PER_MINUTE, MESSAGE_COIN_COST_MALE, detectContactShare, contactShareWarning } from "@/lib/constants";
 
 export const Route = createFileRoute("/_authenticated/chat/$conversationId")({
   component: ChatRoom,
@@ -135,9 +135,32 @@ function ChatRoom() {
   async function send() {
     const body = text.trim();
     if (!body || sessionEnded) return;
+    // Client-side safety net: block off-platform contact sharing instantly with
+    // an explicit warning. Server enforces the same rule and logs a strike.
+    const cat = detectContactShare(body);
+    if (cat) {
+      toast.warning("⚠️ Safety warning", {
+        description: contactShareWarning(cat) + " Please keep all conversations inside the app.",
+        duration: 6000,
+      });
+      return;
+    }
     setText("");
     try { await sendFn({ data: { conversationId, body } }); refetchWallet(); }
-    catch (e: any) { toast.error(e.message); }
+    catch (e: any) {
+      const msg: string = e?.message ?? "Failed to send";
+      if (msg.startsWith("CONTACT_SHARE_BLOCKED")) {
+        const parts = msg.split(":");
+        const reason = parts.slice(2).join(":") || "Sharing contact details is not allowed.";
+        toast.warning("⚠️ Message blocked", {
+          description: reason + " Repeated attempts may result in an account ban.",
+          duration: 7000,
+        });
+        setText(body); // restore so user can edit
+      } else {
+        toast.error(msg);
+      }
+    }
   }
 
   const myId = me?.profile?.id;

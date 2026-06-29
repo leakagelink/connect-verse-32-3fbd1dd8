@@ -33,7 +33,6 @@ export const APP_LANGUAGES = [
 export const BLOCKED_WORDS = [
   "fuck", "shit", "bitch", "asshole", "cunt", "dick", "pussy",
   "rape", "kill yourself", "kys", "nigger", "faggot",
-  "whatsapp", "telegram", "instagram", "snapchat", // off-platform handoff
 ];
 
 export function containsBlockedContent(text: string): string | null {
@@ -42,6 +41,85 @@ export function containsBlockedContent(text: string): string | null {
     if (lower.includes(word)) return word;
   }
   return null;
+}
+
+// Off-platform contact / PII sharing detector.
+// Returns a category label when the message tries to share personal contact
+// info, social handles, or off-platform handoff cues. Returns null otherwise.
+export type ContactShareCategory =
+  | "phone"
+  | "email"
+  | "url"
+  | "social_handle"
+  | "social_platform";
+
+const SOCIAL_PLATFORMS = [
+  "whatsapp", "whats app", "wsp", "wtsp", "wtsapp",
+  "telegram", "tlgrm", "tg",
+  "instagram", "insta", "ig handle", "ig id",
+  "snapchat", "snap chat", "snapid", "snap id",
+  "facebook", "fb id", "fb account", "messenger",
+  "discord", "skype", "signal app", "viber", "wechat", "line app",
+  "tiktok", "tik tok", "youtube channel", "yt channel",
+  "twitter", " x.com", "threads",
+  "gmail", "yahoo mail", "hotmail", "outlook mail", "protonmail", "icloud mail",
+  "email id", "e-mail", "e mail",
+  "mera number", "mera no", "my number", "my no.", "phone number", "phone no",
+  "mobile number", "mobile no", "contact number", "contact no",
+];
+
+// Normalize common obfuscations: "g mail", "at the rate", spaces inside numbers,
+// leet-speak (0 for o, 1 for i, 3 for e), zero-width / unicode spaces.
+function normalizeForDetection(text: string): string {
+  let t = text.toLowerCase();
+  t = t.replace(/[\u200B-\u200D\uFEFF]/g, "");           // zero-width chars
+  t = t.replace(/[\(\)\[\]\{\}<>]/g, " ");
+  t = t.replace(/\s*(at|@|\(at\)|\[at\])\s*/gi, "@");
+  t = t.replace(/\s*(dot|\(dot\)|\[dot\])\s*/gi, ".");
+  t = t.replace(/[_\-\.\u00B7•]/g, "");                    // strip separators inside handles
+  return t;
+}
+
+export function detectContactShare(text: string): ContactShareCategory | null {
+  if (!text) return null;
+  const raw = text;
+  const norm = normalizeForDetection(text);
+
+  // Email: a@b.tld (also catches "name at gmail dot com" after normalization)
+  if (/[a-z0-9][a-z0-9+]*@[a-z0-9]+\.[a-z]{2,}/i.test(norm)) return "email";
+
+  // Phone numbers: 7+ digits in a row (after stripping spaces/dashes/dots), or
+  // an explicit +country prefix. Use the digit-only stream from the raw text.
+  const digitStream = raw.replace(/[^\d+]/g, "");
+  if (/\+?\d{7,}/.test(digitStream)) return "phone";
+  // Words-as-digits fallback: "nine eight seven six five four three two one zero" sequences
+  const wordDigits = raw.toLowerCase().match(/\b(zero|one|two|three|four|five|six|seven|eight|nine|do|teen|char|paanch|chhe|saat|aath|nau|ek|shunya)\b/g);
+  if (wordDigits && wordDigits.length >= 7) return "phone";
+
+  // URLs / domains
+  if (/\b(https?:\/\/|www\.)\S+/i.test(raw)) return "url";
+  if (/\b[a-z0-9-]+\.(com|in|net|org|io|co|me|app|live|xyz|tv|gg)\b/i.test(norm)) return "url";
+
+  // @handles (instagram/twitter/telegram style)
+  if (/(^|\s)@[a-z0-9_.]{3,}/i.test(raw)) return "social_handle";
+  if (/\bt\.me\/[a-z0-9_]+/i.test(norm)) return "social_handle";
+  if (/\b(wa\.me|chat\.whatsapp\.com)\b/i.test(norm)) return "social_handle";
+
+  // Platform mentions / handoff cues
+  for (const p of SOCIAL_PLATFORMS) {
+    if (norm.includes(p.replace(/\s+/g, ""))) return "social_platform";
+  }
+  return null;
+}
+
+export function contactShareWarning(cat: ContactShareCategory): string {
+  const what =
+    cat === "phone" ? "phone numbers"
+      : cat === "email" ? "email addresses"
+        : cat === "url" ? "external links"
+          : cat === "social_handle" ? "social media handles"
+            : "off-platform contact details (WhatsApp, Instagram, Telegram, etc.)";
+  return `Sharing ${what} is not allowed. Repeated attempts can get your account banned.`;
 }
 
 export function bonusForDeposit(depositCount: number): number {

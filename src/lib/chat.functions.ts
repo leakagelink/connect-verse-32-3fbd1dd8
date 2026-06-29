@@ -1,7 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { CHAT_COINS_PER_MINUTE, MESSAGE_COIN_COST_MALE, containsBlockedContent } from "./constants";
+import { CHAT_COINS_PER_MINUTE, MESSAGE_COIN_COST_MALE, containsBlockedContent, detectContactShare, contactShareWarning } from "./constants";
 import { withAiAvatars } from "./ai-avatar";
 
 async function assertNotBanned(supabase: any, userId: string) {
@@ -118,6 +118,30 @@ export const sendMessage = createServerFn({ method: "POST" })
 
     const blocked = containsBlockedContent(data.body);
     if (blocked) throw new Error(`Message blocked: contains restricted content`);
+
+    // Off-platform contact / PII share guard. Reject the message and record a
+    // moderation event so admins can see repeat offenders (auto-ban kicks in
+    // at 3 confirmed strikes via the existing apply_moderation_strike trigger).
+    const contactCat = detectContactShare(data.body);
+    if (contactCat) {
+      try {
+        await supabase.from("moderation_events").insert({
+          user_id: userId,
+          kind: "text",
+          category: "contact_share",
+          severity: 2,
+          ai_label: contactCat,
+          ai_model: "regex.contact_share.v1",
+          evidence: { snippet: data.body.slice(0, 280), conversation_id: data.conversationId },
+          status: "pending_review",
+        });
+      } catch { /* best-effort logging */ }
+      const err: any = new Error(`CONTACT_SHARE_BLOCKED:${contactCat}:${contactShareWarning(contactCat)}`);
+      err.code = "CONTACT_SHARE_BLOCKED";
+      err.category = contactCat;
+      throw err;
+    }
+
 
     // Male senders pay coins per message; females are free
     const { data: senderProfile } = await supabase
