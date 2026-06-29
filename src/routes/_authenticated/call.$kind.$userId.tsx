@@ -204,7 +204,7 @@ function CallScreen() {
         if (invite.kind !== kind || expectedPartner !== userId || !invite.callLogId) {
           throw new Error("Call invite does not match this call session.");
         }
-        callRoleRef.current = invite.role;
+        callRoleRef.current = invite.role as "caller" | "callee";
         callLogIdRef.current = invite.callLogId;
         syncedFreeRef.current = invite.baselineFreeSecondsUsed ?? 0;
         syncedCoinsRef.current = invite.baselineCoinsSpent ?? 0;
@@ -336,7 +336,7 @@ function CallScreen() {
   // sessionToken, this tab pauses: no flushes, no elapsed tick, no recharge
   // prompts. Resuming requires reload of this tab (which mints a fresh token).
   useEffect(() => {
-    const resumeKey = `active_call:${userId}:${kind}`;
+    const resumeKey = `active_call:${userId}:${kind}:${inviteId ?? "direct"}`;
     function evaluate(raw: string | null) {
       if (!raw) return;
       try {
@@ -360,7 +360,7 @@ function CallScreen() {
     // Initial check in case another tab claimed ownership before this one mounted.
     try { evaluate(localStorage.getItem(resumeKey)); } catch { /* ignore */ }
     return () => window.removeEventListener("storage", onStorage);
-  }, [userId, kind]);
+  }, [userId, kind, inviteId]);
 
   // ---- Live billing ledger (free seconds first, then coins) ----
   const freeAvail = freeStart ?? 0;
@@ -374,7 +374,8 @@ function CallScreen() {
   const coinSecondsLeft = Math.floor((coinsLeft * 60) / perMin);
   const totalSecondsLeft = freeLeftSec + coinSecondsLeft;
   const usingFree = freeLeftSec > 0;
-  const outOfFunds = connected && totalSecondsLeft <= 0;
+  const isPayer = callRoleRef.current !== "callee";
+  const outOfFunds = connected && isPayer && totalSecondsLeft <= 0;
 
   // Seed live ledger snapshots the moment the profile is available — so the
   // "5:00 free" countdown is visible from the very start of the call screen.
@@ -421,6 +422,7 @@ function CallScreen() {
   flushUsage.current = () => {
     const callLogId = callLogIdRef.current;
     if (!callLogId) return;
+    if (callRoleRef.current === "callee") return;
     if (flushInFlightRef.current) return;
     // Paused (another tab took ownership) → don't push usage from this tab,
     // the authoritative tab is now responsible for billing.
@@ -428,7 +430,7 @@ function CallScreen() {
     // Also bail if the localStorage slot now belongs to a different session
     // token (e.g. storage event was missed in this tab).
     try {
-      const raw = localStorage.getItem(`active_call:${userId}:${kind}`);
+      const raw = localStorage.getItem(`active_call:${userId}:${kind}:${inviteId ?? "direct"}`);
       if (raw) {
         const parsed = JSON.parse(raw);
         if (parsed?.sessionToken && parsed.sessionToken !== sessionTokenRef.current) {
@@ -480,7 +482,7 @@ function CallScreen() {
         pendingFlushKeyRef.current = null;
         try {
           localStorage.setItem(
-            `active_call:${userId}:${kind}`,
+            `active_call:${userId}:${kind}:${inviteId ?? "direct"}`,
             JSON.stringify({
               id: callLogId,
               lastFlushedAt: new Date().toISOString(),
@@ -597,7 +599,7 @@ function CallScreen() {
       }).catch(() => {});
     }
 
-    try { localStorage.removeItem(`active_call:${userId}:${kind}`); } catch { /* ignore */ }
+    try { localStorage.removeItem(`active_call:${userId}:${kind}:${inviteId ?? "direct"}`); } catch { /* ignore */ }
     navigate({ to: "/recents" });
   }
 
