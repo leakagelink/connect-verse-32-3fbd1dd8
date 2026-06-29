@@ -325,6 +325,31 @@ export function PreCallAudioTest({ onPassed, onCancel }: Props) {
         </p>
       </div>
 
+      {lostDevice && (
+        <div className="flex items-start gap-2 rounded-md border border-amber-500/40 bg-amber-500/10 p-2.5 text-xs text-amber-700 dark:text-amber-300">
+          <AlertCircle className="size-4 shrink-0 mt-0.5" />
+          <div className="flex-1 space-y-1">
+            <p className="font-medium">
+              {lostDevice.kind === "mic" ? "Microphone disconnected" : "Speaker disconnected"}
+            </p>
+            <p>
+              "{lostDevice.label}" is no longer available. We've switched to the system default —
+              {lostDevice.kind === "mic"
+                ? " speak again to confirm the new mic is working."
+                : " tap Play tone to confirm the new speaker."}
+            </p>
+          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-6 px-2 text-xs"
+            onClick={() => setLostDevice(null)}
+          >
+            Dismiss
+          </Button>
+        </div>
+      )}
+
       {/* Mic row */}
       <div className="rounded-lg border bg-card p-3 space-y-2">
         <div className="flex items-center justify-between">
