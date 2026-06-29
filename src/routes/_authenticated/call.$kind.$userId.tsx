@@ -43,9 +43,16 @@ export const Route = createFileRoute("/_authenticated/call/$kind/$userId")({
   validateSearch: (search) => ({
     inviteId: typeof search.inviteId === "string" ? search.inviteId : undefined,
     autoAccept: search.autoAccept === "1" || search.autoAccept === 1 || search.autoAccept === true,
+    e2e: search.e2e === "ui" ? "ui" : undefined,
   }),
-  component: CallScreen,
+  component: CallScreenWithE2E,
 });
+
+function CallScreenWithE2E() {
+  const search = Route.useSearch();
+  if (search.e2e === "ui") return <CallFullscreenE2EMock />;
+  return <CallScreen />;
+}
 
 function CallScreen() {
   const { kind, userId } = useParams({ from: "/_authenticated/call/$kind/$userId" });
@@ -1400,7 +1407,7 @@ function CallScreen() {
     // cannot navigate to any other screen until they explicitly end the
     // call (or open the in-call peer profile sheet, which keeps the call
     // session mounted).
-    <div className="fixed inset-0 z-[60] bg-black flex flex-col overflow-y-auto safe-top safe-bottom">
+    <div data-testid="call-fullscreen" className="fixed inset-0 z-[60] bg-black flex flex-col overflow-y-auto safe-top safe-bottom">
       <SafetyTipOverlay />
       <Card className="glass overflow-hidden p-0 flex-1 rounded-none border-0">
         {paused && (
@@ -1603,7 +1610,7 @@ function CallScreen() {
           >
             <Gift className="size-5 text-pink-500" />
           </Button>
-          <Button size="icon" variant="destructive" onClick={() => setConfirmEnd(true)}>
+          <Button data-testid="end-call-btn" size="icon" variant="destructive" onClick={() => setConfirmEnd(true)}>
             <PhoneOff className="size-5" />
           </Button>
         </div>
@@ -1794,9 +1801,10 @@ function CallScreen() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setEndStep(1)}>Stay on call</AlertDialogCancel>
+            <AlertDialogCancel data-testid="end-stay" onClick={() => setEndStep(1)}>Stay on call</AlertDialogCancel>
             {endStep === 1 ? (
               <Button
+                data-testid="end-confirm-step1"
                 onClick={() => setEndStep(2)}
                 className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               >
@@ -1804,6 +1812,7 @@ function CallScreen() {
               </Button>
             ) : (
               <AlertDialogAction
+                data-testid="end-confirm-step2"
                 onClick={() => { setEndStep(1); confirmEndCall(); }}
                 className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               >
@@ -2080,5 +2089,89 @@ function NetworkBars({ q }: { q: number }) {
     <span className={`inline-flex items-center gap-0.5 ${color}`} title={`Network: ${label}`}>
       <Icon className="size-3" />
     </span>
+  );
+}
+
+/**
+ * Headless visual contract used by the Call Fullscreen E2E.
+ *
+ * Mounts the same fullscreen container + the real three-click end-call
+ * AlertDialog so the iframe-driven E2E can assert: (a) no AppShell chrome
+ * leaks into the call surface, (b) the end-call button opens a two-step
+ * confirmation, and (c) the surface refuses to leave the call route while
+ * the dialog is active. Skips Agora / billing / invite effects on purpose.
+ */
+function CallFullscreenE2EMock() {
+  const [open, setOpen] = useState(false);
+  const [step, setStep] = useState<1 | 2>(1);
+  const [ended, setEnded] = useState(false);
+
+  // Block back-navigation just like the real call screen.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    window.history.pushState({ inCallE2E: true }, "");
+    const onPop = () => {
+      window.history.pushState({ inCallE2E: true }, "");
+      setOpen(true);
+    };
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
+  }, []);
+
+  return (
+    <div
+      data-testid="call-fullscreen"
+      data-e2e-ready="1"
+      data-e2e-ended={ended ? "1" : "0"}
+      className="fixed inset-0 z-[60] bg-black flex flex-col items-center justify-end p-6 safe-top safe-bottom"
+    >
+      <div className="text-white/80 text-sm mb-4">Call E2E dry-run</div>
+      <Button
+        data-testid="end-call-btn"
+        size="lg"
+        variant="destructive"
+        onClick={() => setOpen(true)}
+      >
+        End
+      </Button>
+
+      <AlertDialog
+        open={open}
+        onOpenChange={(v) => { setOpen(v); if (!v) setStep(1); }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {step === 1 ? "End this call?" : "Are you really sure?"}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Three deliberate taps to disconnect.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel data-testid="end-stay" onClick={() => setStep(1)}>
+              Stay on call
+            </AlertDialogCancel>
+            {step === 1 ? (
+              <Button
+                data-testid="end-confirm-step1"
+                onClick={() => setStep(2)}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                End call
+              </Button>
+            ) : (
+              <AlertDialogAction
+                data-testid="end-confirm-step2"
+                onClick={() => { setStep(1); setOpen(false); setEnded(true); }}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                Yes, disconnect now
+              </AlertDialogAction>
+            )}
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
   );
 }
