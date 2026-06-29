@@ -36,6 +36,8 @@ export function CallInviteDialog({
   const [invite, setInvite] = useState<InviteStatus | null>(null);
   const [message, setMessage] = useState("Sending call request…");
 
+  const [endState, setEndState] = useState<null | { tone: "busy" | "rejected" | "timeout" | "cancelled"; title: string; body: string }>(null);
+
   const createMut = useMutation({
     mutationFn: (p: NonNullable<PendingCall>) => createInviteFn({ data: { calleeId: p.userId, kind: p.kind } }),
     onSuccess: (res) => {
@@ -44,8 +46,17 @@ export function CallInviteDialog({
       qc.invalidateQueries({ queryKey: ["notifications"] });
     },
     onError: (e: any) => {
-      toast.error(e?.message ?? "Could not send call request");
-      onClose();
+      const msg = String(e?.message ?? "Could not send call request");
+      if (msg.startsWith("BUSY:")) {
+        setEndState({
+          tone: "busy",
+          title: "Creator is busy",
+          body: "They're already on another call. Please try again in a moment.",
+        });
+      } else {
+        toast.error(msg.replace(/^BUSY:\s*/, ""));
+        onClose();
+      }
     },
   });
 
@@ -56,6 +67,7 @@ export function CallInviteDialog({
 
   useEffect(() => {
     setInvite(null);
+    setEndState(null);
     setMessage("Sending call request…");
     if (pendingCall) createMut.mutate(pendingCall);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -86,14 +98,24 @@ export function CallInviteDialog({
         });
       } else if (next.status === "rejected") {
         done = true;
-        toast.info("Creator declined the call.");
-        onClose();
-      } else if (next.status === "cancelled" || next.status === "expired" || next.status === "missed") {
+        setEndState({
+          tone: "rejected",
+          title: "Call declined",
+          body: "The creator declined your call. Try someone else from Discover.",
+        });
+      } else if (next.status === "expired" || next.status === "missed") {
         done = true;
-        toast.info("Call was not answered. Try another creator.");
+        setEndState({
+          tone: "timeout",
+          title: "No answer",
+          body: "Creator didn't pick up in time. Try another creator who is online.",
+        });
+      } else if (next.status === "cancelled") {
+        done = true;
         onClose();
       }
     };
+
 
     const channel = supabase
       .channel(`outgoing-call-invite-${invite.id}`)
