@@ -258,10 +258,35 @@ export const applyCallUsage = createServerFn({ method: "POST" })
       .eq("id", data.callLogId)
       .maybeSingle();
     if (logErr) throw logErr;
-    if (!log || log.caller_id !== userId) {
+    if (!log) {
       return { ok: false, freeSeconds: null, balance: null, reason: "no-log" };
     }
-    const calleeId = log.callee_id as string;
+
+    // ---------- Resolve payer / earner ----------
+    // The CALLER is not always the payer: if the call was started by a
+    // creator to a regular user, the user (callee) pays and the creator
+    // (caller) earns. We look up is_creator for both sides and pick the
+    // non-creator as the payer (fallback: caller pays).
+    const { data: profs } = await supabaseAdmin
+      .from("profiles")
+      .select("id, is_creator")
+      .in("id", [log.caller_id, log.callee_id]);
+    const isCreatorMap = new Map<string, boolean>(
+      (profs ?? []).map((p: any) => [p.id, !!p.is_creator]),
+    );
+    const callerIsCreator = isCreatorMap.get(log.caller_id) ?? false;
+    const calleeIsCreator = isCreatorMap.get(log.callee_id) ?? false;
+    const payerId =
+      callerIsCreator && !calleeIsCreator ? log.callee_id : log.caller_id;
+    const earnerId = payerId === log.caller_id ? log.callee_id : log.caller_id;
+    const earnerIsCreator = earnerId === log.caller_id ? callerIsCreator : calleeIsCreator;
+
+    if (userId !== payerId) {
+      // Only the payer side may report usage — guards against an earner
+      // (creator) accidentally debiting themselves on a reconnect/refresh.
+      return { ok: false, freeSeconds: null, balance: null, reason: "not-payer" };
+    }
+
 
     const storedFree = Number(log.free_seconds_used ?? 0);
     const storedCoins = Number(log.coins_spent ?? 0);
