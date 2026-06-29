@@ -76,19 +76,13 @@ function seedHash(seed: string): number {
   return hash >>> 0;
 }
 
-// Photoreal-style portrait service (avatar.iran.liara.run) gives much more
-// attractive, modern, gender-aware portraits than DiceBear's illustrated
-// styles. Pool: 100 girls + 100 boys, deterministic by user id.
+// Photoreal portraits via randomuser.me CDN — reliable, deterministic,
+// gender-aware. Pool: 100 women + 100 men per gender.
 function premiumCreatorPortrait(seed: string, gender?: string | null): string {
   const h = seedHash(seed || "talkora");
-  if (gender === "male") {
-    const n = (h % 100) + 1;
-    return `https://avatar.iran.liara.run/public/boy?id=${n}`;
-  }
-  // Default to "girl" pool for female + unspecified creators since the
-  // platform skews female-creator. Still deterministic per user id.
-  const n = (h % 100) + 1;
-  return `https://avatar.iran.liara.run/public/girl?id=${n}`;
+  const n = h % 100;
+  const bucket = gender === "male" ? "men" : "women";
+  return `https://randomuser.me/api/portraits/${bucket}/${n}.jpg`;
 }
 
 export function aiAvatarUrl(
