@@ -648,11 +648,25 @@ function CallingCredentialsTab() {
                       ? `App ID: ${c.app_id_masked || "—"}`
                       : `Access key: ${c.access_key_masked || "—"} · Template: ${c.template_id_masked || "—"}`}
                   </p>
-                  <p className="text-[11px] text-muted-foreground">
-                    Usage: {c.minutes_used_current_month} min
-                    {c.monthly_quota_minutes ? ` / ${c.monthly_quota_minutes} min` : " (no quota set)"}
-                    {c.consecutive_failures > 0 && ` · ${c.consecutive_failures} fails`}
-                  </p>
+                  {(() => {
+                    const used = Number(c.minutes_used_current_month ?? 0);
+                    const quota = c.monthly_quota_minutes ? Number(c.monthly_quota_minutes) : null;
+                    const remaining = quota ? Math.max(quota - used, 0) : null;
+                    const pct = quota ? Math.min(100, Math.round((used / quota) * 100)) : 0;
+                    const tone = pct >= 90 ? "text-destructive" : pct >= 75 ? "text-amber-500" : "text-muted-foreground";
+                    return (
+                      <div className="mt-1 space-y-1">
+                        <p className="text-[11px] text-muted-foreground">
+                          Usage: {used.toLocaleString()} min
+                          {quota ? ` / ${quota.toLocaleString()} min` : " (no quota set)"}
+                          {quota && <span className={`ml-1 ${tone}`}>· {remaining!.toLocaleString()} min left</span>}
+                          {c.consecutive_failures > 0 && ` · ${c.consecutive_failures} fails`}
+                        </p>
+                        {quota && <Progress value={pct} className="h-1.5" />}
+                      </div>
+                    );
+                  })()}
+
                   {c.last_error && (
                     <p className="text-[11px] text-destructive truncate" title={c.last_error}>
                       Last error: {c.last_error}
