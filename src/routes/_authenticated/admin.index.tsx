@@ -31,6 +31,7 @@ import { BusyResetE2E } from "@/components/admin/BusyResetE2E";
 import { CallEndE2E } from "@/components/admin/CallEndE2E";
 import { ConcurrentCallE2E } from "@/components/admin/ConcurrentCallE2E";
 import { CreatorInitiatedCallE2E } from "@/components/admin/CreatorInitiatedCallE2E";
+import { CallFullscreenE2E } from "@/components/admin/CallFullscreenE2E";
 
 import { adminListKyc, adminReviewKyc, adminListWithdrawals, adminProcessWithdrawal, getKycDocUrl, adminListKycPurgeLog } from "@/lib/kyc.functions";
 import {
