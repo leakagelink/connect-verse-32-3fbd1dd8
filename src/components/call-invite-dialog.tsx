@@ -19,7 +19,9 @@ type InviteStatus = {
   callerId: string;
   calleeId: string;
   expiresAt: string;
+  deliveredAt: string | null;
 };
+
 
 export function CallInviteDialog({
   pendingCall,
