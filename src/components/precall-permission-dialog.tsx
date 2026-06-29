@@ -18,6 +18,7 @@ import {
   type PermState,
 } from "@/lib/native";
 import { toast } from "sonner";
+import { PreCallAudioTest } from "@/components/precall-audio-test";
 
 interface Props {
   open: boolean;
@@ -40,6 +41,8 @@ export function PrecallPermissionDialog({ open, kind, onCancel, onReady }: Props
   const [checking, setChecking] = useState(false);
   const [requesting, setRequesting] = useState(false);
   const [askedOnce, setAskedOnce] = useState(false);
+  /** Stage 2 audio test runs after permissions are granted. */
+  const [stage, setStage] = useState<"perm" | "audio">("perm");
 
   async function refresh() {
     setChecking(true);
@@ -56,6 +59,7 @@ export function PrecallPermissionDialog({ open, kind, onCancel, onReady }: Props
   useEffect(() => {
     if (!open) {
       setAskedOnce(false);
+      setStage("perm");
       return;
     }
     void refresh();
@@ -74,7 +78,7 @@ export function PrecallPermissionDialog({ open, kind, onCancel, onReady }: Props
       setAskedOnce(true);
       await refresh();
       if (res.granted) {
-        onReady();
+        setStage("audio");
         return;
       }
       if (res.reason === "mic-denied") toast.error("Microphone access denied.");
@@ -92,67 +96,93 @@ export function PrecallPermissionDialog({ open, kind, onCancel, onReady }: Props
     if (!ok) toast.info("Open Settings → Apps → Talkora → Permissions and enable Microphone" + (needsCamera ? " and Camera." : "."));
   }
 
+  // Auto-advance to the audio test as soon as the device reports all
+  // permissions are already granted (e.g. user previously allowed).
+  useEffect(() => {
+    if (open && stage === "perm" && allGranted && !checking) {
+      setStage("audio");
+    }
+  }, [open, stage, allGranted, checking]);
+
+
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!v) onCancel(); }}>
       <DialogContent className="max-w-sm">
-        <DialogHeader>
-          <DialogTitle>
-            {kind === "video" ? "Camera & Microphone check" : "Microphone check"}
-          </DialogTitle>
-          <DialogDescription>
-            Talkora needs access to start your {kind === "video" ? "video call" : "voice call"}.
-            Your media streams directly to your partner — we never record or store it.
-          </DialogDescription>
-        </DialogHeader>
+        {stage === "audio" ? (
+          <>
+            <DialogHeader>
+              <DialogTitle>Audio check</DialogTitle>
+              <DialogDescription>
+                Quick test so you don't end up on a silent call.
+              </DialogDescription>
+            </DialogHeader>
+            <PreCallAudioTest onPassed={onReady} onCancel={onCancel} />
+          </>
+        ) : (
+          <>
+            <DialogHeader>
+              <DialogTitle>
+                {kind === "video" ? "Camera & Microphone check" : "Microphone check"}
+              </DialogTitle>
+              <DialogDescription>
+                Talkora needs access to start your {kind === "video" ? "video call" : "voice call"}.
+                Your media streams directly to your partner — we never record or store it.
+              </DialogDescription>
+            </DialogHeader>
 
-        <div className="space-y-2">
-          <PermRow
-            icon={<Mic className="size-4" />}
-            label="Microphone"
-            state={mic}
-            checking={checking}
-          />
-          {needsCamera && (
-            <PermRow
-              icon={<VideoIcon className="size-4" />}
-              label="Camera"
-              state={camera}
-              checking={checking}
-            />
-          )}
-        </div>
+            <div className="space-y-2">
+              <PermRow
+                icon={<Mic className="size-4" />}
+                label="Microphone"
+                state={mic}
+                checking={checking}
+              />
+              {needsCamera && (
+                <PermRow
+                  icon={<VideoIcon className="size-4" />}
+                  label="Camera"
+                  state={camera}
+                  checking={checking}
+                />
+              )}
+            </div>
 
-        {anyDenied && (
-          <div className="flex gap-2 rounded-md border border-destructive/30 bg-destructive/10 p-3 text-xs text-destructive">
-            <AlertCircle className="size-4 shrink-0 mt-0.5" />
-            <p>
-              {askedOnce
-                ? "Permission was denied. Open Settings → Apps → Talkora → Permissions and enable"
-                : "We previously couldn't get permission. Tap Allow access to try again for"}
-              {needsCamera ? " Microphone and Camera." : " Microphone."}
-            </p>
-          </div>
+            {anyDenied && (
+              <div className="flex gap-2 rounded-md border border-destructive/30 bg-destructive/10 p-3 text-xs text-destructive">
+                <AlertCircle className="size-4 shrink-0 mt-0.5" />
+                <p>
+                  {askedOnce
+                    ? "Permission was denied. Open Settings → Apps → Talkora → Permissions and enable"
+                    : "We previously couldn't get permission. Tap Allow access to try again for"}
+                  {needsCamera ? " Microphone and Camera." : " Microphone."}
+                </p>
+              </div>
+            )}
+
+            <DialogFooter className="flex-col gap-2 sm:flex-col">
+              {allGranted ? (
+                <Button onClick={() => setStage("audio")} className="w-full">
+                  Continue to audio check
+                </Button>
+              ) : useSettingsCta ? (
+                <Button onClick={handleOpenSettings} className="w-full gap-2">
+                  <SettingsIcon className="size-4" /> Open app settings
+                </Button>
+              ) : (
+                <Button onClick={handleAllow} disabled={requesting || checking} className="w-full gap-2">
+                  {requesting ? <Loader2 className="size-4 animate-spin" /> : null}
+                  {askedOnce ? "Try again" : "Allow access"}
+                </Button>
+              )}
+              <Button variant="ghost" onClick={onCancel} className="w-full">Cancel</Button>
+            </DialogFooter>
+          </>
         )}
-
-        <DialogFooter className="flex-col gap-2 sm:flex-col">
-          {allGranted ? (
-            <Button onClick={onReady} className="w-full">Start {kind === "video" ? "video call" : "call"}</Button>
-          ) : useSettingsCta ? (
-            <Button onClick={handleOpenSettings} className="w-full gap-2">
-              <SettingsIcon className="size-4" /> Open app settings
-            </Button>
-          ) : (
-            <Button onClick={handleAllow} disabled={requesting || checking} className="w-full gap-2">
-              {requesting ? <Loader2 className="size-4 animate-spin" /> : null}
-              {askedOnce ? "Try again" : "Allow access"}
-            </Button>
-          )}
-          <Button variant="ghost" onClick={onCancel} className="w-full">Cancel</Button>
-        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
 }
+
 
 function PermRow({
   icon, label, state, checking,
