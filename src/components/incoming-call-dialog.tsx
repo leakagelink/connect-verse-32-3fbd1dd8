@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { PrecallPermissionDialog } from "@/components/precall-permission-dialog";
 import { supabase } from "@/integrations/supabase/client";
-import { acceptCallInvite, listIncomingCallInvites, rejectCallInvite } from "@/lib/call-invites.functions";
+import { acceptCallInvite, listIncomingCallInvites, markCallInviteDelivered, rejectCallInvite } from "@/lib/call-invites.functions";
 
 type IncomingInvite = {
   id: string;
