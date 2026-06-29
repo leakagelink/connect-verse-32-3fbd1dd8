@@ -24,7 +24,7 @@ import { SosButton } from "@/components/sos-button";
 import { SafetyTipOverlay } from "@/components/safety-tip-overlay";
 import { ModerationSampler } from "@/components/moderation-sampler";
 import { useScreenPrivacy } from "@/hooks/use-screen-privacy";
-import { onHardwareBack } from "@/lib/native";
+import { onHardwareBack, openAppSettings, requestCallPermissions, isNative } from "@/lib/native";
 import { CallPermissionGate } from "@/components/call-permission-gate";
 import { supabase } from "@/integrations/supabase/client";
 import { recordCallMetrics } from "@/lib/calling.functions";
