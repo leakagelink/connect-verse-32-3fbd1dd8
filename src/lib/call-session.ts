@@ -124,7 +124,7 @@ export async function connectCall(opts: {
                 queueMicrotask(() => session.attachRemoteVideo(user, _agoraRemoteEl ?? document.createElement("div")));
               }
             },
-            onRemoteLeft: () => opts.events.onRemoteLeft?.(),
+            onRemoteLeft: (_user, reason) => opts.events.onRemoteLeft?.(reason),
             onQuality: (q) => opts.events.onQuality?.(Math.max(q.uplinkNetworkQuality, q.downlinkNetworkQuality)),
             onDisconnected: opts.events.onDisconnected,
             onReconnected: opts.events.onReconnected,
