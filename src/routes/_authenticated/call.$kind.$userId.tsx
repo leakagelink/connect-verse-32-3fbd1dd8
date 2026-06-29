@@ -208,6 +208,11 @@ function CallScreen() {
   const [casePanelOpen, setCasePanelOpen] = useState(false);
   const [generating, setGenerating] = useState(false);
   const callRoleRef = useRef<"caller" | "callee" | null>(null);
+  // Whether the local user is the PAYER for this call. Server resolves this
+  // via resolveCallParties — a creator calling a regular user inverts the
+  // default (caller-pays) rule. Null until the invite status loads.
+  const amPayerRef = useRef<boolean | null>(null);
+  const [amPayerState, setAmPayerState] = useState<boolean | null>(null);
 
   // Realtime: share generated case_id between caller & callee using a deterministic channel
   useEffect(() => {
