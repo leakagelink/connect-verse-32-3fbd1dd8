@@ -1275,6 +1275,8 @@ export type Database = {
           follows: boolean
           gifts: boolean
           marketing: boolean
+          online_creators: boolean
+          online_followers: boolean
           system: boolean
           updated_at: string
           user_id: string
@@ -1285,6 +1287,8 @@ export type Database = {
           follows?: boolean
           gifts?: boolean
           marketing?: boolean
+          online_creators?: boolean
+          online_followers?: boolean
           system?: boolean
           updated_at?: string
           user_id: string
@@ -1295,6 +1299,8 @@ export type Database = {
           follows?: boolean
           gifts?: boolean
           marketing?: boolean
+          online_creators?: boolean
+          online_followers?: boolean
           system?: boolean
           updated_at?: string
           user_id?: string

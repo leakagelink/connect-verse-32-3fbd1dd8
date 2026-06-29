@@ -28,6 +28,7 @@ import { Route as AuthenticatedRechargeRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedRecentsRouteImport } from './routes/_authenticated/recents'
 import { Route as AuthenticatedOnboardingRouteImport } from './routes/_authenticated/onboarding'
 import { Route as AuthenticatedNotificationsRouteImport } from './routes/_authenticated/notifications'
+import { Route as AuthenticatedNotificationPreferencesRouteImport } from './routes/_authenticated/notification-preferences'
 import { Route as AuthenticatedNewJoinersRouteImport } from './routes/_authenticated/new-joiners'
 import { Route as AuthenticatedLeaderboardRouteImport } from './routes/_authenticated/leaderboard'
 import { Route as AuthenticatedHomeRouteImport } from './routes/_authenticated/home'
@@ -145,6 +146,12 @@ const AuthenticatedNotificationsRoute =
   AuthenticatedNotificationsRouteImport.update({
     id: '/notifications',
     path: '/notifications',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedNotificationPreferencesRoute =
+  AuthenticatedNotificationPreferencesRouteImport.update({
+    id: '/notification-preferences',
+    path: '/notification-preferences',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedNewJoinersRoute = AuthenticatedNewJoinersRouteImport.update({
@@ -297,6 +304,7 @@ export interface FileRoutesByFullPath {
   '/home': typeof AuthenticatedHomeRoute
   '/leaderboard': typeof AuthenticatedLeaderboardRoute
   '/new-joiners': typeof AuthenticatedNewJoinersRoute
+  '/notification-preferences': typeof AuthenticatedNotificationPreferencesRoute
   '/notifications': typeof AuthenticatedNotificationsRoute
   '/onboarding': typeof AuthenticatedOnboardingRoute
   '/recents': typeof AuthenticatedRecentsRoute
@@ -338,6 +346,7 @@ export interface FileRoutesByTo {
   '/home': typeof AuthenticatedHomeRoute
   '/leaderboard': typeof AuthenticatedLeaderboardRoute
   '/new-joiners': typeof AuthenticatedNewJoinersRoute
+  '/notification-preferences': typeof AuthenticatedNotificationPreferencesRoute
   '/notifications': typeof AuthenticatedNotificationsRoute
   '/onboarding': typeof AuthenticatedOnboardingRoute
   '/recents': typeof AuthenticatedRecentsRoute
@@ -383,6 +392,7 @@ export interface FileRoutesById {
   '/_authenticated/home': typeof AuthenticatedHomeRoute
   '/_authenticated/leaderboard': typeof AuthenticatedLeaderboardRoute
   '/_authenticated/new-joiners': typeof AuthenticatedNewJoinersRoute
+  '/_authenticated/notification-preferences': typeof AuthenticatedNotificationPreferencesRoute
   '/_authenticated/notifications': typeof AuthenticatedNotificationsRoute
   '/_authenticated/onboarding': typeof AuthenticatedOnboardingRoute
   '/_authenticated/recents': typeof AuthenticatedRecentsRoute
@@ -428,6 +438,7 @@ export interface FileRouteTypes {
     | '/home'
     | '/leaderboard'
     | '/new-joiners'
+    | '/notification-preferences'
     | '/notifications'
     | '/onboarding'
     | '/recents'
@@ -469,6 +480,7 @@ export interface FileRouteTypes {
     | '/home'
     | '/leaderboard'
     | '/new-joiners'
+    | '/notification-preferences'
     | '/notifications'
     | '/onboarding'
     | '/recents'
@@ -513,6 +525,7 @@ export interface FileRouteTypes {
     | '/_authenticated/home'
     | '/_authenticated/leaderboard'
     | '/_authenticated/new-joiners'
+    | '/_authenticated/notification-preferences'
     | '/_authenticated/notifications'
     | '/_authenticated/onboarding'
     | '/_authenticated/recents'
@@ -686,6 +699,13 @@ declare module '@tanstack/react-router' {
       path: '/notifications'
       fullPath: '/notifications'
       preLoaderRoute: typeof AuthenticatedNotificationsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/notification-preferences': {
+      id: '/_authenticated/notification-preferences'
+      path: '/notification-preferences'
+      fullPath: '/notification-preferences'
+      preLoaderRoute: typeof AuthenticatedNotificationPreferencesRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/new-joiners': {
@@ -887,6 +907,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedHomeRoute: typeof AuthenticatedHomeRoute
   AuthenticatedLeaderboardRoute: typeof AuthenticatedLeaderboardRoute
   AuthenticatedNewJoinersRoute: typeof AuthenticatedNewJoinersRoute
+  AuthenticatedNotificationPreferencesRoute: typeof AuthenticatedNotificationPreferencesRoute
   AuthenticatedNotificationsRoute: typeof AuthenticatedNotificationsRoute
   AuthenticatedOnboardingRoute: typeof AuthenticatedOnboardingRoute
   AuthenticatedRecentsRoute: typeof AuthenticatedRecentsRoute
@@ -914,6 +935,8 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedHomeRoute: AuthenticatedHomeRoute,
   AuthenticatedLeaderboardRoute: AuthenticatedLeaderboardRoute,
   AuthenticatedNewJoinersRoute: AuthenticatedNewJoinersRoute,
+  AuthenticatedNotificationPreferencesRoute:
+    AuthenticatedNotificationPreferencesRoute,
   AuthenticatedNotificationsRoute: AuthenticatedNotificationsRoute,
   AuthenticatedOnboardingRoute: AuthenticatedOnboardingRoute,
   AuthenticatedRecentsRoute: AuthenticatedRecentsRoute,
