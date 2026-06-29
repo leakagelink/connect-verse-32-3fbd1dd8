@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { ShieldCheck, BadgeCheck, Camera, Sparkles, Phone, Video, Lock, AlertTriangle, Loader2, RefreshCw, Radio, Trophy, Crown } from "lucide-react";
 import { getFanClubFor, joinFanClub } from "@/lib/creator.functions";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { PrecallPermissionDialog } from "@/components/precall-permission-dialog";
+import { requestCallPermissions } from "@/lib/native";
 
 
 type Props = {
