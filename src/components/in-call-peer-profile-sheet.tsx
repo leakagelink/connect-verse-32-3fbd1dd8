@@ -151,14 +151,39 @@ export function InCallPeerProfileSheet({ userId, open, onOpenChange }: Props) {
               </p>
             )}
 
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-2" data-testid="in-call-status-pills">
               {p.is_creator && (
                 <Badge variant="secondary" className="gap-1">
                   <BadgeCheck className="size-3" /> Verified creator
                 </Badge>
               )}
-              {data?.incoming === "accepted" && (
-                <Badge variant="secondary">Follows you</Badge>
+              {outgoing === "pending" && (
+                <Badge
+                  variant="outline"
+                  className="gap-1 border-amber-500/40 text-amber-600 dark:text-amber-400"
+                  data-testid="pill-outgoing-pending"
+                >
+                  <Send className="size-3" /> Friend request sent
+                </Badge>
+              )}
+              {outgoing === "accepted" && (
+                <Badge variant="secondary" className="gap-1" data-testid="pill-outgoing-accepted">
+                  <UserCheck className="size-3" /> You follow them
+                </Badge>
+              )}
+              {incoming === "pending" && (
+                <Badge
+                  variant="outline"
+                  className="gap-1 border-primary/40 text-primary"
+                  data-testid="pill-incoming-pending"
+                >
+                  <Inbox className="size-3" /> Sent you a request
+                </Badge>
+              )}
+              {incoming === "accepted" && (
+                <Badge variant="secondary" data-testid="pill-incoming-accepted">
+                  Follows you
+                </Badge>
               )}
             </div>
 
@@ -169,20 +194,25 @@ export function InCallPeerProfileSheet({ userId, open, onOpenChange }: Props) {
                   variant="secondary"
                   className="flex-1"
                   onClick={() => setConfirm("unfollow")}
-                  disabled={unfollowMut.isPending}
+                  disabled={mutating || requestPending}
                 >
                   <UserCheck className="size-4 mr-2" /> Following
                 </Button>
               ) : outgoing === "pending" ? (
-                <Button variant="secondary" className="flex-1" disabled>
-                  <Clock className="size-4 mr-2" /> Request sent
+                <Button
+                  variant="secondary"
+                  className="flex-1"
+                  disabled
+                  data-testid="in-call-request-pending-btn"
+                >
+                  <Clock className="size-4 mr-2" /> Request pending
                 </Button>
               ) : (
                 <Button
                   data-testid="in-call-follow-btn"
                   className="flex-1"
                   onClick={() => setConfirm("follow-request")}
-                  disabled={followMut.isPending}
+                  disabled={mutating || requestPending}
                 >
                   <UserPlus className="size-4 mr-2" />
                   {followMut.isPending ? "Sending…" : "Send friend request"}
