@@ -38,7 +38,10 @@ export function IncomingCallDialog({ disabled }: { disabled?: boolean }) {
     queryKey: ["incoming-call-invites"],
     queryFn: () => listFn(),
     enabled: !disabled,
-    refetchInterval: disabled ? false : 2500,
+    refetchInterval: disabled ? false : 1500,
+    refetchIntervalInBackground: true,
+    refetchOnWindowFocus: true,
+    refetchOnReconnect: true,
     staleTime: 0,
   });
 
@@ -46,6 +49,7 @@ export function IncomingCallDialog({ disabled }: { disabled?: boolean }) {
     if (disabled) return;
     let cancelled = false;
     let channel: ReturnType<typeof supabase.channel> | null = null;
+    const refresh = () => qc.invalidateQueries({ queryKey: ["incoming-call-invites"] });
     (async () => {
       const { data: u } = await supabase.auth.getUser();
       const uid = u.user?.id;
@@ -55,15 +59,48 @@ export function IncomingCallDialog({ disabled }: { disabled?: boolean }) {
         .on(
           "postgres_changes",
           { event: "*", schema: "public", table: "call_invites", filter: `callee_id=eq.${uid}` },
-          () => qc.invalidateQueries({ queryKey: ["incoming-call-invites"] }),
+          refresh,
         )
         .subscribe();
     })();
+    const onVisible = () => { if (document.visibilityState === "visible") refresh(); };
+    document.addEventListener("visibilitychange", onVisible);
+    window.addEventListener("focus", refresh);
     return () => {
       cancelled = true;
+      document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("focus", refresh);
       if (channel) supabase.removeChannel(channel);
     };
   }, [disabled, qc]);
+
+  // Ringtone + vibration when an invite arrives
+  useEffect(() => {
+    const first = (data ?? [])[0];
+    if (!first) return;
+    try {
+      if (typeof navigator !== "undefined" && "vibrate" in navigator) {
+        (navigator as any).vibrate?.([400, 200, 400, 200, 400]);
+      }
+      const AudioCtx = (window as any).AudioContext || (window as any).webkitAudioContext;
+      if (!AudioCtx) return;
+      const ctx = new AudioCtx();
+      const playBeep = (when: number) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.frequency.value = 880;
+        osc.connect(gain); gain.connect(ctx.destination);
+        gain.gain.setValueAtTime(0.0001, ctx.currentTime + when);
+        gain.gain.exponentialRampToValueAtTime(0.25, ctx.currentTime + when + 0.05);
+        gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + when + 0.5);
+        osc.start(ctx.currentTime + when);
+        osc.stop(ctx.currentTime + when + 0.55);
+      };
+      [0, 0.7, 1.4].forEach(playBeep);
+      return () => { try { ctx.close(); } catch {} };
+    } catch { /* ignore audio failures */ }
+  }, [data?.[0]?.id]);
+
 
   const invite = useMemo(() => (data ?? [])[0] as IncomingInvite | undefined, [data]);
 
