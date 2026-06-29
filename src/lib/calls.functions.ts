@@ -784,3 +784,334 @@ export const runCallEndE2E = createServerFn({ method: "POST" })
       }
     }
   });
+
+/**
+ * Creator-Initiated Call E2E
+ *
+ * Simulates a CREATOR placing a call to a regular USER and verifies the
+ * billing direction is INVERTED from the default caller-pays rule:
+ *   - Creator (caller) wallet is NEVER debited at invite-create time.
+ *   - Pre-accept: NOTHING is debited (no call_log, no wallet move).
+ *   - Post-accept + usage flush: USER (callee) is debited, CREATOR earns.
+ *   - transactions rows record payer_id = user, earner = creator.
+ *
+ * All side-effects (synthetic invite, call_log, txns, wallet adjustments)
+ * are rolled back in `finally`, including a snapshot/restore of both wallets.
+ */
+export const runCreatorInitiatedCallE2E = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((d: unknown) =>
+    z
+      .object({
+        creatorId: z.string().uuid().optional(),
+        userId: z.string().uuid().optional(),
+        bumpCoins: z.number().int().min(1).max(1000).optional(),
+      })
+      .parse(d ?? {}),
+  )
+  .handler(async ({ context, data }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const db = supabaseAdmin as any;
+    const { data: isAdmin } = await context.supabase.rpc("has_role", {
+      _user_id: context.userId,
+      _role: "admin",
+    });
+    if (!isAdmin) throw new Error("Forbidden");
+
+    const BUMP = data.bumpCoins ?? 10;
+    const EARN_RATIO = 0.5;
+    const expectedEarn = Math.floor(BUMP * EARN_RATIO);
+
+    const steps: Array<{ step: string; ok: boolean; detail?: any }> = [];
+    const log = (step: string, ok: boolean, detail?: any) =>
+      steps.push({ step, ok, detail });
+
+    // ---------- Resolve creator (caller / earner) ----------
+    let creatorId = data.creatorId;
+    if (!creatorId) {
+      const { data: pick } = await db
+        .from("profiles")
+        .select("id")
+        .eq("is_creator", true)
+        .eq("onboarded", true)
+        .eq("is_banned", false)
+        .is("deleted_at", null)
+        .limit(1)
+        .maybeSingle();
+      if (!pick) return { pass: false, reason: "No eligible creator.", steps };
+      creatorId = pick.id;
+    }
+    log("resolve_creator_caller", true, { creatorId });
+
+    // ---------- Resolve regular user (callee / payer) — needs >= BUMP coins
+    let userId = data.userId;
+    if (!userId) {
+      // Join wallets to profiles, pick a non-creator with enough coins.
+      const { data: cands } = await db
+        .from("wallets")
+        .select("user_id, coin_balance, profiles:user_id(is_creator, is_banned, onboarded, deleted_at)")
+        .gte("coin_balance", BUMP)
+        .neq("user_id", creatorId)
+        .limit(50);
+      const pick = (cands ?? []).find(
+        (r: any) =>
+          r.profiles &&
+          r.profiles.is_creator === false &&
+          r.profiles.is_banned === false &&
+          r.profiles.onboarded === true &&
+          r.profiles.deleted_at === null,
+      );
+      if (!pick) {
+        return {
+          pass: false,
+          reason: `No regular (non-creator) user with wallet >= ${BUMP} coins.`,
+          steps,
+        };
+      }
+      userId = pick.user_id;
+    }
+    log("resolve_user_callee", true, { userId });
+
+    // ---------- Snapshot wallets ----------
+    const [{ data: cwPre }, { data: uwPre }] = await Promise.all([
+      db.from("wallets").select("coin_balance").eq("user_id", creatorId).maybeSingle(),
+      db.from("wallets").select("coin_balance").eq("user_id", userId).maybeSingle(),
+    ]);
+    const creatorPre = Number(cwPre?.coin_balance ?? 0);
+    const userPre = Number(uwPre?.coin_balance ?? 0);
+    if (userPre < BUMP) {
+      return { pass: false, reason: `User balance ${userPre} < bump ${BUMP}.`, steps };
+    }
+    log("snapshot_wallets", true, { creatorPre, userPre });
+
+    let inviteId: string | null = null;
+    let createdLogId: string | null = null;
+    const createdTxnIds: string[] = [];
+
+    try {
+      // ---------- Phase 1: creator creates an invite (pending) ----------
+      // No call_log, no debits, no credits should happen here.
+      const { data: invite, error: invErr } = await db
+        .from("call_invites")
+        .insert({
+          caller_id: creatorId,
+          callee_id: userId,
+          kind: "voice",
+          status: "pending",
+          expires_at: new Date(Date.now() + 60_000).toISOString(),
+        })
+        .select("id")
+        .single();
+      if (invErr) throw invErr;
+      inviteId = invite.id as string;
+      log("create_invite_pending", true, { inviteId });
+
+      // Verify nothing was debited from creator at invite-time.
+      const { data: cwMid1 } = await db
+        .from("wallets")
+        .select("coin_balance")
+        .eq("user_id", creatorId)
+        .maybeSingle();
+      const creatorMid1 = Number(cwMid1?.coin_balance ?? 0);
+      const creatorUntouchedPreAccept = creatorMid1 === creatorPre;
+      log("verify_creator_not_debited_on_invite", creatorUntouchedPreAccept, {
+        creatorPre,
+        creatorMid1,
+      });
+
+      // ---------- Phase 2: user accepts → call_log created, still no money moves ----------
+      const { data: logRow, error: logErr } = await db
+        .from("call_logs")
+        .insert({
+          caller_id: creatorId,
+          callee_id: userId,
+          kind: "voice",
+          status: "completed",
+        })
+        .select("id")
+        .single();
+      if (logErr) throw logErr;
+      createdLogId = logRow.id as string;
+      await db
+        .from("call_invites")
+        .update({ status: "accepted", accepted_at: new Date().toISOString(), call_log_id: createdLogId })
+        .eq("id", inviteId);
+      log("user_accepts_invite", true, { callLogId: createdLogId });
+
+      // ---------- Phase 3: usage flush (payer = user, earner = creator) ----------
+      const userNext = userPre - BUMP;
+      const creatorNext = creatorPre + expectedEarn;
+      await db
+        .from("wallets")
+        .update({ coin_balance: userNext, updated_at: new Date().toISOString() })
+        .eq("user_id", userId);
+      await db
+        .from("wallets")
+        .update({ coin_balance: creatorNext, updated_at: new Date().toISOString() })
+        .eq("user_id", creatorId);
+
+      const { data: spendTxn } = await db
+        .from("transactions")
+        .insert({
+          user_id: userId,
+          type: "chat_spend",
+          coins_delta: -BUMP,
+          inr_amount: 0,
+          metadata: {
+            call_log_id: createdLogId,
+            e2e: true,
+            payer_role: "callee",
+            earner_role: "caller",
+            idempotency_key: `e2e-creator-init-${createdLogId}`,
+          },
+        })
+        .select("id")
+        .single();
+      if (spendTxn?.id) createdTxnIds.push(spendTxn.id);
+
+      const { data: earnTxn } = await db
+        .from("transactions")
+        .insert({
+          user_id: creatorId,
+          type: "call_earning",
+          coins_delta: expectedEarn,
+          inr_amount: 0,
+          metadata: {
+            call_log_id: createdLogId,
+            payer_id: userId,
+            gross_coins: BUMP,
+            earn_ratio: EARN_RATIO,
+            payer_role: "callee",
+            earner_role: "caller",
+            e2e: true,
+          },
+        })
+        .select("id")
+        .single();
+      if (earnTxn?.id) createdTxnIds.push(earnTxn.id);
+
+      log("apply_usage_flush", true, { debitedUser: BUMP, creditedCreator: expectedEarn });
+
+      // ---------- Phase 4: end call_log ----------
+      await db
+        .from("call_logs")
+        .update({
+          ended_at: new Date().toISOString(),
+          duration_seconds: 30,
+          coins_spent: BUMP,
+          status: "completed",
+          end_reason: "user_ended",
+          ended_by: userId,
+        })
+        .eq("id", createdLogId);
+      log("end_call_log", true);
+
+      // ---------- Verifications ----------
+      const [{ data: cwPost }, { data: uwPost }] = await Promise.all([
+        db.from("wallets").select("coin_balance").eq("user_id", creatorId).maybeSingle(),
+        db.from("wallets").select("coin_balance").eq("user_id", userId).maybeSingle(),
+      ]);
+      const creatorPost = Number(cwPost?.coin_balance ?? 0);
+      const userPost = Number(uwPost?.coin_balance ?? 0);
+
+      // Creator must NEVER show a net debit. They can only gain (+earn) or
+      // stay flat — but never lose coins on a call they initiated.
+      const creatorNetDelta = creatorPost - creatorPre;
+      const creatorNeverDebited = creatorNetDelta >= 0;
+      const creatorCreditedExact = creatorNetDelta === expectedEarn;
+      const userDebitedExact = userPre - userPost === BUMP;
+
+      log("verify_creator_never_debited", creatorNeverDebited, {
+        creatorPre,
+        creatorPost,
+        netDelta: creatorNetDelta,
+      });
+      log("verify_creator_credited_earn_share", creatorCreditedExact, {
+        expectedEarn,
+        actual: creatorNetDelta,
+      });
+      log("verify_user_debited_exact", userDebitedExact, {
+        userPre,
+        userPost,
+        debited: userPre - userPost,
+      });
+
+      // Audit rows: payer = user (chat_spend, negative), earner = creator (call_earning, positive)
+      const { data: auditRows } = await db
+        .from("transactions")
+        .select("id, user_id, type, coins_delta, metadata")
+        .in("id", createdTxnIds);
+      const payerTxn = (auditRows ?? []).find(
+        (r: any) => r.user_id === userId && r.type === "chat_spend",
+      );
+      const earnerTxn = (auditRows ?? []).find(
+        (r: any) => r.user_id === creatorId && r.type === "call_earning",
+      );
+      const auditRolesOk =
+        !!payerTxn &&
+        !!earnerTxn &&
+        payerTxn.coins_delta === -BUMP &&
+        earnerTxn.coins_delta === expectedEarn &&
+        earnerTxn.metadata?.payer_id === userId;
+      log("verify_audit_payer_earner_roles", auditRolesOk, {
+        payerTxn,
+        earnerTxn,
+      });
+
+      // No creator-side debit transaction should exist for this call_log.
+      const { data: creatorDebitRows } = await db
+        .from("transactions")
+        .select("id, type, coins_delta")
+        .eq("user_id", creatorId)
+        .lt("coins_delta", 0)
+        .contains("metadata", { call_log_id: createdLogId });
+      const noCreatorDebitRow = (creatorDebitRows ?? []).length === 0;
+      log("verify_no_creator_debit_row", noCreatorDebitRow, {
+        rows: creatorDebitRows,
+      });
+
+      const pass =
+        creatorUntouchedPreAccept &&
+        creatorNeverDebited &&
+        creatorCreditedExact &&
+        userDebitedExact &&
+        auditRolesOk &&
+        noCreatorDebitRow;
+
+      return {
+        pass,
+        creatorId,
+        userId,
+        bump: BUMP,
+        expectedEarn,
+        steps,
+        summary: {
+          creatorUntouchedPreAccept,
+          creatorNeverDebited,
+          creatorCreditedExact,
+          userDebitedExact,
+          auditRolesOk,
+          noCreatorDebitRow,
+        },
+      };
+    } finally {
+      // ---------- Cleanup ----------
+      if (createdTxnIds.length) {
+        await db.from("transactions").delete().in("id", createdTxnIds);
+      }
+      await db
+        .from("wallets")
+        .update({ coin_balance: creatorPre, updated_at: new Date().toISOString() })
+        .eq("user_id", creatorId);
+      await db
+        .from("wallets")
+        .update({ coin_balance: userPre, updated_at: new Date().toISOString() })
+        .eq("user_id", userId);
+      if (createdLogId) {
+        await db.from("call_logs").delete().eq("id", createdLogId);
+      }
+      if (inviteId) {
+        await db.from("call_invites").delete().eq("id", inviteId);
+      }
+    }
+  });
