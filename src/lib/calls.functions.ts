@@ -335,6 +335,7 @@ export type RecentCall = {
   duration_seconds: number;
   coins_spent: number;
   status: "completed" | "missed" | "cancelled";
+  missed_reason: "expired" | "caller_cancelled" | "callee_rejected" | null;
   partner: {
     id: string;
     username: string | null;
@@ -351,7 +352,7 @@ export const listRecentCalls = createServerFn({ method: "GET" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data, error } = await supabase
       .from("call_logs")
-      .select("id, kind, caller_id, callee_id, started_at, ended_at, duration_seconds, coins_spent, status")
+      .select("id, kind, caller_id, callee_id, started_at, ended_at, duration_seconds, coins_spent, status, missed_reason")
       .or(`caller_id.eq.${userId},callee_id.eq.${userId}`)
       .order("started_at", { ascending: false })
       .limit(100);
@@ -372,7 +373,7 @@ export const listRecentCalls = createServerFn({ method: "GET" })
       profilesById = new Map(withAiAvatars(profs ?? []).map((p) => [p.id as string, p]));
     }
 
-    return (data ?? []).map((r) => {
+    return (data ?? []).map((r: any) => {
       const partnerId = r.caller_id === userId ? r.callee_id : r.caller_id;
       const p = profilesById.get(partnerId) ?? {};
       return {
@@ -384,6 +385,7 @@ export const listRecentCalls = createServerFn({ method: "GET" })
         duration_seconds: r.duration_seconds,
         coins_spent: r.coins_spent,
         status: r.status as "completed" | "missed" | "cancelled",
+        missed_reason: (r.missed_reason ?? null) as RecentCall["missed_reason"],
         partner: {
           id: partnerId,
           username: p.username ?? null,

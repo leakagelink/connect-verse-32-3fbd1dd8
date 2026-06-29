@@ -100,6 +100,21 @@ function CallList({ items, loading }: { items: RecentCall[]; loading: boolean })
   );
 }
 
+function missedReasonLabel(call: RecentCall): string | null {
+  if (call.status !== "missed") return null;
+  const outgoing = call.direction === "outgoing";
+  switch (call.missed_reason) {
+    case "expired":
+      return outgoing ? "No answer" : "Missed — rang out";
+    case "caller_cancelled":
+      return outgoing ? "You cancelled" : "Caller cancelled";
+    case "callee_rejected":
+      return outgoing ? "Declined" : "You declined";
+    default:
+      return outgoing ? "No answer" : "Missed";
+  }
+}
+
 function CallRow({ call }: { call: RecentCall }) {
   const KindIcon = call.kind === "video" ? VideoIcon : Mic;
   const isMissed = call.status === "missed";
@@ -109,9 +124,15 @@ function CallRow({ call }: { call: RecentCall }) {
     : call.direction === "outgoing"
     ? "text-primary"
     : "text-emerald-500";
+  const reason = missedReasonLabel(call);
+  const primaryLabel = isMissed
+    ? reason ?? "Missed"
+    : call.direction === "outgoing"
+    ? "Outgoing"
+    : "Incoming";
 
   return (
-    <Card className="glass p-3 flex items-center gap-3">
+    <Card className={`glass p-3 flex items-center gap-3 ${isMissed ? "border-destructive/30" : ""}`}>
       <div className="size-11 rounded-full brand-gradient flex items-center justify-center text-primary-foreground font-bold shrink-0 overflow-hidden">
         {call.partner.avatar_url ? (
           <img src={call.partner.avatar_url} alt="" className="size-full object-cover" />
@@ -121,20 +142,28 @@ function CallRow({ call }: { call: RecentCall }) {
       </div>
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-1.5">
-          <p className="font-semibold truncate">{call.partner.username ?? "Unknown"}</p>
+          <p className={`font-semibold truncate ${isMissed ? "text-destructive" : ""}`}>
+            {call.partner.username ?? "Unknown"}
+          </p>
           <KindIcon className="size-3.5 text-muted-foreground shrink-0" />
         </div>
-        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+        <div className="flex items-center gap-1.5 text-xs text-muted-foreground flex-wrap">
           <DirIcon className={`size-3.5 ${dirColor}`} />
-          <span className="capitalize">{isMissed ? "Missed" : call.direction}</span>
+          <span className={isMissed ? "text-destructive font-medium" : ""}>{primaryLabel}</span>
           <span>·</span>
           <span>{fmtWhen(call.started_at)}</span>
         </div>
       </div>
       <div className="text-right shrink-0">
-        <div className="flex items-center justify-end gap-1 text-xs font-medium">
-          <Clock className="size-3" /> {fmtDuration(call.duration_seconds)}
-        </div>
+        {isMissed ? (
+          <Badge variant="outline" className="border-destructive/40 text-destructive text-[10px] py-0 px-1.5">
+            Missed
+          </Badge>
+        ) : (
+          <div className="flex items-center justify-end gap-1 text-xs font-medium">
+            <Clock className="size-3" /> {fmtDuration(call.duration_seconds)}
+          </div>
+        )}
         {call.coins_spent > 0 && (
           <div className="flex items-center justify-end gap-1 text-[11px] text-coin mt-0.5">
             <Coins className="size-3" /> {call.coins_spent}

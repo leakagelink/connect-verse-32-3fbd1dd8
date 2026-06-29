@@ -67,7 +67,9 @@ async function expireIfNeeded(db: any, invite: any) {
     .select("*")
     .maybeSingle();
   if (data) {
-    // Real pending -> expired transition: notify the callee about the missed call.
+    // Real pending -> expired transition: log a missed-call history entry
+    // for BOTH parties and push-notify the callee.
+    await recordMissedCallLog(db, data, "expired").catch(() => {});
     await sendMissedCallNotification(db, data).catch(() => {});
   }
   return data ?? { ...invite, status: "expired" };
@@ -86,8 +88,44 @@ async function sendMissedCallNotification(db: any, invite: any) {
     kind: "calls",
     title: `Missed ${isVideo ? "video" : "audio"} call`,
     body: `${name} tried to call you.`,
-    deepLink: `/calls`,
+    deepLink: `/recents`,
   });
+}
+
+/**
+ * Persist a `call_logs` row for a missed call so it appears in the Recents
+ * (call history) screen for both the caller (outgoing-no-answer) and the
+ * callee (incoming-missed). De-duplicated by `call_invites.call_log_id` so
+ * repeated state transitions can't double-insert.
+ */
+async function recordMissedCallLog(
+  db: any,
+  invite: any,
+  reason: "expired" | "caller_cancelled" | "callee_rejected",
+) {
+  if (invite?.call_log_id) return; // already logged (real call happened)
+  const { data: log, error } = await db
+    .from("call_logs")
+    .insert({
+      caller_id: invite.caller_id,
+      callee_id: invite.callee_id,
+      kind: invite.kind,
+      status: "missed",
+      missed_reason: reason,
+      started_at: invite.created_at ?? new Date().toISOString(),
+      ended_at: new Date().toISOString(),
+      duration_seconds: 0,
+      coins_spent: 0,
+    })
+    .select("id")
+    .single();
+  if (!error && log?.id) {
+    await db
+      .from("call_invites")
+      .update({ call_log_id: log.id })
+      .eq("id", invite.id)
+      .is("call_log_id", null);
+  }
 }
 
 function statusDto(invite: any, userId: string, log?: any) {
@@ -344,13 +382,19 @@ export const rejectCallInvite = createServerFn({ method: "POST" })
     const db = supabaseAdmin as any;
     const { data: invite } = await db.from("call_invites").select("*").eq("id", data.inviteId).maybeSingle();
     if (!invite || invite.callee_id !== context.userId) throw new Error("Call invite not found.");
-    await db
+    const { data: rejected } = await db
       .from("call_invites")
       .update({ status: "rejected", rejected_at: new Date().toISOString() })
       .eq("id", data.inviteId)
-      .eq("status", "pending");
+      .eq("status", "pending")
+      .select("*")
+      .maybeSingle();
     // Dismiss the lock-screen UI on the callee's other devices.
     await notifyCallEnded({ calleeId: invite.callee_id, inviteId: invite.id }).catch(() => ({ pushed: 0 }));
+    // Log a missed-call history entry tagged with the rejection reason.
+    if (rejected) {
+      await recordMissedCallLog(db, rejected, "callee_rejected").catch(() => {});
+    }
     return { ok: true };
   });
 
@@ -373,6 +417,7 @@ export const cancelCallInvite = createServerFn({ method: "POST" })
     await notifyCallEnded({ calleeId: invite.callee_id, inviteId: invite.id }).catch(() => ({ pushed: 0 }));
     // If the ring actually reached the callee's device, surface it as a missed call.
     if (cancelled && invite.delivered_at) {
+      await recordMissedCallLog(db, cancelled, "caller_cancelled").catch(() => {});
       await sendMissedCallNotification(db, cancelled).catch(() => {});
     }
     return { ok: true };
