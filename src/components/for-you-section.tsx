@@ -34,7 +34,7 @@ export function ForYouSection({
         <Badge variant="secondary" className="text-[10px]">Personalized</Badge>
       </div>
       <div className="grid gap-3 sm:grid-cols-2">
-        {data.slice(0, 6).map((u: any) => (
+        {list.map((u: any) => (
           <Card key={u.id} className="glass p-3 flex items-center gap-3">
             <div className="relative">
               <Avatar className="size-11">
