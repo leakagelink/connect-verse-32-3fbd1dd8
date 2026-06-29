@@ -171,6 +171,24 @@ function Settings() {
         <PermissionDebugPanel />
       </div>
 
+      {/* Call reliability diagnostics */}
+      <Card className="glass mt-4 p-4">
+        <Link
+          to="/diagnostics"
+          className="flex items-center gap-3"
+          aria-label="Open call reliability diagnostics"
+        >
+          <Shield className="size-4 text-primary" />
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-semibold">Call reliability diagnostics</p>
+            <p className="text-xs text-muted-foreground">
+              Check notifications, full-screen calls, battery, and recent missed calls.
+            </p>
+          </div>
+          <ChevronRight className="size-4 text-muted-foreground" />
+        </Link>
+      </Card>
+
 
 
       {/* Blocked users */}

@@ -31,6 +31,7 @@ import { Route as AuthenticatedNotificationsRouteImport } from './routes/_authen
 import { Route as AuthenticatedNewJoinersRouteImport } from './routes/_authenticated/new-joiners'
 import { Route as AuthenticatedLeaderboardRouteImport } from './routes/_authenticated/leaderboard'
 import { Route as AuthenticatedHomeRouteImport } from './routes/_authenticated/home'
+import { Route as AuthenticatedDiagnosticsRouteImport } from './routes/_authenticated/diagnostics'
 import { Route as AuthenticatedDataExportRouteImport } from './routes/_authenticated/data-export'
 import { Route as AuthenticatedCreatorDashboardRouteImport } from './routes/_authenticated/creator-dashboard'
 import { Route as AuthenticatedConnectRouteImport } from './routes/_authenticated/connect'
@@ -162,6 +163,12 @@ const AuthenticatedHomeRoute = AuthenticatedHomeRouteImport.update({
   path: '/home',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedDiagnosticsRoute =
+  AuthenticatedDiagnosticsRouteImport.update({
+    id: '/diagnostics',
+    path: '/diagnostics',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedDataExportRoute = AuthenticatedDataExportRouteImport.update({
   id: '/data-export',
   path: '/data-export',
@@ -286,6 +293,7 @@ export interface FileRoutesByFullPath {
   '/connect': typeof AuthenticatedConnectRoute
   '/creator-dashboard': typeof AuthenticatedCreatorDashboardRoute
   '/data-export': typeof AuthenticatedDataExportRoute
+  '/diagnostics': typeof AuthenticatedDiagnosticsRoute
   '/home': typeof AuthenticatedHomeRoute
   '/leaderboard': typeof AuthenticatedLeaderboardRoute
   '/new-joiners': typeof AuthenticatedNewJoinersRoute
@@ -326,6 +334,7 @@ export interface FileRoutesByTo {
   '/connect': typeof AuthenticatedConnectRoute
   '/creator-dashboard': typeof AuthenticatedCreatorDashboardRoute
   '/data-export': typeof AuthenticatedDataExportRoute
+  '/diagnostics': typeof AuthenticatedDiagnosticsRoute
   '/home': typeof AuthenticatedHomeRoute
   '/leaderboard': typeof AuthenticatedLeaderboardRoute
   '/new-joiners': typeof AuthenticatedNewJoinersRoute
@@ -370,6 +379,7 @@ export interface FileRoutesById {
   '/_authenticated/connect': typeof AuthenticatedConnectRoute
   '/_authenticated/creator-dashboard': typeof AuthenticatedCreatorDashboardRoute
   '/_authenticated/data-export': typeof AuthenticatedDataExportRoute
+  '/_authenticated/diagnostics': typeof AuthenticatedDiagnosticsRoute
   '/_authenticated/home': typeof AuthenticatedHomeRoute
   '/_authenticated/leaderboard': typeof AuthenticatedLeaderboardRoute
   '/_authenticated/new-joiners': typeof AuthenticatedNewJoinersRoute
@@ -414,6 +424,7 @@ export interface FileRouteTypes {
     | '/connect'
     | '/creator-dashboard'
     | '/data-export'
+    | '/diagnostics'
     | '/home'
     | '/leaderboard'
     | '/new-joiners'
@@ -454,6 +465,7 @@ export interface FileRouteTypes {
     | '/connect'
     | '/creator-dashboard'
     | '/data-export'
+    | '/diagnostics'
     | '/home'
     | '/leaderboard'
     | '/new-joiners'
@@ -497,6 +509,7 @@ export interface FileRouteTypes {
     | '/_authenticated/connect'
     | '/_authenticated/creator-dashboard'
     | '/_authenticated/data-export'
+    | '/_authenticated/diagnostics'
     | '/_authenticated/home'
     | '/_authenticated/leaderboard'
     | '/_authenticated/new-joiners'
@@ -696,6 +709,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedHomeRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/diagnostics': {
+      id: '/_authenticated/diagnostics'
+      path: '/diagnostics'
+      fullPath: '/diagnostics'
+      preLoaderRoute: typeof AuthenticatedDiagnosticsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/data-export': {
       id: '/_authenticated/data-export'
       path: '/data-export'
@@ -863,6 +883,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedConnectRoute: typeof AuthenticatedConnectRoute
   AuthenticatedCreatorDashboardRoute: typeof AuthenticatedCreatorDashboardRoute
   AuthenticatedDataExportRoute: typeof AuthenticatedDataExportRoute
+  AuthenticatedDiagnosticsRoute: typeof AuthenticatedDiagnosticsRoute
   AuthenticatedHomeRoute: typeof AuthenticatedHomeRoute
   AuthenticatedLeaderboardRoute: typeof AuthenticatedLeaderboardRoute
   AuthenticatedNewJoinersRoute: typeof AuthenticatedNewJoinersRoute
@@ -889,6 +910,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedConnectRoute: AuthenticatedConnectRoute,
   AuthenticatedCreatorDashboardRoute: AuthenticatedCreatorDashboardRoute,
   AuthenticatedDataExportRoute: AuthenticatedDataExportRoute,
+  AuthenticatedDiagnosticsRoute: AuthenticatedDiagnosticsRoute,
   AuthenticatedHomeRoute: AuthenticatedHomeRoute,
   AuthenticatedLeaderboardRoute: AuthenticatedLeaderboardRoute,
   AuthenticatedNewJoinersRoute: AuthenticatedNewJoinersRoute,
