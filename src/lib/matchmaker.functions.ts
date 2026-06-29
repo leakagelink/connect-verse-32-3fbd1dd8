@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { withAiAvatar, withAiAvatars } from "./ai-avatar";
 
 /** Generate a unique short Agora channel name for a matchmaker room. */
 function makeChannel(): string {
@@ -46,6 +47,7 @@ export const listLiveMatchmakerRooms = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const { supabase } = context;
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: rooms } = await supabase
       .from("matchmaker_rooms")
       .select("id, title, topic, agora_channel, listener_count, candidate_count, started_at, host_id")
@@ -54,11 +56,14 @@ export const listLiveMatchmakerRooms = createServerFn({ method: "GET" })
       .limit(30);
     if (!rooms?.length) return [];
     const hostIds = rooms.map((r) => r.host_id);
-    const { data: hosts } = await supabase
+    const { data: hosts } = await supabaseAdmin
       .from("profiles")
-      .select("id, username, avatar_url, country, language")
-      .in("id", hostIds);
-    const hostMap = new Map((hosts ?? []).map((h) => [h.id, h]));
+      .select("id, username, avatar_url, ai_avatar_style, gender, country, language, is_banned, onboarded, deleted_at")
+      .in("id", hostIds)
+      .eq("is_banned", false)
+      .eq("onboarded", true)
+      .is("deleted_at", null);
+    const hostMap = new Map(withAiAvatars(hosts ?? []).map((h) => [h.id, h]));
     return rooms.map((r) => ({ ...r, host: hostMap.get(r.host_id) ?? null }));
   });
 
@@ -68,6 +73,7 @@ export const getMatchmakerRoom = createServerFn({ method: "POST" })
   .validator((d: unknown) => z.object({ roomId: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: room } = await supabase
       .from("matchmaker_rooms")
       .select("*")
@@ -87,27 +93,33 @@ export const getMatchmakerRoom = createServerFn({ method: "POST" })
         .eq("room_id", data.roomId)
         .eq("voter_id", userId)
         .maybeSingle(),
-      supabase
+      supabaseAdmin
         .from("profiles")
-        .select("id, username, avatar_url, gender, country, language")
+        .select("id, username, avatar_url, ai_avatar_style, gender, country, language, is_banned, onboarded, deleted_at")
         .eq("id", room.host_id)
+        .eq("is_banned", false)
+        .eq("onboarded", true)
+        .is("deleted_at", null)
         .maybeSingle(),
     ]);
 
     let candidateProfiles: any[] = [];
     if (candidates?.length) {
       const ids = candidates.map((c) => c.user_id);
-      const { data: profs } = await supabase
+      const { data: profs } = await supabaseAdmin
         .from("profiles")
-        .select("id, username, avatar_url, country, language")
-        .in("id", ids);
-      const pmap = new Map((profs ?? []).map((p) => [p.id, p]));
+        .select("id, username, avatar_url, ai_avatar_style, gender, country, language, is_banned, onboarded, deleted_at")
+        .in("id", ids)
+        .eq("is_banned", false)
+        .eq("onboarded", true)
+        .is("deleted_at", null);
+      const pmap = new Map(withAiAvatars(profs ?? []).map((p) => [p.id, p]));
       candidateProfiles = candidates.map((c) => ({ ...c, profile: pmap.get(c.user_id) ?? null }));
     }
 
     return {
       room,
-      host,
+      host: withAiAvatar(host),
       candidates: candidateProfiles,
       myVote: myVote ?? null,
       isHost: room.host_id === userId,
