@@ -1131,6 +1131,134 @@ function CallScreen() {
     }
   }
 
+  // Call-usage E2E. Verifies that a single applyCallUsage flush:
+  //   * debits ONLY the caller's wallet by the requested coin delta
+  //   * credits the callee's wallet by floor(delta * CREATOR_EARN_RATIO=0.5)
+  //   * leaves the other party's wallet untouched by the inverse op
+  // Runs only when a live call_log exists. Uses a unique idempotency key
+  // and a small bump (default 10 coins) so it can run mid-call without
+  // double-billing — the live billing loop's next flush will see no delta
+  // until its own counters surpass the new stored total.
+  async function runCallUsageE2E() {
+    if (e2eRunning) return;
+    const callLogId = callLogIdRef.current;
+    const tag = "[call-usage-e2e]";
+    if (!callLogId) {
+      toast.error("Call usage E2E: no active call log yet");
+      return;
+    }
+    setE2eRunning(true);
+    const t0 = Date.now();
+    try {
+      const peerPre = await getPeerWalletsFn({ data: { callLogId } });
+      if (!peerPre.ok) {
+        const msg = `peer wallets unavailable: ${peerPre.reason}`;
+        setCallE2eResult({ ok: false, summary: `FAIL · ${msg}`, details: { peerPre }, at: Date.now() });
+        toast.error(`Call usage E2E: ${msg}`);
+        return;
+      }
+      // Only the caller side may run this — applyCallUsage authorizes as caller.
+      if (peerPre.callerId !== myId) {
+        const msg = "only the caller side can run this test";
+        setCallE2eResult({ ok: false, summary: `SKIP · ${msg}`, details: { peerPre, myId }, at: Date.now() });
+        toast.message(`Call usage E2E skipped — ${msg}`);
+        return;
+      }
+      const BUMP = 10; // coins to charge in this synthetic flush
+      const EARN_RATIO = 0.5;
+      const expectedCallerDelta = BUMP;
+      const expectedCalleeEarn = Math.floor(BUMP * EARN_RATIO);
+      if (peerPre.callerBalance < BUMP) {
+        const msg = `caller balance ${peerPre.callerBalance} < ${BUMP}`;
+        setCallE2eResult({ ok: false, summary: `SKIP · ${msg}`, details: { peerPre }, at: Date.now() });
+        toast.message(`Call usage E2E skipped — ${msg}`);
+        return;
+      }
+
+      const probeKey = `e2e-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+      const totalCoinsToSend = peerPre.storedCoinsSpent + BUMP;
+      const elapsedToSend = peerPre.storedDuration + 1;
+      console.log(`${tag} start`, {
+        callLogId, probeKey, BUMP, expectedCalleeEarn,
+        callerPre: peerPre.callerBalance, calleePre: peerPre.calleeBalance,
+        storedCoinsSpent: peerPre.storedCoinsSpent,
+      });
+
+      const applyRes = await applyUsageFn({
+        data: {
+          callLogId,
+          idempotencyKey: probeKey,
+          totalFreeSeconds: peerPre.storedFreeUsed,
+          totalCoins: totalCoinsToSend,
+          elapsedSeconds: elapsedToSend,
+        },
+      });
+      const appliedAt = Date.now();
+      // Important: keep the live billing loop in sync so its next flush
+      // doesn't try to re-bill the same coins we just consumed via the test.
+      syncedCoinsRef.current = Math.max(syncedCoinsRef.current, totalCoinsToSend);
+
+      const peerPost = await getPeerWalletsFn({ data: { callLogId } });
+      if (!peerPost.ok) throw new Error(`post peer read failed: ${peerPost.reason}`);
+
+      const callerDelta = peerPre.callerBalance - peerPost.callerBalance;
+      const calleeDelta = peerPost.calleeBalance - peerPre.calleeBalance;
+
+      const checks = {
+        applyOk: applyRes && (applyRes as { ok?: boolean }).ok === true,
+        callerDebitedExact: callerDelta === expectedCallerDelta,
+        calleeCreditedExact: calleeDelta === expectedCalleeEarn,
+        callerNotCredited: callerDelta >= 0,
+        calleeNotDebited: calleeDelta >= 0,
+        storedCoinsAdvanced: peerPost.storedCoinsSpent === totalCoinsToSend,
+      };
+      const allOk = Object.values(checks).every(Boolean);
+      const details = {
+        probeKey,
+        bump: BUMP,
+        earnRatio: EARN_RATIO,
+        expectedCallerDelta,
+        expectedCalleeEarn,
+        callerPre: peerPre.callerBalance,
+        callerPost: peerPost.callerBalance,
+        callerDelta,
+        calleePre: peerPre.calleeBalance,
+        calleePost: peerPost.calleeBalance,
+        calleeDelta,
+        storedCoinsPre: peerPre.storedCoinsSpent,
+        storedCoinsPost: peerPost.storedCoinsSpent,
+        applyResponse: applyRes,
+        applyMs: appliedAt - t0,
+        totalMs: Date.now() - t0,
+        checks,
+      };
+      console.log(`${tag} ${allOk ? "PASS" : "FAIL"}`, details);
+      setCallE2eResult({
+        ok: allOk,
+        summary: allOk
+          ? `PASS · caller -${callerDelta} · creator +${calleeDelta}`
+          : `FAIL · caller Δ${callerDelta} (exp -${expectedCallerDelta}) · creator Δ${calleeDelta} (exp +${expectedCalleeEarn})`,
+        details,
+        at: Date.now(),
+      });
+      toast[allOk ? "success" : "error"](`Call usage E2E ${allOk ? "passed" : "failed"} — check console`);
+      qc.invalidateQueries({ queryKey: ["wallet"] });
+      qc.invalidateQueries({ queryKey: ["me"] });
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      console.error(`${tag} ERROR`, msg);
+      setCallE2eResult({ ok: false, summary: `ERROR · ${msg}`, details: { error: msg }, at: Date.now() });
+      toast.error(`Call usage E2E error: ${msg}`);
+    } finally {
+      setE2eRunning(false);
+    }
+  }
+
+
+
+
+
+
 
 
 
