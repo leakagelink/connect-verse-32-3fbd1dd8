@@ -37,6 +37,7 @@ import { Route as AuthenticatedConnectRouteImport } from './routes/_authenticate
 import { Route as AuthenticatedChatRouteImport } from './routes/_authenticated/chat'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
 import { Route as AuthenticatedAccountDeleteRouteImport } from './routes/_authenticated/account-delete'
+import { Route as _e2eCallFullscreenRouteImport } from './routes/__e2e.call-fullscreen'
 import { Route as AuthenticatedChatIndexRouteImport } from './routes/_authenticated/chat.index'
 import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authenticated/admin.index'
 import { Route as ApiPublicRazorpayWebhookRouteImport } from './routes/api/public/razorpay-webhook'
@@ -193,6 +194,11 @@ const AuthenticatedAccountDeleteRoute =
     path: '/account-delete',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const _e2eCallFullscreenRoute = _e2eCallFullscreenRouteImport.update({
+  id: '/__e2e/call-fullscreen',
+  path: '/call-fullscreen',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthenticatedChatIndexRoute = AuthenticatedChatIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -273,6 +279,7 @@ export interface FileRoutesByFullPath {
   '/refund-policy': typeof RefundPolicyRoute
   '/safety': typeof SafetyRoute
   '/terms': typeof TermsRoute
+  '/call-fullscreen': typeof _e2eCallFullscreenRoute
   '/account-delete': typeof AuthenticatedAccountDeleteRoute
   '/admin': typeof AuthenticatedAdminRouteWithChildren
   '/chat': typeof AuthenticatedChatRouteWithChildren
@@ -314,6 +321,7 @@ export interface FileRoutesByTo {
   '/refund-policy': typeof RefundPolicyRoute
   '/safety': typeof SafetyRoute
   '/terms': typeof TermsRoute
+  '/call-fullscreen': typeof _e2eCallFullscreenRoute
   '/account-delete': typeof AuthenticatedAccountDeleteRoute
   '/connect': typeof AuthenticatedConnectRoute
   '/creator-dashboard': typeof AuthenticatedCreatorDashboardRoute
@@ -355,6 +363,7 @@ export interface FileRoutesById {
   '/refund-policy': typeof RefundPolicyRoute
   '/safety': typeof SafetyRoute
   '/terms': typeof TermsRoute
+  '/__e2e/call-fullscreen': typeof _e2eCallFullscreenRoute
   '/_authenticated/account-delete': typeof AuthenticatedAccountDeleteRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRouteWithChildren
   '/_authenticated/chat': typeof AuthenticatedChatRouteWithChildren
@@ -398,6 +407,7 @@ export interface FileRouteTypes {
     | '/refund-policy'
     | '/safety'
     | '/terms'
+    | '/call-fullscreen'
     | '/account-delete'
     | '/admin'
     | '/chat'
@@ -439,6 +449,7 @@ export interface FileRouteTypes {
     | '/refund-policy'
     | '/safety'
     | '/terms'
+    | '/call-fullscreen'
     | '/account-delete'
     | '/connect'
     | '/creator-dashboard'
@@ -479,6 +490,7 @@ export interface FileRouteTypes {
     | '/refund-policy'
     | '/safety'
     | '/terms'
+    | '/__e2e/call-fullscreen'
     | '/_authenticated/account-delete'
     | '/_authenticated/admin'
     | '/_authenticated/chat'
@@ -522,6 +534,7 @@ export interface RootRouteChildren {
   RefundPolicyRoute: typeof RefundPolicyRoute
   SafetyRoute: typeof SafetyRoute
   TermsRoute: typeof TermsRoute
+  _e2eCallFullscreenRoute: typeof _e2eCallFullscreenRoute
   ApiPublicRazorpayWebhookRoute: typeof ApiPublicRazorpayWebhookRoute
   ApiPublicHooksKycCleanupRoute: typeof ApiPublicHooksKycCleanupRoute
   ApiPublicHooksResetCallingQuotasRoute: typeof ApiPublicHooksResetCallingQuotasRoute
@@ -725,6 +738,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAccountDeleteRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/__e2e/call-fullscreen': {
+      id: '/__e2e/call-fullscreen'
+      path: '/call-fullscreen'
+      fullPath: '/call-fullscreen'
+      preLoaderRoute: typeof _e2eCallFullscreenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_authenticated/chat/': {
       id: '/_authenticated/chat/'
       path: '/'
@@ -903,6 +923,7 @@ const rootRouteChildren: RootRouteChildren = {
   RefundPolicyRoute: RefundPolicyRoute,
   SafetyRoute: SafetyRoute,
   TermsRoute: TermsRoute,
+  _e2eCallFullscreenRoute: _e2eCallFullscreenRoute,
   ApiPublicRazorpayWebhookRoute: ApiPublicRazorpayWebhookRoute,
   ApiPublicHooksKycCleanupRoute: ApiPublicHooksKycCleanupRoute,
   ApiPublicHooksResetCallingQuotasRoute: ApiPublicHooksResetCallingQuotasRoute,
