@@ -155,7 +155,7 @@ export const listIncomingCallInvites = createServerFn({ method: "GET" })
     const db = supabaseAdmin as any;
     const { data: invites } = await db
       .from("call_invites")
-      .select("id, caller_id, callee_id, kind, status, expires_at, created_at")
+      .select("id, caller_id, callee_id, kind, status, expires_at, created_at, delivered_at")
       .eq("callee_id", context.userId)
       .eq("status", "pending")
       .gt("expires_at", new Date().toISOString())
@@ -181,10 +181,31 @@ export const listIncomingCallInvites = createServerFn({ method: "GET" })
         kind: i.kind as "voice" | "video",
         expiresAt: i.expires_at as string,
         createdAt: i.created_at as string,
+        deliveredAt: (i.delivered_at ?? null) as string | null,
         caller: profiles.get(i.caller_id) ?? { id: i.caller_id, username: "Caller", avatar_url: null },
       }))
       .filter((i: any) => !!i.caller?.id);
   });
+
+export const markCallInviteDelivered = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((d: unknown) => InviteIdSchema.parse(d))
+  .handler(async ({ data, context }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const db = supabaseAdmin as any;
+    const nowIso = new Date().toISOString();
+    // Only the actual callee can ack delivery, and only once (delivered_at IS NULL).
+    const { data: row } = await db
+      .from("call_invites")
+      .update({ delivered_at: nowIso })
+      .eq("id", data.inviteId)
+      .eq("callee_id", context.userId)
+      .is("delivered_at", null)
+      .select("id, delivered_at")
+      .maybeSingle();
+    return { ok: true, deliveredAt: (row?.delivered_at ?? nowIso) as string };
+  });
+
 
 export const getCallInviteStatus = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
