@@ -173,3 +173,63 @@ export async function sendFcmToTokens(
   }));
   return out;
 }
+
+/**
+ * Data-only HIGH priority FCM message. The Android FirebaseMessagingService
+ * (TalkoraMessagingService) listens for these and decides whether to launch
+ * the full-screen IncomingCallActivity, dismiss it (cancel), or show nothing.
+ *
+ * Data-only (no `notification` field) is REQUIRED so the worker callback
+ * fires even when the app is swiped away / force-stopped, which is the
+ * only way to wake the device into a WhatsApp-style call screen.
+ */
+export async function sendDataOnlyFcm(
+  tokens: string[],
+  data: Record<string, string>,
+): Promise<{ sent: number; failed: number; invalidTokens: string[] }> {
+  const out = { sent: 0, failed: 0, invalidTokens: [] as string[] };
+  if (tokens.length === 0) return out;
+  const sa = await loadServiceAccount();
+  const accessToken = await getAccessToken();
+  if (!sa || !accessToken) {
+    console.warn("[fcm] data-only push skipped — FCM not configured");
+    return out;
+  }
+  const endpoint = `https://fcm.googleapis.com/v1/projects/${sa.project_id}/messages:send`;
+  await Promise.all(tokens.map(async (token) => {
+    try {
+      const res = await fetch(endpoint, {
+        method: "POST",
+        headers: {
+          "authorization": `Bearer ${accessToken}`,
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          message: {
+            token,
+            // NO notification block — pure data so onMessageReceived always fires.
+            data,
+            android: {
+              priority: "HIGH",
+              // ttl short — call invites are useless after ~45s
+              ttl: "60s",
+            },
+          },
+        }),
+      });
+      if (res.ok) { out.sent += 1; return; }
+      const errText = await res.text();
+      out.failed += 1;
+      if (res.status === 404 || /UNREGISTERED|INVALID_ARGUMENT/i.test(errText)) {
+        out.invalidTokens.push(token);
+      } else {
+        console.error("[fcm] data-only send failed", res.status, errText.slice(0, 200));
+      }
+    } catch (e) {
+      out.failed += 1;
+      console.error("[fcm] data-only send threw", e);
+    }
+  }));
+  return out;
+}
+
