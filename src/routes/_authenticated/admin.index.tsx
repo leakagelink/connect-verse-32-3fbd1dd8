@@ -5,6 +5,7 @@ import { useServerFn } from "@tanstack/react-start";
 import {
   adminStats, adminListUsers, adminListReports, adminBanUser, adminUnbanUser,
   adminUpdateReport, adminListTransactions, adminAdjustWallet,
+  adminListUserCoinAdjustments,
 } from "@/lib/admin.functions";
 import { getAppSettings, setAppSetting } from "@/lib/settings.functions";
 import { adminGetPaymentConfig, adminSavePaymentConfig } from "@/lib/payments.functions";
