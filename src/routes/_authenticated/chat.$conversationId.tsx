@@ -72,6 +72,26 @@ function ChatRoom() {
     return () => { supabase.removeChannel(ch); };
   }, [conversationId]);
 
+  // Realtime: react instantly when the peer accepts/rejects the friend request
+  useEffect(() => {
+    if (!myId || !otherUserId) return;
+    const ch = supabase.channel(`follows:${myId}:${otherUserId}`)
+      .on("postgres_changes",
+        { event: "*", schema: "public", table: "follows", filter: `follower_id=eq.${myId}` },
+        (payload: any) => {
+          const row = payload.new ?? payload.old;
+          if (row?.followee_id === otherUserId) qc.invalidateQueries({ queryKey: ["partner", otherUserId] });
+        })
+      .on("postgres_changes",
+        { event: "*", schema: "public", table: "follows", filter: `followee_id=eq.${myId}` },
+        (payload: any) => {
+          const row = payload.new ?? payload.old;
+          if (row?.follower_id === otherUserId) qc.invalidateQueries({ queryKey: ["partner", otherUserId] });
+        })
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, [myId, otherUserId, qc]);
+
   // start session on mount, tick every 30s, end on unmount
   useEffect(() => {
     let cancelled = false;
