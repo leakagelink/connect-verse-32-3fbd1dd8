@@ -177,10 +177,21 @@ export async function notifyUser(opts: {
   const tokenList = (tokens ?? []).map((r: { token: string }) => r.token);
   if (tokenList.length === 0) return { pushed: 0 };
 
+  // Map notification kind → Android channel ID. Channels are registered
+  // natively in NotificationChannels.java; sending an unknown ID drops the
+  // notification onto the default channel and loses heads-up routing.
+  // Note: "calls" via notifyUser is always a *missed* call alert —
+  // live ring invites go through sendDataOnlyFcm + IncomingCallActivity.
+  const channelId: "incoming_calls" | "missed_calls" | "messages" | "general" =
+    opts.kind === "calls" ? "missed_calls"
+    : opts.kind === "chat" || opts.kind === "gifts" || opts.kind === "follows" ? "messages"
+    : "general";
+
   const { sendFcmToTokens } = await import("./push.server");
   const result = await sendFcmToTokens(tokenList, {
     title: opts.title, body: opts.body ?? null, deepLink: opts.deepLink ?? null,
     data: { kind: opts.kind },
+    channelId,
   });
   if (result.invalidTokens.length > 0) {
     await supabaseAdmin.from("device_tokens").delete().in("token", result.invalidTokens);
