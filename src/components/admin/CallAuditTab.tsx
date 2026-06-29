@@ -11,7 +11,7 @@ import { format } from "date-fns";
 
 type ReasonFilter =
   | "all" | "user_ended" | "peer_left" | "coins_exhausted"
-  | "media_error" | "network" | "admin" | "unknown";
+  | "media_error" | "network" | "background_lost" | "admin" | "unknown";
 
 const REASON_LABEL: Record<string, { label: string; tone: string }> = {
   user_ended: { label: "User ended", tone: "bg-muted text-foreground" },
@@ -19,6 +19,7 @@ const REASON_LABEL: Record<string, { label: string; tone: string }> = {
   coins_exhausted: { label: "Coins exhausted", tone: "bg-destructive/15 text-destructive" },
   media_error: { label: "Media error", tone: "bg-red-500/15 text-red-600 dark:text-red-300" },
   network: { label: "Network", tone: "bg-blue-500/15 text-blue-600 dark:text-blue-300" },
+  background_lost: { label: "Background lost", tone: "bg-orange-500/15 text-orange-600 dark:text-orange-300" },
   admin: { label: "Admin", tone: "bg-purple-500/15 text-purple-600 dark:text-purple-300" },
   unknown: { label: "Unknown", tone: "bg-muted text-muted-foreground" },
 };
