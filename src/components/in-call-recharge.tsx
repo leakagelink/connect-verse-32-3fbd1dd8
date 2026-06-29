@@ -70,8 +70,10 @@ export function InCallRecharge({ open, onOpenChange, requiredCoins, onRecharged 
 
   async function buy(planId: string) {
     setBusy(planId);
+    const requestedAt = Date.now();
     try {
       const r = await rechargeFn({ data: { planId } });
+      const serverRespondedAt = Date.now();
       toast.success(`+${r.added.toLocaleString("en-IN")} coins${r.bonus > 0 ? ` (+${r.bonus} bonus)` : ""}`);
       // Refresh everything that depends on balance
       await Promise.all([
@@ -79,7 +81,17 @@ export function InCallRecharge({ open, onOpenChange, requiredCoins, onRecharged 
         qc.invalidateQueries({ queryKey: ["me"] }),
       ]);
       const fresh = await walletFn();
-      onRecharged?.(fresh?.balance ?? 0);
+      const uiRefreshedAt = Date.now();
+      onRecharged?.(fresh?.balance ?? 0, {
+        planId,
+        source: "mock",
+        requestedAt,
+        serverRespondedAt,
+        uiRefreshedAt,
+        added: r.added,
+        bonus: r.bonus,
+        newBalance: fresh?.balance ?? 0,
+      });
       // Auto-close when the user has enough for the gated action
       if (!requiredCoins || (fresh?.balance ?? 0) >= requiredCoins) {
         setTimeout(() => onOpenChange(false), 600);
