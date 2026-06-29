@@ -332,6 +332,14 @@ function CallScreen() {
           throw new Error("Call invite does not match this call session.");
         }
         callRoleRef.current = invite.role as "caller" | "callee";
+        // Prefer server-resolved billing direction; fall back to legacy
+        // caller-pays rule when older servers omit the field.
+        const payerResolved =
+          typeof invite.amPayer === "boolean"
+            ? invite.amPayer
+            : invite.role === "caller";
+        amPayerRef.current = payerResolved;
+        setAmPayerState(payerResolved);
         callLogIdRef.current = invite.callLogId;
         syncedFreeRef.current = invite.baselineFreeSecondsUsed ?? 0;
         syncedCoinsRef.current = invite.baselineCoinsSpent ?? 0;
