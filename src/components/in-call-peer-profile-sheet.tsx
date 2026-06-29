@@ -58,6 +58,7 @@ export function InCallPeerProfileSheet({ userId, open, onOpenChange }: Props) {
   const follow = useServerFn(sendFollowRequest);
   const unfollow = useServerFn(unfollowUser);
   const qc = useQueryClient();
+  const [confirm, setConfirm] = useState<ConfirmKind>(null);
 
   const { data, isLoading } = useQuery({
     queryKey: ["in-call-peer", userId],
@@ -73,6 +74,7 @@ export function InCallPeerProfileSheet({ userId, open, onOpenChange }: Props) {
       qc.invalidateQueries({ queryKey: ["in-call-peer", userId] });
     },
     onError: (e: any) => toast.error(e?.message ?? "Could not send request"),
+    onSettled: () => setConfirm(null),
   });
 
   const unfollowMut = useMutation({
@@ -82,6 +84,7 @@ export function InCallPeerProfileSheet({ userId, open, onOpenChange }: Props) {
       qc.invalidateQueries({ queryKey: ["in-call-peer", userId] });
     },
     onError: (e: any) => toast.error(e?.message ?? "Could not unfollow"),
+    onSettled: () => setConfirm(null),
   });
 
   const p = data?.profile;
