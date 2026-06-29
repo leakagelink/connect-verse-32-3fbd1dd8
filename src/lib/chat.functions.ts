@@ -105,6 +105,17 @@ export const sendMessage = createServerFn({ method: "POST" })
     const { supabase, userId } = context;
     await assertNotBanned(supabase, userId);
 
+    // Friendship gate: resolve the other party from the conversation and verify accepted follow.
+    const { data: conv } = await supabase
+      .from("conversations")
+      .select("user_a, user_b")
+      .eq("id", data.conversationId)
+      .maybeSingle();
+    if (!conv) throw new Error("Conversation not found");
+    const otherUserId = conv.user_a === userId ? conv.user_b : conv.user_a;
+    if (!otherUserId || otherUserId === userId) throw new Error("Invalid conversation");
+    await assertFriends(supabase, userId, otherUserId);
+
     const blocked = containsBlockedContent(data.body);
     if (blocked) throw new Error(`Message blocked: contains restricted content`);
 
