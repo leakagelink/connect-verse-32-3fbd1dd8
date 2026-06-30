@@ -92,3 +92,143 @@ test.describe("InCallPeerProfileSheet banner visibility regression", () => {
     await assertBannerVisible(page, "call route, inCall=true");
   });
 });
+
+// ---------------------------------------------------------------------------
+// Last-call alert visibility regression
+// ---------------------------------------------------------------------------
+//
+// Contract enforced by InCallPeerProfileSheet:
+//
+//   show last-call notice  ⇔  in-call chrome is hidden  AND  a `lastCall`
+//                              context is passed in.
+//
+// This guards two failure modes:
+//   1. Notice leaks onto the live call surface (alongside the in-call
+//      banner) — confusing during an active call.
+//   2. Notice silently disappears from profile-preview surfaces opened
+//      from Recents — losing the "call ab live nahi hai" affordance the
+//      user relies on to retry.
+//
+// The mock at `/__e2e/peer-sheet-banner` accepts `?lastCallStatus=` plus
+// optional `?missedReason=` and `?kind=` query params and renders the
+// notice via the same rule as the real component.
+
+async function assertLastCallNoticeHidden(page: Page, label: string) {
+  await expect(
+    page.getByTestId("last-call-unavailable-notice"),
+    `last-call notice leaked at "${label}"`,
+  ).toHaveCount(0);
+}
+
+async function assertLastCallNoticeVisible(
+  page: Page,
+  expectedTitle: string,
+  label: string,
+) {
+  await expect(
+    page.getByTestId("last-call-unavailable-notice"),
+    `last-call notice missing at "${label}"`,
+  ).toBeVisible();
+  await expect(
+    page.getByTestId("last-call-title"),
+    `last-call title wrong at "${label}"`,
+  ).toHaveText(expectedTitle);
+}
+
+test.describe("last-call alert visibility regression", () => {
+  test("profile preview (non-call) renders the correct last-call copy per status", async ({
+    page,
+  }) => {
+    // Missed + expired invite → "naya call shuru karein" affordance.
+    await page.goto(
+      `${NON_CALL_ROUTE}?lastCallStatus=missed&missedReason=expired&kind=video`,
+    );
+    await assertLastCallNoticeVisible(
+      page,
+      "Missed call — naya call shuru karein",
+      "non-call route, missed/expired",
+    );
+    await expect(page.getByTestId("last-call-desc")).toContainText(
+      "Video call",
+    );
+
+    // Missed + callee_rejected → "Call decline ho gayi thi".
+    await page.goto(
+      `${NON_CALL_ROUTE}?lastCallStatus=missed&missedReason=callee_rejected`,
+    );
+    await assertLastCallNoticeVisible(
+      page,
+      "Call decline ho gayi thi",
+      "non-call route, missed/callee_rejected",
+    );
+
+    // Missed + caller_cancelled → "Call cancel ho gayi thi".
+    await page.goto(
+      `${NON_CALL_ROUTE}?lastCallStatus=missed&missedReason=caller_cancelled`,
+    );
+    await assertLastCallNoticeVisible(
+      page,
+      "Call cancel ho gayi thi",
+      "non-call route, missed/caller_cancelled",
+    );
+
+    // Cancelled (top-level status) → same cancel copy.
+    await page.goto(`${NON_CALL_ROUTE}?lastCallStatus=cancelled`);
+    await assertLastCallNoticeVisible(
+      page,
+      "Call cancel ho gayi thi",
+      "non-call route, cancelled",
+    );
+
+    // Completed → "Pichla call end ho chuka hai".
+    await page.goto(`${NON_CALL_ROUTE}?lastCallStatus=completed`);
+    await assertLastCallNoticeVisible(
+      page,
+      "Pichla call end ho chuka hai",
+      "non-call route, completed",
+    );
+  });
+
+  test("notice is hidden when no last-call context is provided", async ({
+    page,
+  }) => {
+    // Recents row / profile preview with no prior call → no notice.
+    await page.goto(`${NON_CALL_ROUTE}?inCall=false`);
+    await assertLastCallNoticeHidden(page, "non-call route, no lastCall");
+
+    // Even with a stuck `inCall=true` flag on a non-call route, the
+    // absence of lastCall must keep the notice hidden (banner is also
+    // suppressed by the existing rule above).
+    await page.goto(`${NON_CALL_ROUTE}?inCall=true`);
+    await assertLastCallNoticeHidden(
+      page,
+      "non-call route, inCall=true, no lastCall",
+    );
+  });
+
+  test("live call surface never renders the last-call notice", async ({
+    page,
+  }) => {
+    // Call route + inCall=true → in-call banner shows, notice must NOT
+    // leak in alongside it even if a lastCall context is passed.
+    await page.goto(
+      `${CALL_ROUTE}?inCall=true&lastCallStatus=missed&missedReason=expired`,
+    );
+    await expect(page.getByTestId("in-call-banner")).toBeVisible();
+    await assertLastCallNoticeHidden(
+      page,
+      "call route, inCall=true, lastCall=missed",
+    );
+
+    // Call route + inCall=false (brief mount window). Real component
+    // also suppresses the notice here: the user is on the call surface,
+    // so post-call copy would be misleading.
+    await page.goto(
+      `${CALL_ROUTE}?inCall=false&lastCallStatus=completed`,
+    );
+    await assertLastCallNoticeHidden(
+      page,
+      "call route, inCall=false, lastCall=completed",
+    );
+  });
+});
