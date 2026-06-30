@@ -47,7 +47,10 @@ type Props = {
   userId: string | null;
   open: boolean;
   onOpenChange: (v: boolean) => void;
+  /** True only when this sheet is opened from inside the live call screen. */
+  inCall?: boolean;
 };
+
 
 /**
  * In-call peer profile sheet.
