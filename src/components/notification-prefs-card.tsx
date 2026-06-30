@@ -14,16 +14,27 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
 
-const ROWS: Array<{ key: keyof NotificationPrefs; tKey: string; fallback: string }> = [
+const ROWS: Array<{
+  key: keyof NotificationPrefs;
+  tKey: string;
+  fallback: string;
+  hint?: string;
+}> = [
   { key: "chat", tKey: "notif.prefs.chat", fallback: "Chat messages" },
   { key: "calls", tKey: "notif.prefs.calls", fallback: "Calls" },
   { key: "gifts", tKey: "notif.prefs.gifts", fallback: "Gifts" },
-  { key: "follows", tKey: "notif.prefs.follows", fallback: "Follows & friend requests" },
+  {
+    key: "follows",
+    tKey: "notif.prefs.follows",
+    fallback: "Friend requests & follows",
+    hint: "Bell + push jab koi aapko friend request bheje ya follow kare.",
+  },
   { key: "online_followers", tKey: "notif.prefs.online_followers", fallback: "“Online aa gaya” — users I follow" },
   { key: "online_creators", tKey: "notif.prefs.online_creators", fallback: "“Online aa gaya” — creators I follow" },
   { key: "system", tKey: "notif.prefs.system", fallback: "System updates" },
   { key: "marketing", tKey: "notif.prefs.marketing", fallback: "Promotions & marketing" },
 ];
+
 
 export function NotificationPrefsCard() {
   const { t } = useT();
@@ -95,8 +106,13 @@ export function NotificationPrefsCard() {
         {ROWS.map((row) => {
           const label = t(row.tKey);
           return (
-            <div key={row.key} className="flex items-center justify-between gap-3">
-              <span className="text-sm">{label === row.tKey ? row.fallback : label}</span>
+            <div key={row.key} className="flex items-start justify-between gap-3">
+              <div className="min-w-0 flex-1">
+                <p className="text-sm">{label === row.tKey ? row.fallback : label}</p>
+                {row.hint && (
+                  <p className="mt-0.5 text-[11px] text-muted-foreground">{row.hint}</p>
+                )}
+              </div>
               <Switch
                 checked={prefs[row.key]}
                 onCheckedChange={(v) => toggle(row.key, v)}
@@ -105,6 +121,7 @@ export function NotificationPrefsCard() {
             </div>
           );
         })}
+
       </div>
     </Card>
   );
