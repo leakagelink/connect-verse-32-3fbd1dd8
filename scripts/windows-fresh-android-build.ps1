@@ -93,9 +93,13 @@ bunx cap sync android
 Write-Step "Generated config verify"
 Require-File "android\app\src\main\assets\capacitor.config.json" "capacitor.config.json generate nahi hua. bunx cap sync android dobara run karo."
 $capConfig = Get-Content "android\app\src\main\assets\capacitor.config.json" -Raw
-if ($capConfig -notmatch "connect-verse-32\.lovable\.app") {
-  throw "Android capacitor.config.json me live URL missing hai. capacitor.config.ts check karo aur bunx cap sync android run karo."
+if ($capConfig -notmatch "https://talkoraapp\.com") {
+  throw "Android capacitor.config.json me https://talkoraapp.com missing hai. Aap old code build kar rahe ho ya capacitor.config.ts update nahi hua. Latest Lovable/GitHub code lo, phir bunx cap sync android run karo."
 }
+if ($capConfig -notmatch "talkoraapp\.com") {
+  throw "Android allowNavigation me talkoraapp.com missing hai. Iske bina app custom domain ko external browser me khol degi."
+}
+Write-Host "Verified Android WebView URL: https://talkoraapp.com" -ForegroundColor Green
 
 Write-Step "Gradle clean + debug APK build"
 Push-Location android
@@ -108,6 +112,7 @@ try {
 
 Write-Step "Success"
 Write-Host "Debug APK ready: android\app\build\outputs\apk\debug\app-debug.apk" -ForegroundColor Green
+Write-Host "Agar phone me pehle wali app installed thi: adb uninstall in.talkora.app; phir ye naya APK install karo." -ForegroundColor Yellow
 Write-Host "Mic/camera permission install ke time nahi, call screen par 'Allow access' tap karne ke baad aayegi." -ForegroundColor Yellow
 
 if ($OpenAndroidStudio) {

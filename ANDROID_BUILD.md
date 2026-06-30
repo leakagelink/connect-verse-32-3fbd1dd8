@@ -143,13 +143,13 @@ adb uninstall in.talkora.app
 adb install "android\app\build\outputs\apk\debug\app-debug.apk"
 ```
 
-This project **does** set `server.url` to the live Talkora web app. That is required because creators, presence, calls, wallet, gifts and server functions need the live backend. If the APK acts static/empty, verify `android/app/src/main/assets/capacitor.config.json` contains `https://connect-verse-32.lovable.app`, then uninstall the old app and reinstall.
+This project **does** set `server.url` to the live Talkora web app. That is required because creators, presence, calls, wallet, gifts and server functions need the live backend. If the APK opens Chrome/browser instead of staying inside the app, verify `android/app/src/main/assets/capacitor.config.json` contains `https://talkoraapp.com` and `talkoraapp.com` inside `allowNavigation`, then uninstall the old app and reinstall.
 
 ### Important checks before running from Android Studio
 
 ```powershell
 Test-Path android\app\src\main\java\in\talkora\app\CallPermissionsPlugin.java
-Get-Content android\app\src\main\assets\capacitor.config.json | Select-String connect-verse-32.lovable.app
+Get-Content android\app\src\main\assets\capacitor.config.json | Select-String "talkoraapp.com"
 Get-Content android\app\src\main\AndroidManifest.xml | Select-String "RECORD_AUDIO|CAMERA|POST_NOTIFICATIONS"
 ```
 
@@ -201,4 +201,4 @@ bun run build
 npx cap sync android
 ```
 
-If `capacitor.config.ts` still uses `server.url` pointing at your live web build, you usually **don't need to rebuild the APK** — users get the new web UI on next launch. Rebuild only when you change native code, plugins, permissions, or app version.
+If `capacitor.config.ts` still uses `server.url` pointing at your live web build, you usually **don't need to rebuild the APK** for normal web UI changes. You **do** need a fresh APK/AAB when changing the domain, native code, plugins, permissions, or app version because `capacitor.config.json` is baked into the Android build.

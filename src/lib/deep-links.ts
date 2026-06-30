@@ -3,7 +3,7 @@
  *
  * Listens for `appUrlOpen` events fired when the OS launches the app
  * via a registered URL scheme (talkora://) or App Link
- * (https://talkora.app/...). The URL is mapped to an in-app TanStack
+ * (https://talkoraapp.com/...). The URL is mapped to an in-app TanStack
  * router path.
  *
  * For talkora:// scheme URLs, the host is the FIRST path segment:
@@ -14,7 +14,7 @@
  *
  * For https:// App Links the host is the domain, so the pathname is the
  * route directly:
- *   https://talkora.app/rooms/42 → /rooms/42
+ *   https://talkoraapp.com/rooms/42 → /rooms/42
  */
 import type { Router } from "@tanstack/react-router";
 import { isNative } from "@/lib/native";
