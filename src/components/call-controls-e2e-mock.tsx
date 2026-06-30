@@ -172,11 +172,21 @@ export function CallControlsClickableE2EMock({
           Mystery
         </Button>
         <Button
+          data-testid="ctrl-sos"
+          variant="secondary"
+          onClick={() => {
+            bump("sos");
+            setOpenPanel("sos");
+          }}
+        >
+          SOS
+        </Button>
+        <Button
           data-testid="ctrl-end"
           variant="destructive"
           onClick={() => {
             bump("end");
-            setEnded(true);
+            setEndConfirmOpen(true);
           }}
         >
           End
@@ -185,19 +195,75 @@ export function CallControlsClickableE2EMock({
 
       <Dialog
         open={openPanel !== null}
-        onOpenChange={(v) => { if (!v) setOpenPanel(null); }}
+        onOpenChange={(v) => { if (!v) { setOpenPanel(null); setGiftBoxOpen(false); } }}
       >
         <DialogContent data-testid={`panel-${openPanel ?? "none"}`}>
           <DialogHeader>
             <DialogTitle>
-              {openPanel === "gift" ? "Send a gift" : "Mystery case"}
+              {openPanel === "gift" ? "Send a gift" :
+               openPanel === "mystery" ? "Mystery case" :
+               openPanel === "sos" ? "Are you safe?" : ""}
             </DialogTitle>
           </DialogHeader>
+          {openPanel === "gift" && (
+            <div className="flex flex-col gap-2">
+              <Button
+                data-testid="gift-send-btn"
+                onClick={() => {
+                  bump("giftSend");
+                  setGiftBoxOpen(true);
+                }}
+              >
+                Send
+              </Button>
+              {giftBoxOpen && (
+                <div
+                  data-testid="gift-box"
+                  className="rounded-md border p-3 text-sm"
+                >
+                  🎁 Gift box opened — gift on the way!
+                </div>
+              )}
+            </div>
+          )}
+          {openPanel === "sos" && (
+            <Button data-testid="sos-confirm" variant="destructive">
+              Confirm SOS
+            </Button>
+          )}
           <Button
             data-testid="panel-close"
-            onClick={() => setOpenPanel(null)}
+            onClick={() => { setOpenPanel(null); setGiftBoxOpen(false); }}
           >
             Close
+          </Button>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={endConfirmOpen}
+        onOpenChange={(v) => setEndConfirmOpen(v)}
+      >
+        <DialogContent data-testid="panel-end-confirm">
+          <DialogHeader>
+            <DialogTitle>End this call?</DialogTitle>
+          </DialogHeader>
+          <Button
+            data-testid="end-confirm-yes"
+            variant="destructive"
+            onClick={() => {
+              setEndConfirmOpen(false);
+              setEnded(true);
+            }}
+          >
+            Yes, end call
+          </Button>
+          <Button
+            data-testid="end-confirm-cancel"
+            variant="secondary"
+            onClick={() => setEndConfirmOpen(false)}
+          >
+            Stay on call
           </Button>
         </DialogContent>
       </Dialog>
