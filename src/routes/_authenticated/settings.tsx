@@ -67,17 +67,26 @@ function Settings() {
     navigate({ to: "/auth", replace: true });
   }
 
-  // Realtime: refresh own follower/following counts when someone follows me
-  // or I follow/unfollow someone — no page reload needed.
+  // Realtime: refresh own follower/following counts instantly when someone
+  // follows me, or I follow/unfollow someone — no page reload needed.
   const myId = me?.profile?.id as string | undefined;
-  // eslint-disable-next-line react-hooks/rules-of-hooks
-  (function useFollowsRealtime() {
-    // inline IIFE so we don't import useEffect at top twice; React allows hooks
-    // here because this function runs unconditionally on every render.
-  })();
-  // Actual hook:
-  // eslint-disable-next-line react-hooks/rules-of-hooks
-  useFollowCountsRealtime(myId, qc);
+  useEffect(() => {
+    if (!myId) return;
+    const channel = supabase
+      .channel(`settings-follows:${myId}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "follows", filter: `following_id=eq.${myId}` },
+        () => { qc.invalidateQueries({ queryKey: ["me"] }); },
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "follows", filter: `follower_id=eq.${myId}` },
+        () => { qc.invalidateQueries({ queryKey: ["me"] }); },
+      )
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [myId, qc]);
 
   const p = me?.profile;
 
