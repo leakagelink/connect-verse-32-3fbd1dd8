@@ -1,0 +1,1 @@
+REVOKE EXECUTE ON FUNCTION public.call_logs_redact_finished() FROM PUBLIC, anon, authenticated;
