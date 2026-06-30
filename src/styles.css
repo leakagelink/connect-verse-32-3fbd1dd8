@@ -200,3 +200,13 @@ body[data-call-active="1"] vite-error-overlay::part(backdrop) {
   pointer-events: none !important;
 }
 
+/* Call surface is z-60 so it can hide app chrome during a live call. Radix
+   Sheets/Dialogs default to z-50, which made Gift, SOS, recharge and end-call
+   confirmations open *behind* the fullscreen call and look like dead buttons.
+   While a call is active, lift only open Radix portals above the call surface. */
+body[data-call-active="1"] > [data-state="open"].fixed,
+body[data-call-active="1"] > [data-state="open"][role="dialog"],
+body[data-call-active="1"] > [data-state="open"][role="alertdialog"] {
+  z-index: 80 !important;
+}
+

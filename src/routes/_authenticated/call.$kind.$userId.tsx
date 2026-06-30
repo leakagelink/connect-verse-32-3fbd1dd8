@@ -976,18 +976,20 @@ function CallScreen() {
 
   async function toggleMic() {
     const t = streamRef.current?.getAudioTracks()[0];
-    const next = t ? !t.enabled : !muted;
-    if (t) t.enabled = !next ? true : false;
+    const nextMuted = !muted;
+    const nextEnabled = !nextMuted;
+    if (t) t.enabled = nextEnabled;
     // Some SDKs publish their own track; also notify the session if available.
     const sess: any = sessionRef.current?.session;
     let sdkError: string | null = null;
     try {
-      if (typeof sess?.setMicrophoneMuted === "function") await sess.setMicrophoneMuted(next);
-      else if (typeof sess?.muteAudio === "function") await sess.muteAudio(next);
-      else if (typeof sess?.setMuted === "function") await sess.setMuted(next);
+      if (typeof sess?.setMicEnabled === "function") await sess.setMicEnabled(nextEnabled);
+      else if (typeof sess?.setMicrophoneMuted === "function") await sess.setMicrophoneMuted(nextMuted);
+      else if (typeof sess?.muteAudio === "function") await sess.muteAudio(nextMuted);
+      else if (typeof sess?.setMuted === "function") await sess.setMuted(nextMuted);
     } catch (e: any) { sdkError = e?.message || String(e); }
-    setMuted(next);
-    toast.message(next ? "Microphone muted" : "Microphone unmuted");
+    setMuted(nextMuted);
+    toast.message(nextMuted ? "Microphone muted" : "Microphone unmuted");
     recordCallUiEvent({
       eventType: sdkError ? "ui_mute_blocked" : "ui_mute_toggled",
       callLogId: callLogIdRef.current,
@@ -995,12 +997,21 @@ function CallScreen() {
       kind,
       ok: !sdkError,
       reason: sdkError ?? null,
-      meta: { muted: next, hasTrack: !!t },
+      meta: { muted: nextMuted, hasTrack: !!t, sdk: sess ? "present" : "missing" },
     });
   }
-  function toggleCam() {
+  async function toggleCam() {
     const t = streamRef.current?.getVideoTracks()[0];
-    if (t) { t.enabled = !t.enabled; setCamOff(!t.enabled); }
+    const nextOff = !camOff;
+    const nextEnabled = !nextOff;
+    if (t) t.enabled = nextEnabled;
+    const sess: any = sessionRef.current?.session;
+    try {
+      if (typeof sess?.setCamEnabled === "function") await sess.setCamEnabled(nextEnabled);
+      else if (typeof sess?.setCameraMuted === "function") await sess.setCameraMuted(nextOff);
+      else if (typeof sess?.muteVideo === "function") await sess.muteVideo(nextOff);
+    } catch { /* keep the UI responsive even if the SDK rejects */ }
+    setCamOff(nextOff);
   }
   async function toggleSpeaker() {
     const next = !speakerOn;
@@ -1008,8 +1019,16 @@ function CallScreen() {
     const sess: any = sessionRef.current?.session;
     let sdkError: string | null = null;
     try {
-      await sess?.setSpeakerMode?.(next);
+      if (typeof sess?.setSpeakerMode === "function") {
+        await sess.setSpeakerMode(next);
+      } else {
+        const cap = (window as any).Capacitor;
+        if (cap?.isNativePlatform?.() && cap?.Plugins?.SpeakerMode?.set) {
+          await cap.Plugins.SpeakerMode.set({ on: next });
+        }
+      }
     } catch (e: any) { sdkError = e?.message || String(e); }
+    toast.message(next ? "Speaker on" : "Speaker off");
     recordCallUiEvent({
       eventType: sdkError ? "ui_speaker_blocked" : "ui_speaker_toggled",
       callLogId: callLogIdRef.current,
