@@ -23,7 +23,9 @@ import android.os.Build;
  *   general        → IMPORTANCE_DEFAULT (system / marketing / misc)
  */
 public final class NotificationChannels {
-    public static final String INCOMING_CALLS = "incoming_calls";
+    // v2: bumped so importance/sound changes apply to already-installed devices
+    // (Android caches channel settings under the original id forever).
+    public static final String INCOMING_CALLS = "incoming_calls_v2";
     public static final String MISSED_CALLS   = "missed_calls";
     public static final String MESSAGES       = "messages";
     public static final String GENERAL        = "general";
