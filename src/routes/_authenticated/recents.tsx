@@ -55,6 +55,20 @@ function RecentsScreen() {
   const voice = all.filter((c) => c.kind === "voice");
   const video = all.filter((c) => c.kind === "video");
 
+  // Latest call for the partner whose profile is open — drives the
+  // "call available nahi" notice inside the sheet. Always the most-recent
+  // row because `all` is already sorted DESC by started_at.
+  const lastCallForProfile = useMemo(() => {
+    if (!profileUserId) return null;
+    const row = all.find((c) => c.partner.id === profileUserId);
+    if (!row) return null;
+    return {
+      status: row.status,
+      missedReason: row.missed_reason ?? null,
+      kind: row.kind,
+    };
+  }, [profileUserId, all]);
+
   // Unique partner ids for follow-status lookup.
   const partnerIds = useMemo(() => {
     const set = new Set<string>();
@@ -97,7 +111,9 @@ function RecentsScreen() {
         userId={profileUserId}
         open={!!profileUserId}
         onOpenChange={(v) => { if (!v) setProfileUserId(null); }}
+        lastCall={lastCallForProfile}
       />
+
       <CallInviteDialog pendingCall={callInvite} onClose={() => setCallInvite(null)} />
     </AppShell>
   );

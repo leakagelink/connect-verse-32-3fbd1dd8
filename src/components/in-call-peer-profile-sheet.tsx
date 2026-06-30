@@ -40,9 +40,23 @@ import {
   Loader2,
   Send,
   Inbox,
+  PhoneOff,
+  PhoneMissed,
 } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 type ConfirmKind = null | "follow-request" | "unfollow";
+
+export type LastCallContext = {
+  status: "completed" | "missed" | "cancelled";
+  /** call_logs.missed_reason — finer-grained reason when status !== completed. */
+  missedReason?:
+    | "callee_rejected"
+    | "caller_cancelled"
+    | "expired"
+    | null;
+  kind: "voice" | "video";
+};
 
 type Props = {
   userId: string | null;
@@ -50,7 +64,14 @@ type Props = {
   onOpenChange: (v: boolean) => void;
   /** True only when this sheet is opened from inside the live call screen. */
   inCall?: boolean;
+  /**
+   * If the sheet is opened from a call-history surface (e.g. Recents),
+   * pass the latest call row so the sheet can show a clear
+   * "call available nahi" notice instead of the in-call banner.
+   */
+  lastCall?: LastCallContext | null;
 };
+
 
 
 /**
@@ -61,7 +82,7 @@ type Props = {
  * (follow) request, then returns to the live call view without ever
  * navigating away from the route.
  */
-export function InCallPeerProfileSheet({ userId, open, onOpenChange, inCall = false }: Props) {
+export function InCallPeerProfileSheet({ userId, open, onOpenChange, inCall = false, lastCall = null }: Props) {
   const fetchProfile = useServerFn(getPartnerProfile);
   const follow = useServerFn(sendFollowRequest);
   const unfollow = useServerFn(unfollowUser);
@@ -153,6 +174,39 @@ export function InCallPeerProfileSheet({ userId, open, onOpenChange, inCall = fa
             </SheetDescription>
           ) : null}
         </SheetHeader>
+
+        {!showInCallChrome && lastCall ? (
+          <Alert
+            className="mt-3"
+            data-testid="last-call-unavailable-notice"
+          >
+            {lastCall.status === "missed" ? (
+              <PhoneMissed className="size-4 text-amber-500" />
+            ) : (
+              <PhoneOff className="size-4 text-muted-foreground" />
+            )}
+            <AlertTitle>
+              {lastCall.status === "missed"
+                ? lastCall.missedReason === "expired"
+                  ? "Missed call — naya call shuru karein"
+                  : lastCall.missedReason === "callee_rejected"
+                    ? "Call decline ho gayi thi"
+                    : lastCall.missedReason === "caller_cancelled"
+                      ? "Call cancel ho gayi thi"
+                      : "Missed call"
+                : lastCall.status === "cancelled"
+                  ? "Call cancel ho gayi thi"
+                  : "Pichla call end ho chuka hai"}
+            </AlertTitle>
+            <AlertDescription>
+              Yeh call ab live nahi hai — dobara baat karne ke liye{" "}
+              {lastCall.kind === "video" ? "Video call" : "Voice call"} button
+              dabaayein.
+            </AlertDescription>
+          </Alert>
+        ) : null}
+
+
 
 
 
