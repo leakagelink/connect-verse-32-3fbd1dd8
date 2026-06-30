@@ -124,10 +124,41 @@ async function refreshStaleBusy(db: any, calleeId: string): Promise<boolean> {
     })
     .map((r: any) => r.id);
   if (staleIds.length > 0) {
+    // NOTE: call_invites has no `ended_at` column — writing it throws and
+    // silently aborts the whole reconciler, leaving ghost rows in place
+    // forever. Only the columns that actually exist may be written here.
     await db
       .from("call_invites")
-      .update({ status: "cancelled", cancelled_at: nowIso, ended_at: nowIso })
+      .update({ status: "cancelled", cancelled_at: nowIso })
       .in("id", staleIds);
+    changed = true;
+  }
+
+  // 2b) Finalize orphan call_logs left open by app-kill / OS reap. A
+  // call_log with ended_at = NULL whose heartbeat has been silent for
+  // >STALE_HEARTBEAT_MS (or that never beat and is older than the same
+  // window) is closed so it stops looking "in progress" to any other
+  // busy / discovery / billing query.
+  const staleCutoffIso = new Date(nowMs - STALE_HEARTBEAT_MS).toISOString();
+  const { data: orphanLogs } = await db
+    .from("call_logs")
+    .select("id, started_at, last_heartbeat_at")
+    .or(`callee_id.eq.${calleeId},caller_id.eq.${calleeId}`)
+    .is("ended_at", null)
+    .lt("started_at", staleCutoffIso);
+  const orphanIds = (orphanLogs ?? [])
+    .filter((r: any) => {
+      const beatMs = r.last_heartbeat_at ? new Date(r.last_heartbeat_at).getTime() : 0;
+      if (beatMs === 0) return true; // no heartbeat ever, and started >60s ago
+      return nowMs - beatMs > STALE_HEARTBEAT_MS;
+    })
+    .map((r: any) => r.id);
+  if (orphanIds.length > 0) {
+    await db
+      .from("call_logs")
+      .update({ ended_at: nowIso, end_reason: "network" })
+      .in("id", orphanIds)
+      .is("ended_at", null);
     changed = true;
   }
 
@@ -370,6 +401,13 @@ export const createCallInvite = createServerFn({ method: "POST" })
 
     const { caller } = await assertCallable(db, callerId, data.calleeId);
 
+    // Unconditional pre-flight reconciliation. Closes orphan call_logs
+    // (ended_at IS NULL, heartbeat silent) and cancels ghost "accepted"
+    // invites on BOTH sides — without this, an app-kill mid-call leaves
+    // state that blocks the next call from ever connecting.
+    await refreshStaleBusy(db, data.calleeId).catch(() => false);
+    await refreshStaleBusy(db, callerId).catch(() => false);
+
     // Busy detection: callee already ringing with someone else or in an active accepted call.
     // We JOIN to call_logs so an "accepted" invite whose call already ended
     // (ended_at IS NOT NULL) is NOT treated as busy — otherwise stale rows
@@ -394,7 +432,7 @@ export const createCallInvite = createServerFn({ method: "POST" })
     };
     let isBusy = await computeBusy();
     if (isBusy) {
-      // One-time stale-busy reconciliation + retry
+      // One-time stale-busy reconciliation + retry (in case state changed mid-flight)
       const changed = await refreshStaleBusy(db, data.calleeId);
       if (changed) isBusy = await computeBusy();
     }
@@ -582,6 +620,12 @@ export const acceptCallInvite = createServerFn({ method: "POST" })
     const invite = await expireIfNeeded(db, rawInvite);
     if (invite.status !== "pending") throw new Error("This call is no longer ringing.");
     await assertCallable(db, invite.caller_id, invite.callee_id);
+
+    // Pre-flight: close any orphan call_logs / ghost "accepted" rows from a
+    // prior killed-app session for either party so the partial-unique index
+    // ("one accepted per callee") can't reject this accept on stale state.
+    await refreshStaleBusy(db, invite.callee_id).catch(() => false);
+    await refreshStaleBusy(db, invite.caller_id).catch(() => false);
 
     // ---------- Payer-balance gate ----------
     // If the accepting user IS the payer (i.e., a creator initiated the call
