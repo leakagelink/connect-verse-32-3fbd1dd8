@@ -23,6 +23,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedWithdrawRouteImport } from './routes/_authenticated/withdraw'
 import { Route as AuthenticatedWalletRouteImport } from './routes/_authenticated/wallet'
 import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
+import { Route as AuthenticatedRequestsRouteImport } from './routes/_authenticated/requests'
 import { Route as AuthenticatedReferRouteImport } from './routes/_authenticated/refer'
 import { Route as AuthenticatedRechargeRouteImport } from './routes/_authenticated/recharge'
 import { Route as AuthenticatedRecentsRouteImport } from './routes/_authenticated/recents'
@@ -120,6 +121,11 @@ const AuthenticatedWalletRoute = AuthenticatedWalletRouteImport.update({
 const AuthenticatedSettingsRoute = AuthenticatedSettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedRequestsRoute = AuthenticatedRequestsRouteImport.update({
+  id: '/requests',
+  path: '/requests',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedReferRoute = AuthenticatedReferRouteImport.update({
@@ -310,6 +316,7 @@ export interface FileRoutesByFullPath {
   '/recents': typeof AuthenticatedRecentsRoute
   '/recharge': typeof AuthenticatedRechargeRoute
   '/refer': typeof AuthenticatedReferRoute
+  '/requests': typeof AuthenticatedRequestsRoute
   '/settings': typeof AuthenticatedSettingsRoute
   '/wallet': typeof AuthenticatedWalletRoute
   '/withdraw': typeof AuthenticatedWithdrawRoute
@@ -352,6 +359,7 @@ export interface FileRoutesByTo {
   '/recents': typeof AuthenticatedRecentsRoute
   '/recharge': typeof AuthenticatedRechargeRoute
   '/refer': typeof AuthenticatedReferRoute
+  '/requests': typeof AuthenticatedRequestsRoute
   '/settings': typeof AuthenticatedSettingsRoute
   '/wallet': typeof AuthenticatedWalletRoute
   '/withdraw': typeof AuthenticatedWithdrawRoute
@@ -398,6 +406,7 @@ export interface FileRoutesById {
   '/_authenticated/recents': typeof AuthenticatedRecentsRoute
   '/_authenticated/recharge': typeof AuthenticatedRechargeRoute
   '/_authenticated/refer': typeof AuthenticatedReferRoute
+  '/_authenticated/requests': typeof AuthenticatedRequestsRoute
   '/_authenticated/settings': typeof AuthenticatedSettingsRoute
   '/_authenticated/wallet': typeof AuthenticatedWalletRoute
   '/_authenticated/withdraw': typeof AuthenticatedWithdrawRoute
@@ -444,6 +453,7 @@ export interface FileRouteTypes {
     | '/recents'
     | '/recharge'
     | '/refer'
+    | '/requests'
     | '/settings'
     | '/wallet'
     | '/withdraw'
@@ -486,6 +496,7 @@ export interface FileRouteTypes {
     | '/recents'
     | '/recharge'
     | '/refer'
+    | '/requests'
     | '/settings'
     | '/wallet'
     | '/withdraw'
@@ -531,6 +542,7 @@ export interface FileRouteTypes {
     | '/_authenticated/recents'
     | '/_authenticated/recharge'
     | '/_authenticated/refer'
+    | '/_authenticated/requests'
     | '/_authenticated/settings'
     | '/_authenticated/wallet'
     | '/_authenticated/withdraw'
@@ -664,6 +676,13 @@ declare module '@tanstack/react-router' {
       path: '/settings'
       fullPath: '/settings'
       preLoaderRoute: typeof AuthenticatedSettingsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/requests': {
+      id: '/_authenticated/requests'
+      path: '/requests'
+      fullPath: '/requests'
+      preLoaderRoute: typeof AuthenticatedRequestsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/refer': {
@@ -913,6 +932,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedRecentsRoute: typeof AuthenticatedRecentsRoute
   AuthenticatedRechargeRoute: typeof AuthenticatedRechargeRoute
   AuthenticatedReferRoute: typeof AuthenticatedReferRoute
+  AuthenticatedRequestsRoute: typeof AuthenticatedRequestsRoute
   AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRoute
   AuthenticatedWalletRoute: typeof AuthenticatedWalletRoute
   AuthenticatedWithdrawRoute: typeof AuthenticatedWithdrawRoute
@@ -942,6 +962,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedRecentsRoute: AuthenticatedRecentsRoute,
   AuthenticatedRechargeRoute: AuthenticatedRechargeRoute,
   AuthenticatedReferRoute: AuthenticatedReferRoute,
+  AuthenticatedRequestsRoute: AuthenticatedRequestsRoute,
   AuthenticatedSettingsRoute: AuthenticatedSettingsRoute,
   AuthenticatedWalletRoute: AuthenticatedWalletRoute,
   AuthenticatedWithdrawRoute: AuthenticatedWithdrawRoute,
