@@ -128,6 +128,11 @@ function RequestsPage() {
           <div className="flex items-center gap-2">
             <UserPlus className="size-5 text-primary" />
             <h1 className="text-base font-semibold">Friend requests</h1>
+            {unreadCount > 0 ? (
+              <span className="rounded-full bg-primary px-2 py-0.5 text-[10px] font-semibold text-primary-foreground">
+                {unreadCount} new
+              </span>
+            ) : null}
             <span className="ml-auto text-xs text-muted-foreground">
               {reqs.length} pending
             </span>
