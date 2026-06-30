@@ -13,7 +13,7 @@ import { AppShell } from "@/components/app-shell";
 import { InCallPeerProfileSheet } from "@/components/in-call-peer-profile-sheet";
 import { toast } from "sonner";
 import { VOICE_CALL_COINS_PER_MINUTE, VIDEO_CALL_COINS_PER_MINUTE } from "@/lib/constants";
-import { endCallLog, applyCallUsage, getCallPeerWallets, heartbeatCall } from "@/lib/calls.functions";
+import { endCallLog, applyCallUsage, getCallPeerWallets, heartbeatCall, markCallConnected } from "@/lib/calls.functions";
 import { generateMysteryCase, CASE_GENERATION_COIN_COST } from "@/lib/mystery.functions";
 import { getMyProfile } from "@/lib/onboarding.functions";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -560,25 +560,72 @@ function CallScreen() {
   }, [kind, navigate, myId, userId, permReady, inviteId, inviteStatusFn, acceptInviteFn, autoAccept, joinAttempt]);
 
 
+  // Server-synced elapsed timer.
+  // Local 1s ticks are fine for animation, but the AUTHORITATIVE elapsed
+  // value is anchored to `call_logs.connected_at` (stamped atomically on the
+  // server the first time either peer reports both-sides-joined). Both
+  // caller and callee derive elapsed from the same server timestamp, so the
+  // displayed "Connected · mm:ss" is identical on both sides regardless of
+  // clock skew, accept latency, or who joined the channel first.
+  const markConnectedFn = useServerFn(markCallConnected);
+  const connectedAtMsRef = useRef<number | null>(null); // server connected_at, in client-clock ms
+  const stampSentRef = useRef(false);
   useEffect(() => {
-    // Only start counting once BOTH peers are actually in the channel.
-    // Previously the timer started as soon as the local Agora join completed,
-    // which meant the caller's "Connected · mm:ss" began ticking while the
-    // creator was still answering — making the two sides show different
-    // elapsed times. Gating on `remoteJoined` keeps both sides in sync.
+    if (!connected || !remoteJoined) return;
+    if (stampSentRef.current) return;
+    const logId = callLogIdRef.current;
+    if (!logId) return;
+    stampSentRef.current = true;
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await markConnectedFn({ data: { callLogId: logId } });
+        if (cancelled || !res?.ok || !res.connectedAt || !res.serverNow) return;
+        // Translate server timestamps to the local clock by removing skew.
+        const skewMs = Date.now() - new Date(res.serverNow).getTime();
+        connectedAtMsRef.current = new Date(res.connectedAt).getTime() + skewMs;
+        // The server anchor already covers every second since the call was
+        // marked connected (including any prior, now-resumed session), so
+        // any baseline duration carried in by acceptCallInvite would
+        // double-count if we kept it. Zero it out — the anchored elapsed
+        // IS the authoritative total for display purposes.
+        sessionStartElapsedRef.current = 0;
+        // Snap the displayed elapsed to the server-anchored value immediately.
+        const snap = Math.max(0, Math.floor((Date.now() - connectedAtMsRef.current) / 1000));
+
+        elapsedRef.current = snap;
+        setElapsed(snap);
+      } catch {
+        // Network blip — keep local fallback ticking; retry on next mount.
+        stampSentRef.current = false;
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [connected, remoteJoined, markConnectedFn]);
+
+  useEffect(() => {
     if (!connected || !remoteJoined) return;
     const i = setInterval(() => {
-      // Paused tabs (a newer session has claimed ownership) freeze the timer
-      // so no double-counting happens against the authoritative session.
       if (pausedRef.current) return;
-      setElapsed((e) => {
-        const next = e + 1;
+      // Prefer the server-anchored value once we have it; otherwise tick
+      // locally so the UI still moves while the stamp request is in flight.
+      const anchor = connectedAtMsRef.current;
+      if (anchor != null) {
+        const next = Math.max(0, Math.floor((Date.now() - anchor) / 1000));
         elapsedRef.current = next;
-        return next;
-      });
+        setElapsed(next);
+      } else {
+        setElapsed((e) => {
+          const next = e + 1;
+          elapsedRef.current = next;
+          return next;
+        });
+      }
     }, 1000);
     return () => clearInterval(i);
   }, [connected, remoteJoined]);
+
+
 
   // Listen for ownership changes from other tabs. If another mount of the
   // call screen overwrites the active_call slot with a different
