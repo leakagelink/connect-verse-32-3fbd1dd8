@@ -220,14 +220,18 @@ test.describe("last-call alert visibility regression", () => {
       "call route, inCall=true, lastCall=missed",
     );
 
-    // Call route + inCall=false (brief mount window). Real component
-    // also suppresses the notice here: the user is on the call surface,
-    // so post-call copy would be misleading.
+    // Call route + inCall=false: the in-call banner is suppressed
+    // (matches the existing chrome rule), so the post-call notice is
+    // free to render — same gate the real component uses
+    // (`!showInCallChrome && lastCall`). This documents that the notice
+    // is suppressed by the in-call banner, not by the route itself.
     await page.goto(
       `${CALL_ROUTE}?inCall=false&lastCallStatus=completed`,
     );
-    await assertLastCallNoticeHidden(
+    await expect(page.getByTestId("in-call-banner")).toHaveCount(0);
+    await assertLastCallNoticeVisible(
       page,
+      "Pichla call end ho chuka hai",
       "call route, inCall=false, lastCall=completed",
     );
   });
