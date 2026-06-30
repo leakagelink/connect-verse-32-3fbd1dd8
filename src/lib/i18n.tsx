@@ -322,6 +322,9 @@ const mr: Dict = {
 
 const dictionaries: Partial<Record<Locale, Dict>> = { en, hi, ta, te, bn, mr };
 
+/** Dev-only memo so we don't spam the console with the same missing key. */
+const __warnedKeys = new Set<string>();
+
 function format(template: string, vars?: Record<string, string | number>): string {
   if (!vars) return template;
   return template.replace(/\{(\w+)\}/g, (_, k) => String(vars[k] ?? `{${k}}`));
@@ -414,8 +417,21 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
 
   const t = useCallback(
     (key: string, vars?: Record<string, string | number>) => {
-      const d = dictionaries[locale] ?? en;
-      const str = d[key] ?? en[key] ?? key;
+      // Fallback chain: active locale → Hindi → English → raw key.
+      // This guarantees a user on (say) Tamil sees a Hindi or English label
+      // for keys the Tamil dictionary hasn't translated yet, instead of the
+      // raw dotted key (e.g. "wallet.title").
+      const primary = dictionaries[locale];
+      const str =
+        primary?.[key] ??
+        (locale !== "hi" ? hi[key] : undefined) ??
+        en[key] ??
+        key;
+      if (process.env.NODE_ENV !== "production" && str === key && !__warnedKeys.has(key)) {
+        __warnedKeys.add(key);
+        // eslint-disable-next-line no-console
+        console.warn(`[i18n] missing translation for key "${key}" in en/hi/${locale}`);
+      }
       return format(str, vars);
     },
     [locale],
