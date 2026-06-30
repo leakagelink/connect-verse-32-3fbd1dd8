@@ -166,6 +166,9 @@ function Settings() {
         </Select>
       </Card>
 
+      {/* Creator: additional spoken languages for matching */}
+      <SpokenLanguagesCard />
+
       {/* Notification preferences */}
       <NotificationPrefsCard />
 
