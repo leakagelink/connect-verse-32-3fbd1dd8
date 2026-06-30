@@ -81,66 +81,66 @@ function Onboarding() {
     <div className="min-h-screen grid place-items-center px-4 py-8">
       <Card className="glass w-full max-w-lg p-6 space-y-4">
         <div>
-          <h1 className="text-2xl font-bold">Set up your profile</h1>
-          <p className="text-sm text-muted-foreground">A few quick details to get started. You'll get 5 free chat minutes.</p>
+          <h1 className="text-2xl font-bold">{t("onb.title")}</h1>
+          <p className="text-sm text-muted-foreground">{t("onb.subtitle")}</p>
         </div>
-        <div><Label>Username</Label><Input value={username} onChange={(e) => setU(e.target.value)} placeholder="myname" /></div>
+        <div><Label>{t("onb.username")}</Label><Input value={username} onChange={(e) => setU(e.target.value)} placeholder={t("onb.usernamePh")} /></div>
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <Label>Gender</Label>
+            <Label>{t("onb.gender")}</Label>
             <Select value={gender} onValueChange={(v) => setG(v as any)}>
-              <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
+              <SelectTrigger><SelectValue placeholder={t("onb.selectPlaceholder")} /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="female">Female</SelectItem>
-                <SelectItem value="male">Male</SelectItem>
-                <SelectItem value="other">Other</SelectItem>
+                <SelectItem value="female">{t("onb.female")}</SelectItem>
+                <SelectItem value="male">{t("onb.male")}</SelectItem>
+                <SelectItem value="other">{t("onb.other")}</SelectItem>
               </SelectContent>
             </Select>
           </div>
-          <div><Label>Date of birth</Label><Input type="date" value={dob} onChange={(e) => setD(e.target.value)} max={new Date().toISOString().slice(0,10)} /></div>
+          <div><Label>{t("onb.dob")}</Label><Input type="date" value={dob} onChange={(e) => setD(e.target.value)} max={new Date().toISOString().slice(0,10)} /></div>
         </div>
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <Label>Country</Label>
+            <Label>{t("onb.country")}</Label>
             <Select value={country} onValueChange={(v) => { setC(v); setSt(""); }}>
-              <SelectTrigger><SelectValue placeholder="Select country" /></SelectTrigger>
+              <SelectTrigger><SelectValue placeholder={t("onb.selectCountry")} /></SelectTrigger>
               <SelectContent className="max-h-72">
                 {COUNTRIES.map((c) => (<SelectItem key={c} value={c}>{c}</SelectItem>))}
               </SelectContent>
             </Select>
           </div>
           <div>
-            <Label>State</Label>
+            <Label>{t("onb.state")}</Label>
             {STATES_BY_COUNTRY[country]?.length ? (
               <Select value={state} onValueChange={setSt}>
-                <SelectTrigger><SelectValue placeholder="Select state" /></SelectTrigger>
+                <SelectTrigger><SelectValue placeholder={t("onb.selectState")} /></SelectTrigger>
                 <SelectContent className="max-h-72">
                   {STATES_BY_COUNTRY[country].map((s) => (<SelectItem key={s} value={s}>{s}</SelectItem>))}
                 </SelectContent>
               </Select>
             ) : (
-              <Input value={state} onChange={(e) => setSt(e.target.value)} placeholder="State / Region" />
+              <Input value={state} onChange={(e) => setSt(e.target.value)} placeholder={t("onb.statePh")} />
             )}
           </div>
         </div>
         <div>
-          <Label>Language</Label>
+          <Label>{t("onb.language")}</Label>
           <Select value={language} onValueChange={setL}>
-            <SelectTrigger><SelectValue placeholder="Select language" /></SelectTrigger>
+            <SelectTrigger><SelectValue placeholder={t("settings.selectLang")} /></SelectTrigger>
             <SelectContent className="max-h-72">
               {APP_LANGUAGES.map((l) => (
                 <SelectItem key={l.code} value={l.code}>{l.name}</SelectItem>
               ))}
             </SelectContent>
           </Select>
-          <p className="mt-1 text-[11px] text-muted-foreground">You can change this anytime from Profile → App language.</p>
+          <p className="mt-1 text-[11px] text-muted-foreground">{t("onb.langHint")}</p>
         </div>
 
         {gender === "female" && (
           <div className="flex items-center justify-between rounded-lg border border-accent/30 bg-accent/10 p-3">
             <div>
-              <p className="text-sm font-medium">Join as creator?</p>
-              <p className="text-xs text-muted-foreground">Earn coins from chats. KYC required to withdraw.</p>
+              <p className="text-sm font-medium">{t("onb.joinCreator")}</p>
+              <p className="text-xs text-muted-foreground">{t("onb.joinCreatorHint")}</p>
             </div>
             <Switch checked={creator} onCheckedChange={setCr} />
           </div>
@@ -148,11 +148,11 @@ function Onboarding() {
 
         <label className="flex items-start gap-2 text-sm cursor-pointer">
           <Checkbox checked={accept} onCheckedChange={(v) => setA(!!v)} className="mt-0.5" />
-          <span className="text-muted-foreground">I am <strong className="text-foreground">18 years or older</strong>, and I accept the Community Guidelines: no harassment, nudity, scams, hate, or illegal activity. Violators are banned.</span>
+          <span className="text-muted-foreground">{t("onb.guidelines")}</span>
         </label>
 
         <Button onClick={submit} disabled={busy || !accept} className="w-full brand-gradient text-primary-foreground">
-          Create my profile
+          {t("onb.cta")}
         </Button>
       </Card>
     </div>
