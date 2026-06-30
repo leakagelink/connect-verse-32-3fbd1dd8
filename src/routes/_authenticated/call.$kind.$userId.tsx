@@ -38,6 +38,7 @@ import { getCallInviteStatus, acceptCallInvite } from "@/lib/call-invites.functi
 import { acceptInviteWithRetry } from "@/lib/accept-call-retry";
 import { useCallPointerSafeguard } from "@/hooks/use-call-pointer-safeguard";
 import { recordCallUiEvent } from "@/lib/call-ui-telemetry";
+import { AgoraDebugPanel } from "@/components/AgoraDebugPanel";
 
 
 
