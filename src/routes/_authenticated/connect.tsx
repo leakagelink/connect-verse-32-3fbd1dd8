@@ -410,6 +410,29 @@ function ConnectScreen() {
       <div className="mb-2 flex items-center justify-between">
         <h2 className="font-semibold">All online creators</h2>
       </div>
+      {langFallback && (
+        <div className="mb-3 flex items-center gap-2 rounded-xl border border-primary/30 bg-primary/5 px-3 py-2 text-[12px]">
+          <Languages className="size-3.5 text-primary shrink-0" />
+          <span className="text-muted-foreground">
+            No {APP_LANGUAGES.find((l) => l.code === langFallback.from)?.name ?? langFallback.from} creators online — showing{" "}
+            <span className="font-semibold text-foreground">
+              {langFallback.to
+                ? APP_LANGUAGES.find((l) => l.code === langFallback.to)?.name ?? langFallback.to
+                : "all languages"}
+            </span>{" "}
+            instead.
+          </span>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="ml-auto h-6 px-2 text-[11px] text-primary hover:text-primary"
+            onClick={() => setLanguage("any")}
+          >
+            Show all
+          </Button>
+        </div>
+      )}
       {!sorted.length ? (
         <Card className="glass p-8 text-center text-muted-foreground">
           No creators match your filters. Try widening your search.
