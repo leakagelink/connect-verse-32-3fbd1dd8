@@ -11,6 +11,7 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { supabase } from "@/integrations/supabase/client";
 import {
   listFollowRequests,
+  markFollowRequestsSeen,
   respondFollowRequest,
 } from "@/lib/follows.functions";
 
