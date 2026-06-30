@@ -54,7 +54,7 @@ SAFETY FIRST
 YOUR CONTROL
 • Block, mute and report any user from inside the chat or call
 • "Download my data" export from Settings
-• Delete your account anytime from Settings → Account, or from talkora.app/delete-account without opening the app
+• Delete your account anytime from Settings → Account, or from talkoraapp.com/delete-account without opening the app
 • Language switcher: English and हिन्दी
 
 POLICIES
@@ -75,19 +75,19 @@ Talkora is intended for users aged 18 and above. Sexually explicit content, hara
 | Field | Value |
 |---|---|
 | Email | `support@talkora.app` |
-| Website | `https://talkora.app` |
+| Website | `https://talkoraapp.com` |
 | Phone | (optional — only if you have a verified business line) |
 
 ### External legal URLs (must be reachable before submission — already implemented in the app)
 
 | Console field | URL |
 |---|---|
-| Privacy policy | `https://talkora.app/privacy` |
-| Terms of service | `https://talkora.app/terms` |
-| Community guidelines | `https://talkora.app/community-guidelines` |
-| Safety policy | `https://talkora.app/safety` |
-| Refund policy | `https://talkora.app/refund-policy` |
-| Account deletion (web) | `https://talkora.app/delete-account` |
+| Privacy policy | `https://talkoraapp.com/privacy` |
+| Terms of service | `https://talkoraapp.com/terms` |
+| Community guidelines | `https://talkoraapp.com/community-guidelines` |
+| Safety policy | `https://talkoraapp.com/safety` |
+| Refund policy | `https://talkoraapp.com/refund-policy` |
+| Account deletion (web) | `https://talkoraapp.com/delete-account` |
 
 ---
 
@@ -241,7 +241,7 @@ How to test:
 2. After onboarding (defaults: India, your state), the Discover tab opens with a "5 free minutes" banner. Tap "Use now" to be auto-matched to a female test creator.
 3. To test in-app purchases, go to Wallet → Recharge. Use the ₹9 starter pack.
 4. To test the SOS / safety flow, tap the red SOS pulse button during any call.
-5. To test account deletion, Settings → Account → Delete account, OR visit https://talkora.app/delete-account in any browser.
+5. To test account deletion, Settings → Account → Delete account, OR visit https://talkoraapp.com/delete-account in any browser.
 
 Test account (email/OTP):
   email: play-review@talkora.app
