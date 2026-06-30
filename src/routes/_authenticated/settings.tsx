@@ -19,6 +19,7 @@ import { PermissionDebugPanel } from "@/components/permission-debug-panel";
 import { AvatarUploadCard } from "@/components/avatar-upload-card";
 import { AiAvatarPicker } from "@/components/ai-avatar-picker";
 import { toast } from "sonner";
+import { useT } from "@/lib/i18n";
 
 export const Route = createFileRoute("/_authenticated/settings")({
   component: Settings,
