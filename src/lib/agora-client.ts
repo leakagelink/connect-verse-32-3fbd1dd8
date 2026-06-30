@@ -220,15 +220,21 @@ export class AgoraSession {
       tracksToPublish.push(this.cam);
     }
     await this.client.publish(tracksToPublish);
+    pushAgoraDebug("local-published", {
+      channel: opts.channel,
+      kind: opts.kind,
+      tracks: tracksToPublish.map((t: any) => t?.trackMediaType),
+    });
 
     // Build a MediaStream from the underlying tracks so the existing UI
     // (local <video> preview, ModerationSampler, mic/cam toggles) keeps working.
     const stream = new MediaStream();
     const micTrack = this.mic.getMediaStreamTrack();
-    if (micTrack) stream.addTrack(micTrack);
+    if (micTrack) { stream.addTrack(micTrack); watchTrackEnded(micTrack, "local-mic"); }
     if (this.cam) {
       const camTrack = this.cam.getMediaStreamTrack();
-      if (camTrack) stream.addTrack(camTrack);
+      if (camTrack) { stream.addTrack(camTrack); watchTrackEnded(camTrack, "local-cam"); }
+      pushAgoraDebug("local-cam-track", describeTrack(camTrack));
     }
     return stream;
   }
@@ -237,12 +243,14 @@ export class AgoraSession {
     // Remember the container so subsequent peer cam toggles repaint here.
     this.remoteVideoEl = el;
     this.lastRemoteVideoUser = user;
+    pushAgoraDebug("attach-remote-video", { uid: user.uid, hasEl: !!el });
     this.paintRemoteVideo(user);
   }
 
   /** Update the destination element for remote video without needing a track to be live yet. */
   setRemoteVideoElement(el: HTMLElement | null) {
     this.remoteVideoEl = el;
+    pushAgoraDebug("set-remote-el", { hasEl: !!el, hasPending: !!this.lastRemoteVideoUser?.videoTrack });
     if (el && this.lastRemoteVideoUser?.videoTrack) {
       this.paintRemoteVideo(this.lastRemoteVideoUser);
     }
@@ -250,15 +258,23 @@ export class AgoraSession {
 
   private paintRemoteVideo(user: IAgoraRTCRemoteUser) {
     const el = this.remoteVideoEl;
-    if (!el || !user.videoTrack) return;
+    if (!el || !user.videoTrack) {
+      pushAgoraDebug("paint-skipped", { uid: user.uid, hasEl: !!el, hasTrack: !!user.videoTrack }, "warn");
+      return;
+    }
+    const raw: MediaStreamTrack | null = (user.videoTrack as any)?.getMediaStreamTrack?.() ?? null;
     // Stop any prior playback bound to this track and wipe stale <video>
     // children before re-binding. Agora appends a child element on play();
     // a second play() without cleanup leaves the old one rendering stale data.
     try { user.videoTrack.stop(); } catch { /* not playing */ }
     while (el.firstChild) el.removeChild(el.firstChild);
-    try { user.videoTrack.play(el, { fit: "cover" }); } catch (err) {
+    try {
+      user.videoTrack.play(el, { fit: "cover" });
+      pushAgoraDebug("paint-remote", { uid: user.uid, mst: describeTrack(raw) });
+    } catch (err) {
       // eslint-disable-next-line no-console
       console.warn("[agora] remote video play failed", err);
+      pushAgoraDebug("paint-failed", { uid: user.uid, err: String(err) }, "error");
     }
   }
 
@@ -266,24 +282,27 @@ export class AgoraSession {
     const el = this.remoteVideoEl;
     if (!el) return;
     while (el.firstChild) el.removeChild(el.firstChild);
+    pushAgoraDebug("clear-remote-el");
   }
 
   async setMicEnabled(on: boolean) {
+    pushAgoraDebug("local-mic-toggle", { on });
     await this.mic?.setEnabled(on);
   }
   async setCamEnabled(on: boolean) {
     if (!this.cam || !this.client) return;
+    pushAgoraDebug("local-cam-toggle", { on });
     if (on) {
-      // Re-enable capture, then re-publish so the remote sees `user-published`
-      // again and our own preview gets a fresh, live MediaStreamTrack. Calling
-      // setEnabled(true) alone can leave the track ended → blank local preview.
-      try { await this.cam.setEnabled(true); } catch { /* ignore */ }
-      try { await this.client.publish(this.cam); } catch { /* already published */ }
+      try { await this.cam.setEnabled(true); } catch (err) { pushAgoraDebug("cam-setEnabled-fail", { err: String(err) }, "warn"); }
+      try { await this.client.publish(this.cam); pushAgoraDebug("cam-republished"); }
+      catch (err) { pushAgoraDebug("cam-republish-skip", { err: String(err) }); }
+      const fresh = this.cam.getMediaStreamTrack();
+      watchTrackEnded(fresh, "local-cam");
+      pushAgoraDebug("local-cam-track", describeTrack(fresh));
     } else {
-      // Unpublish first so the remote peer hides the tile immediately, then
-      // stop capture. Republish happens on the next `on` toggle.
-      try { await this.client.unpublish(this.cam); } catch { /* not published */ }
-      try { await this.cam.setEnabled(false); } catch { /* ignore */ }
+      try { await this.client.unpublish(this.cam); pushAgoraDebug("cam-unpublished"); }
+      catch (err) { pushAgoraDebug("cam-unpublish-skip", { err: String(err) }); }
+      try { await this.cam.setEnabled(false); } catch (err) { pushAgoraDebug("cam-setEnabled-fail", { on: false, err: String(err) }, "warn"); }
     }
   }
 
