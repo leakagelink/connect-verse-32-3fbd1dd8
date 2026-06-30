@@ -141,8 +141,41 @@ export const respondFollowRequest = createServerFn({ method: "POST" })
         .eq("following_id", userId);
       if (error) throw new Error(error.message);
     }
+
+    // Sync notifications across both sides.
+    try {
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      // 1) Clear the responder's pending "New friend request" bell row for this requester.
+      await supabaseAdmin
+        .from("app_notifications")
+        .delete()
+        .eq("user_id", userId)
+        .eq("kind", "follows")
+        .eq("deep_link", "/requests");
+
+      if (data.action === "accept") {
+        // 2) Notify the requester that their request was accepted.
+        const { data: me } = await supabaseAdmin
+          .from("profiles")
+          .select("username")
+          .eq("id", userId)
+          .maybeSingle();
+        const name = me?.username || "Someone";
+        await supabaseAdmin.from("app_notifications").insert({
+          user_id: data.userId,
+          kind: "follows",
+          title: "Request accepted",
+          body: `${name} accepted your friend request on Talkora.`,
+          deep_link: `/u/${userId}`,
+        });
+      }
+    } catch (e) {
+      console.error("respondFollowRequest notification sync failed", e);
+    }
+
     return { ok: true };
   });
+
 
 export const unfollowUser = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
