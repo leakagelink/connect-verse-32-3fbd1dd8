@@ -51,10 +51,8 @@ export type LastCallContext = {
   status: "completed" | "missed" | "cancelled";
   /** call_logs.missed_reason — finer-grained reason when status !== completed. */
   missedReason?:
-    | "no_answer"
-    | "declined"
-    | "cancelled"
-    | "busy"
+    | "callee_rejected"
+    | "caller_cancelled"
     | "expired"
     | null;
   kind: "voice" | "video";
