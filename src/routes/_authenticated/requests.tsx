@@ -29,6 +29,17 @@ function timeAgo(iso: string): string {
   return `${Math.floor(h / 24)}d ago`;
 }
 
+function expiresIn(iso: string): { label: string; urgent: boolean } | null {
+  const ms = new Date(iso).getTime() - Date.now();
+  if (ms <= 0) return { label: "Expired", urgent: true };
+  const mins = Math.floor(ms / 60_000);
+  const hours = Math.floor(mins / 60);
+  const days = Math.floor(hours / 24);
+  if (days >= 2) return { label: `Expires in ${days}d`, urgent: false };
+  if (hours >= 1) return { label: `Expires in ${hours}h`, urgent: hours < 12 };
+  return { label: `Expires in ${Math.max(1, mins)}m`, urgent: true };
+}
+
 function RequestsPage() {
   const qc = useQueryClient();
   const listFn = useServerFn(listFollowRequests);
