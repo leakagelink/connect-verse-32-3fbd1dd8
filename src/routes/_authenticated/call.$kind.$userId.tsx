@@ -38,6 +38,7 @@ import { getCallInviteStatus, acceptCallInvite } from "@/lib/call-invites.functi
 import { acceptInviteWithRetry } from "@/lib/accept-call-retry";
 import { useCallPointerSafeguard } from "@/hooks/use-call-pointer-safeguard";
 import { recordCallUiEvent } from "@/lib/call-ui-telemetry";
+import { AgoraDebugPanel } from "@/components/AgoraDebugPanel";
 
 
 
@@ -2424,6 +2425,20 @@ function CallScreen() {
             })}
           </div>
         );
+      })()}
+
+      {/* Agora lifecycle debug panel — enable with ?agoraDebug=1 or
+          localStorage.agoraDebug = "1". Renders fixed-position above
+          everything else without consuming pointer events on its scrim. */}
+      {(() => {
+        let show = false;
+        try {
+          show =
+            new URLSearchParams(window.location.search).get("agoraDebug") === "1" ||
+            new URLSearchParams(window.location.search).get("callDebug") === "1" ||
+            localStorage.getItem("agoraDebug") === "1";
+        } catch { /* ignore */ }
+        return show ? <AgoraDebugPanel /> : null;
       })()}
     </div>
 
