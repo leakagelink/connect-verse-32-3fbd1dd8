@@ -38,6 +38,10 @@ export function CallInviteDialog({
   const [invite, setInvite] = useState<InviteStatus | null>(null);
   const [message, setMessage] = useState("Sending call request…");
   const [deliveryAttempt, setDeliveryAttempt] = useState(1);
+  // "stale-busy" → reconciler is clearing a prior stuck session and we'll
+  // auto-retry once. "blocked" → genuine busy after retry. null otherwise.
+  const [busyState, setBusyState] = useState<null | "clearing" | "blocked">(null);
+  const [busyRetriedRef] = useState(() => ({ current: false }));
 
   const DELIVERY_TIMEOUT_MS = 8000;
   const MAX_DELIVERY_ATTEMPTS = 3;
@@ -51,10 +55,14 @@ export function CallInviteDialog({
     (globalThis.crypto?.randomUUID?.() ?? `att_${Date.now()}_${Math.random().toString(36).slice(2)}`),
   );
 
+  const newAttemptId = () =>
+    globalThis.crypto?.randomUUID?.() ?? `att_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+
   const createMut = useMutation({
     mutationFn: (p: NonNullable<PendingCall> & { attemptId: string }) =>
       createInviteFn({ data: { calleeId: p.userId, kind: p.kind, attemptId: p.attemptId } }),
     onSuccess: (res) => {
+      setBusyState(null);
       setInvite(res as InviteStatus);
       setMessage(deliveryAttempt > 1
         ? `Retrying delivery… (attempt ${deliveryAttempt}/${MAX_DELIVERY_ATTEMPTS})`
@@ -63,7 +71,23 @@ export function CallInviteDialog({
     },
     onError: (e: any) => {
       const msg = String(e?.message ?? "Could not send call request");
+      if (msg.startsWith("BUSY:") && pendingCall && !busyRetriedRef.current) {
+        // First BUSY — most often a stuck "accepted" row from a prior
+        // force-killed session. Show a "clearing previous session" banner,
+        // give the reconciler a beat, then retry once with a fresh attemptId.
+        busyRetriedRef.current = true;
+        setBusyState("clearing");
+        setMessage("Pichli call ka session clear ho raha hai…");
+        setTimeout(() => {
+          if (!pendingCall) return;
+          const id = newAttemptId();
+          setAttemptId(id);
+          createMut.mutate({ ...pendingCall, attemptId: id });
+        }, 2500);
+        return;
+      }
       if (msg.startsWith("BUSY:")) {
+        setBusyState("blocked");
         setEndState({
           tone: "busy",
           title: "Creator is busy",
