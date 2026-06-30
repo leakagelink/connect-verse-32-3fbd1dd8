@@ -124,10 +124,41 @@ async function refreshStaleBusy(db: any, calleeId: string): Promise<boolean> {
     })
     .map((r: any) => r.id);
   if (staleIds.length > 0) {
+    // NOTE: call_invites has no `ended_at` column — writing it throws and
+    // silently aborts the whole reconciler, leaving ghost rows in place
+    // forever. Only the columns that actually exist may be written here.
     await db
       .from("call_invites")
-      .update({ status: "cancelled", cancelled_at: nowIso, ended_at: nowIso })
+      .update({ status: "cancelled", cancelled_at: nowIso })
       .in("id", staleIds);
+    changed = true;
+  }
+
+  // 2b) Finalize orphan call_logs left open by app-kill / OS reap. A
+  // call_log with ended_at = NULL whose heartbeat has been silent for
+  // >STALE_HEARTBEAT_MS (or that never beat and is older than the same
+  // window) is closed so it stops looking "in progress" to any other
+  // busy / discovery / billing query.
+  const staleCutoffIso = new Date(nowMs - STALE_HEARTBEAT_MS).toISOString();
+  const { data: orphanLogs } = await db
+    .from("call_logs")
+    .select("id, started_at, last_heartbeat_at")
+    .or(`callee_id.eq.${calleeId},caller_id.eq.${calleeId}`)
+    .is("ended_at", null)
+    .lt("started_at", staleCutoffIso);
+  const orphanIds = (orphanLogs ?? [])
+    .filter((r: any) => {
+      const beatMs = r.last_heartbeat_at ? new Date(r.last_heartbeat_at).getTime() : 0;
+      if (beatMs === 0) return true; // no heartbeat ever, and started >60s ago
+      return nowMs - beatMs > STALE_HEARTBEAT_MS;
+    })
+    .map((r: any) => r.id);
+  if (orphanIds.length > 0) {
+    await db
+      .from("call_logs")
+      .update({ ended_at: nowIso, end_reason: "network" })
+      .in("id", orphanIds)
+      .is("ended_at", null);
     changed = true;
   }
 
