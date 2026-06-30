@@ -108,7 +108,11 @@ export const sendFollowRequest = createServerFn({ method: "POST" })
           body: `${name} wants to connect with you on Talkora.`,
           deepLink: "/requests",
         });
-      } catch { /* notification is best-effort */ }
+      } catch (err) {
+        // Best-effort — log so the issue is visible in server-fn logs
+        // instead of disappearing into a swallowed catch.
+        console.error("[sendFollowRequest] notifyUser failed", err);
+      }
     }
     return { ok: true };
   });
