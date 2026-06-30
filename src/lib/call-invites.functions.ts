@@ -95,14 +95,33 @@ async function refreshStaleBusy(db: any, calleeId: string): Promise<boolean> {
     }
   }
 
-  // 2) Cancel "accepted" invites whose underlying call already ended
+  // 2) Cancel "accepted" invites whose underlying call already ended OR
+  //    whose heartbeat has gone silent for >60s (app killed, OS reaped tab,
+  //    network died mid-call). Without this, a ghost "accepted" row keeps
+  //    the creator looking busy until something else cleans up.
+  const STALE_HEARTBEAT_MS = 60_000;
   const { data: acceptedRows } = await db
     .from("call_invites")
-    .select("id, call_log_id, call_logs:call_log_id(ended_at)")
+    .select("id, accepted_at, call_log_id, call_logs:call_log_id(ended_at, last_heartbeat_at, created_at)")
     .eq("callee_id", calleeId)
     .eq("status", "accepted");
+  const nowMs = Date.now();
   const staleIds = (acceptedRows ?? [])
-    .filter((r: any) => r.call_logs?.ended_at)
+    .filter((r: any) => {
+      const log = r.call_logs;
+      if (!log) {
+        // accepted but no call_log attached and accepted >60s ago → orphan
+        const acceptedMs = r.accepted_at ? new Date(r.accepted_at).getTime() : 0;
+        return acceptedMs > 0 && nowMs - acceptedMs > STALE_HEARTBEAT_MS;
+      }
+      if (log.ended_at) return true;
+      const lastBeat = log.last_heartbeat_at
+        ? new Date(log.last_heartbeat_at).getTime()
+        : log.created_at
+          ? new Date(log.created_at).getTime()
+          : 0;
+      return lastBeat > 0 && nowMs - lastBeat > STALE_HEARTBEAT_MS;
+    })
     .map((r: any) => r.id);
   if (staleIds.length > 0) {
     await db
@@ -115,11 +134,20 @@ async function refreshStaleBusy(db: any, calleeId: string): Promise<boolean> {
   // 3) Reset availability stuck on busy/in_call if nothing is actually live
   const { data: liveRows } = await db
     .from("call_invites")
-    .select("id, status, expires_at, call_logs:call_log_id(ended_at)")
+    .select("id, status, expires_at, call_logs:call_log_id(ended_at, last_heartbeat_at)")
     .eq("callee_id", calleeId)
     .in("status", ["pending", "accepted"]);
   const hasLive = (liveRows ?? []).some((r: any) => {
-    if (r.status === "accepted") return !r.call_logs?.ended_at;
+    if (r.status === "accepted") {
+      const log = r.call_logs;
+      if (!log) return false;
+      if (log.ended_at) return false;
+      const lastBeat = log.last_heartbeat_at ? new Date(log.last_heartbeat_at).getTime() : 0;
+      // No heartbeat yet → trust the row for the first STALE_HEARTBEAT_MS;
+      // after that, a missing beat means the call is gone.
+      if (lastBeat === 0) return true;
+      return nowMs - lastBeat <= STALE_HEARTBEAT_MS;
+    }
     if (r.status === "pending") return r.expires_at && new Date(r.expires_at).getTime() > Date.now();
     return false;
   });
@@ -134,6 +162,7 @@ async function refreshStaleBusy(db: any, calleeId: string): Promise<boolean> {
       changed = true;
     }
   }
+
 
   return changed;
 }
