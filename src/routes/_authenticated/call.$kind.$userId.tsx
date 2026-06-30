@@ -485,12 +485,16 @@ function CallScreen() {
                 qc.setQueryData(["me"], fresh);
                 setFreeStart(fresh.profile.free_seconds_remaining ?? 0);
                 setCoinStart(fresh.walletBalance ?? 0);
-                elapsedRef.current = 0;
-                setElapsed(0);
+                // NOTE: do NOT reset `elapsed` / `elapsedRef` here. The
+                // connected-timer effect (gated on connected && remoteJoined)
+                // may already be ticking by the time this async profile
+                // refresh resolves. Resetting would rewind the caller's
+                // displayed time and desync it from the callee.
                 freeExhaustedRef.current =
                   (fresh.profile.free_seconds_remaining ?? 0) === 0;
               }
             } catch { /* ignore profile refresh failure */ }
+
           } catch { /* ignore log start failure */ }
         }, 1200);
       } catch (e: any) {
