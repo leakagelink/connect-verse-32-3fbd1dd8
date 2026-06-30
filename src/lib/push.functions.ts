@@ -90,6 +90,138 @@ export const adminSendTestPush = createServerFn({ method: "POST" })
     return { pushed: res.pushed };
   });
 
+/* ------------------------------------------------------------------ */
+/* Follow-request push diagnostics                                     */
+/* Lets an admin inspect whether a `sendFollowRequest` push actually   */
+/* lands on the recipient device — prefs, tokens, FCM config, and an   */
+/* optional live test send through the same `notifyUser` path.         */
+/* ------------------------------------------------------------------ */
+
+const DiagFollowSchema = z.object({
+  // recipient identifier — accepts a UUID or a username (with or without @)
+  target: z.string().min(1).max(120),
+  send: z.boolean().optional().default(false),
+});
+
+export const adminDiagnoseFollowPush = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((d: z.infer<typeof DiagFollowSchema>) => DiagFollowSchema.parse(d))
+  .handler(async ({ context, data }) => {
+    await assertAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    // Resolve recipient (UUID or username)
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(data.target.trim());
+    const handle = data.target.trim().replace(/^@/, "");
+    let profileQuery = supabaseAdmin.from("profiles").select("id, username, display_name, is_banned");
+    profileQuery = isUuid ? profileQuery.eq("id", handle) : profileQuery.eq("username", handle);
+    const { data: profile } = await profileQuery.maybeSingle();
+    if (!profile) throw new Error("Recipient not found");
+
+    // Notification prefs
+    const { data: prefsRow } = await supabaseAdmin
+      .from("notification_prefs")
+      .select("chat, calls, gifts, follows, system, marketing")
+      .eq("user_id", profile.id)
+      .maybeSingle();
+    const followsAllowed = (prefsRow as { follows?: boolean } | null)?.follows ?? true;
+
+    // Device tokens
+    const { data: tokens } = await supabaseAdmin
+      .from("device_tokens")
+      .select("token, platform, last_seen_at, created_at")
+      .eq("user_id", profile.id)
+      .order("last_seen_at", { ascending: false });
+    const tokenRows = (tokens ?? []).map((t: any) => ({
+      platform: t.platform,
+      tokenMasked: `${String(t.token).slice(0, 12)}…${String(t.token).slice(-6)}`,
+      lastSeenAt: t.last_seen_at,
+      createdAt: t.created_at,
+    }));
+
+    // FCM config status
+    const { data: cfgRow } = await supabaseAdmin
+      .from("app_settings").select("value").eq("key", "fcm_service_account_json").maybeSingle();
+    const rawCfg = typeof cfgRow?.value === "string" ? cfgRow.value : "";
+    let fcmProjectId = "";
+    let fcmValid = false;
+    if (rawCfg) {
+      try {
+        const j = JSON.parse(rawCfg);
+        fcmProjectId = j.project_id ?? "";
+        fcmValid = !!(j.project_id && j.client_email && j.private_key);
+      } catch { /* ignore */ }
+    }
+    const fcmConfigured = fcmValid || !!process.env.FCM_SERVICE_ACCOUNT_JSON;
+
+    // Recent follow-kind notifications in last 24h
+    const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+    const { data: recent } = await supabaseAdmin
+      .from("app_notifications")
+      .select("id, title, body, created_at, deep_link")
+      .eq("user_id", profile.id)
+      .eq("kind", "follows")
+      .gte("created_at", since)
+      .order("created_at", { ascending: false })
+      .limit(10);
+
+    // Optional live test send through the exact same path
+    let liveSend: {
+      attempted: boolean;
+      pushed: number;
+      bellInserted: boolean;
+      reason?: string;
+    } = { attempted: false, pushed: 0, bellInserted: false };
+
+    if (data.send) {
+      liveSend.attempted = true;
+      if (profile.is_banned) {
+        liveSend.reason = "Recipient is banned";
+      } else if (tokenRows.length === 0) {
+        liveSend.reason = "No device tokens registered for recipient";
+      } else if (!fcmConfigured) {
+        liveSend.reason = "FCM service account not configured";
+      }
+      const out = await notifyUser({
+        userId: profile.id,
+        kind: "follows",
+        title: "Diagnostic: friend request push",
+        body: "If you see this notification, follow-request pushes are reaching this device.",
+        deepLink: "/requests",
+      });
+      liveSend.pushed = out.pushed;
+      // notifyUser inserts a bell row unless silenceBellToo (follows + !allow)
+      liveSend.bellInserted = !(!followsAllowed);
+    }
+
+    // Build a verdict
+    const issues: string[] = [];
+    if (profile.is_banned) issues.push("Recipient is banned");
+    if (!followsAllowed) issues.push("Recipient disabled 'Follows & friend requests' in notification prefs — both bell and FCM are skipped");
+    if (tokenRows.length === 0) issues.push("Recipient has no registered device tokens (push will never deliver)");
+    if (!fcmConfigured) issues.push("FCM service account not configured in admin");
+
+    return {
+      recipient: {
+        id: profile.id,
+        username: profile.username,
+        displayName: profile.display_name,
+        isBanned: !!profile.is_banned,
+      },
+      prefs: {
+        hasRow: !!prefsRow,
+        followsAllowed,
+        all: prefsRow ?? null,
+      },
+      tokens: { count: tokenRows.length, rows: tokenRows },
+      fcm: { configured: fcmConfigured, projectId: fcmProjectId },
+      recentFollowNotifications: recent ?? [],
+      liveSend,
+      verdict: issues.length === 0 ? "ok" : "issues",
+      issues,
+    };
+  });
+
 
 const TokenSchema = z.object({
   token: z.string().min(10).max(4096),
