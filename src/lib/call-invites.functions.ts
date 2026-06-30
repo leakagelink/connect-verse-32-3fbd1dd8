@@ -581,20 +581,54 @@ export const acceptCallInvite = createServerFn({ method: "POST" })
     // request can win this conditional UPDATE; concurrent duplicates get
     // an empty result and fall through to the idempotent re-read below.
     const acceptedAt = new Date().toISOString();
-    const { data: reserved, error: reserveErr } = await db
-      .from("call_invites")
-      .update({ status: "accepted", accepted_at: acceptedAt })
-      .eq("id", invite.id)
-      .eq("status", "pending")
-      .select("*")
-      .maybeSingle();
+    let reserved: any = null;
+    let reserveErr: any = null;
+    for (let attempt = 0; attempt < 2; attempt++) {
+      const res = await db
+        .from("call_invites")
+        .update({ status: "accepted", accepted_at: acceptedAt })
+        .eq("id", invite.id)
+        .eq("status", "pending")
+        .select("*")
+        .maybeSingle();
+      reserved = res.data;
+      reserveErr = res.error;
+      if (!reserveErr) break;
+      const msg = String(reserveErr.message ?? "");
+      const isUniqueConflict =
+        reserveErr.code === "23505" ||
+        /call_invites_one_accepted_per_callee|duplicate key/i.test(msg);
+      if (!isUniqueConflict || attempt > 0) break;
+      // Conflict on the per-callee partial-unique index. Most often this is
+      // a stale "accepted" invite from a previous call whose call_log already
+      // ended but never got flipped to cancelled (background loss, app kill,
+      // missed cleanup). Run the reconciler and retry once before surfacing
+      // a "busy" error to the user.
+      await refreshStaleBusy(db, invite.callee_id);
+    }
 
     if (reserveErr) {
       const msg = String(reserveErr.message ?? "");
-      // Partial-unique index `call_invites_one_accepted_per_callee` — the
-      // callee already has another accepted invite live.
-      if (reserveErr.code === "23505" || /call_invites_one_accepted_per_callee|duplicate key/i.test(msg)) {
-        throw new Error("This creator just picked up another call.");
+      if (
+        reserveErr.code === "23505" ||
+        /call_invites_one_accepted_per_callee|duplicate key/i.test(msg)
+      ) {
+        // Still conflicting after cleanup — check if there is a genuinely
+        // live accepted invite (call_log not yet ended). If not, it's a
+        // ghost row we couldn't clean; treat as no longer ringing instead
+        // of falsely accusing the creator of being on another call.
+        const { data: liveAccepted } = await db
+          .from("call_invites")
+          .select("id, call_logs:call_log_id(ended_at)")
+          .eq("callee_id", invite.callee_id)
+          .eq("status", "accepted");
+        const reallyBusy = (liveAccepted ?? []).some(
+          (r: any) => r.call_log_id == null || !r.call_logs?.ended_at,
+        );
+        if (reallyBusy) {
+          throw new Error("This creator just picked up another call.");
+        }
+        throw new Error("This call is no longer ringing.");
       }
       throw new Error(msg);
     }
@@ -610,6 +644,7 @@ export const acceptCallInvite = createServerFn({ method: "POST" })
       }
       throw new Error("This call is no longer ringing.");
     }
+
 
     // ---------- Step 2: create the call_log for the winning reservation ----------
     const { data: log, error: logErr } = await db
