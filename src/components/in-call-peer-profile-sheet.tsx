@@ -69,6 +69,16 @@ export function InCallPeerProfileSheet({ userId, open, onOpenChange, inCall = fa
   const { user: me } = useSession();
   const [confirm, setConfirm] = useState<ConfirmKind>(null);
 
+  // Single source of truth for "are we actually on the live call screen?".
+  // The `inCall` prop is a hint from the caller, but we additionally verify
+  // against the current route — the in-call banner/CTA must NEVER render
+  // outside `/call/:kind/:userId` even if a caller forgets to pass the
+  // prop correctly (recents, profile preview, deep links, etc.).
+  const currentPath = useRouterState({ select: (s) => s.location.pathname });
+  const isOnCallRoute = /^\/call\//.test(currentPath);
+  const showInCallChrome = inCall && isOnCallRoute;
+
+
   const { data, isLoading } = useQuery({
     queryKey: ["in-call-peer", userId],
     queryFn: () => fetchProfile({ data: { userId: userId! } }),
