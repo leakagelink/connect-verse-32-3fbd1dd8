@@ -424,20 +424,25 @@ function ConnectScreen() {
                       <Star className="size-3 text-primary fill-primary shrink-0" />
                     )}
                   </div>
-                  <p className="text-[11px] text-muted-foreground flex items-center gap-2 truncate">
-                    {u.language && (
-                      <span className="inline-flex items-center gap-0.5">
-                        <Languages className="size-3" />
-                        {u.language}
-                      </span>
-                    )}
-                    {u.country && (
-                      <span className="inline-flex items-center gap-0.5">
-                        <MapPin className="size-3" />
-                        {u.state ? `${u.state}, ${u.country}` : u.country}
-                      </span>
-                    )}
-                  </p>
+                  {u.country && (
+                    <p className="text-[11px] text-muted-foreground flex items-center gap-1 truncate">
+                      <MapPin className="size-3" />
+                      {u.state ? `${u.state}, ${u.country}` : u.country}
+                    </p>
+                  )}
+                  {creatorLangs.size > 0 && (
+                    <LanguageChips
+                      codes={Array.from(creatorLangs)}
+                      matchCodes={
+                        new Set<string>(
+                          [
+                            language !== "any" && language !== "auto" ? language : null,
+                            me.language,
+                          ].filter(Boolean) as string[],
+                        )
+                      }
+                    />
+                  )}
                 </div>
                 <div className="flex flex-col gap-1.5">
                   <Button size="sm" variant="secondary" className="h-7 px-2" onClick={() => void startCall("voice", u.id)}>
