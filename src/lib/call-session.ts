@@ -120,7 +120,9 @@ export async function connectCall(opts: {
             onRemoteUser: (user, mediaType) => {
               opts.events.onRemoteJoined?.();
               if (mediaType === "video") {
-                // remote container attachment is done by the caller via attachRemote
+                // The painter inside AgoraSession knows the current container
+                // (set via setRemoteVideoElement below) and handles cleanup +
+                // rebind on every republish — including peer cam toggle on/off.
                 queueMicrotask(() => session.attachRemoteVideo(user, _agoraRemoteEl ?? document.createElement("div")));
               }
             },
@@ -132,7 +134,9 @@ export async function connectCall(opts: {
             onAudioBlocked: opts.events.onAudioBlocked,
           },
         });
-        // Track the remote container target so attachRemote() works post-join.
+        // Track the remote container target so attachRemote() works post-join,
+        // and forward it to the session so peer cam-toggle republishes paint
+        // back into the same div without a stale frame.
         let _agoraRemoteEl: HTMLElement | null = null;
         return {
           provider: "agora",
@@ -140,7 +144,10 @@ export async function connectCall(opts: {
           channel,
           session,
           localStream: stream,
-          attachRemote: (el) => { _agoraRemoteEl = el; },
+          attachRemote: (el) => {
+            _agoraRemoteEl = el;
+            session.setRemoteVideoElement(el);
+          },
           failoverChain,
         };
       }
