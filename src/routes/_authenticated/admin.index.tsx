@@ -126,6 +126,7 @@ function AdminPanel() {
         <TabsContent value="call-audit" className="space-y-3">
           <CallTelemetryPanel />
           <ReconcilerCleanupE2E />
+          <StuckSessionReconnectE2E />
           <BusyResetE2E />
           <CallEndE2E />
           <ConcurrentCallE2E />
