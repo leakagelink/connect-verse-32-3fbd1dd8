@@ -110,7 +110,23 @@ export class AgoraSession {
           this.events.onAudioBlocked?.();
         }
       }
+      if (mediaType === "video" && user.videoTrack) {
+        // Peer (re-)published video. Their previous videoTrack instance is now
+        // stale: re-binding to the SAME container without clearing leaves an
+        // orphan <video> element rendering a black/last-frame canvas. Clean
+        // the container, then play the FRESH track into it.
+        this.lastRemoteVideoUser = user;
+        this.paintRemoteVideo(user);
+      }
       this.events.onRemoteUser?.(user, mediaType);
+    });
+    this.client.on("user-unpublished", (user, mediaType) => {
+      if (mediaType !== "video") return;
+      // Peer turned cam off. Drop the painted <video> so we don't keep a
+      // frozen last frame on screen until they republish.
+      if (this.lastRemoteVideoUser?.uid === user.uid) {
+        this.clearRemoteVideoEl();
+      }
     });
     this.client.on("user-left", (user, reason) =>
       this.events.onRemoteLeft?.(user, mapLeaveReason(reason)),
