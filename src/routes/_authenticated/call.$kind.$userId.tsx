@@ -2575,6 +2575,34 @@ function CallScreen() {
         } catch { /* ignore */ }
         return show ? <AgoraDebugPanel /> : null;
       })()}
+
+      {/* Timer correctness debug overlay — enable with ?timerDebug=1,
+          ?callDebug=1, or localStorage.timerDebug = "1". Shows the exact
+          wall-clock moment each timer-driving flag flipped true on this
+          client, plus the server anchor and live elapsed value. Open on
+          both peers to verify they agree on the anchor and elapsed time. */}
+      {(() => {
+        let show = false;
+        try {
+          show =
+            new URLSearchParams(window.location.search).get("timerDebug") === "1" ||
+            new URLSearchParams(window.location.search).get("callDebug") === "1" ||
+            localStorage.getItem("timerDebug") === "1";
+        } catch { /* ignore */ }
+        if (!show) return null;
+        return (
+          <TimerDebugOverlay
+            connected={connected}
+            remoteJoined={remoteJoined}
+            everConnected={everConnected}
+            elapsed={elapsed}
+            connectedAtMs={connectedAtMs}
+            myId={myId ?? ""}
+            peerId={userId ?? ""}
+          />
+        );
+      })()}
+
     </div>
 
 
