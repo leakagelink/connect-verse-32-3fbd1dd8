@@ -32,10 +32,17 @@ export function SosButton({
   partnerUserId,
   callLogId,
   onEndCall,
+  onTelemetry,
 }: {
   partnerUserId: string;
   callLogId: string | null;
   onEndCall: () => void;
+  onTelemetry?: (
+    event:
+      | { type: "opened" }
+      | { type: "confirmed"; reason: SosReason; durationMs: number }
+      | { type: "blocked"; reason: SosReason; error: string; durationMs: number },
+  ) => void;
 }) {
   const [open, setOpen] = useState(false);
   const [reason, setReason] = useState<SosReason>("harassment");
@@ -45,6 +52,7 @@ export function SosButton({
 
   async function trigger() {
     setBusy(true);
+    const startedAt = Date.now();
     try {
       await reportFn({
         data: {
@@ -54,9 +62,11 @@ export function SosButton({
         },
       });
       toast.success("Report filed. Call ended. Our safety team will review within 24h.", { duration: 6000 });
+      try { onTelemetry?.({ type: "confirmed", reason, durationMs: Date.now() - startedAt }); } catch {}
     } catch (e: any) {
       // even if report fails, still end the call — user safety first
       toast.error(e?.message || "Could not file report — call still ended.");
+      try { onTelemetry?.({ type: "blocked", reason, error: e?.message || String(e), durationMs: Date.now() - startedAt }); } catch {}
     } finally {
       setBusy(false);
       setOpen(false);
