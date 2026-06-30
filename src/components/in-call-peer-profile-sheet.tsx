@@ -10,6 +10,7 @@ import {
   sendFollowRequest,
   unfollowUser,
 } from "@/lib/follows.functions";
+import { isCallRoutePath, shouldShowInCallChrome } from "@/lib/call-banner-visibility";
 import {
   Sheet,
   SheetContent,
@@ -96,8 +97,9 @@ export function InCallPeerProfileSheet({ userId, open, onOpenChange, inCall = fa
   // outside `/call/:kind/:userId` even if a caller forgets to pass the
   // prop correctly (recents, profile preview, deep links, etc.).
   const currentPath = useRouterState({ select: (s) => s.location.pathname });
-  const isOnCallRoute = /^\/call\//.test(currentPath);
-  const showInCallChrome = inCall && isOnCallRoute;
+  const isOnCallRoute = isCallRoutePath(currentPath);
+  const showInCallChrome = shouldShowInCallChrome(inCall, currentPath);
+
 
 
   const { data, isLoading } = useQuery({
@@ -216,11 +218,12 @@ export function InCallPeerProfileSheet({ userId, open, onOpenChange, inCall = fa
         <SheetHeader className="text-left">
           <SheetTitle>Profile</SheetTitle>
           {showInCallChrome ? (
-            <SheetDescription>
+            <SheetDescription data-testid="in-call-banner">
               Apka call abhi bhi chal raha hai. Wapis call screen pe jaane ke
               liye “Back to call” dabayein.
             </SheetDescription>
           ) : null}
+
         </SheetHeader>
 
         {!showInCallChrome && lastCall ? (
@@ -379,9 +382,11 @@ export function InCallPeerProfileSheet({ userId, open, onOpenChange, inCall = fa
             variant="outline"
             className="w-full"
             onClick={() => onOpenChange(false)}
+            data-testid={showInCallChrome ? "back-to-call-cta" : "close-cta"}
           >
             <ArrowLeft className="size-4 mr-2" /> {showInCallChrome ? "Back to call" : "Close"}
           </Button>
+
         </SheetFooter>
 
         {/*

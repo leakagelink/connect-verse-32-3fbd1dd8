@@ -40,9 +40,11 @@ import { Route as AuthenticatedConnectRouteImport } from './routes/_authenticate
 import { Route as AuthenticatedChatRouteImport } from './routes/_authenticated/chat'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
 import { Route as AuthenticatedAccountDeleteRouteImport } from './routes/_authenticated/account-delete'
+import { Route as _e2ePeerSheetBannerRouteImport } from './routes/__e2e.peer-sheet-banner'
 import { Route as _e2eCallFullscreenRouteImport } from './routes/__e2e.call-fullscreen'
 import { Route as AuthenticatedChatIndexRouteImport } from './routes/_authenticated/chat.index'
 import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authenticated/admin.index'
+import { Route as Call_e2ePeerSheetBannerRouteImport } from './routes/call.__e2e.peer-sheet-banner'
 import { Route as ApiPublicRazorpayWebhookRouteImport } from './routes/api/public/razorpay-webhook'
 import { Route as AuthenticatedRoomsNewRouteImport } from './routes/_authenticated/rooms.new'
 import { Route as AuthenticatedRoomsIdRouteImport } from './routes/_authenticated/rooms.$id'
@@ -214,6 +216,11 @@ const AuthenticatedAccountDeleteRoute =
     path: '/account-delete',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const _e2ePeerSheetBannerRoute = _e2ePeerSheetBannerRouteImport.update({
+  id: '/__e2e/peer-sheet-banner',
+  path: '/peer-sheet-banner',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const _e2eCallFullscreenRoute = _e2eCallFullscreenRouteImport.update({
   id: '/__e2e/call-fullscreen',
   path: '/call-fullscreen',
@@ -228,6 +235,11 @@ const AuthenticatedAdminIndexRoute = AuthenticatedAdminIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => AuthenticatedAdminRoute,
+} as any)
+const Call_e2ePeerSheetBannerRoute = Call_e2ePeerSheetBannerRouteImport.update({
+  id: '/call/__e2e/peer-sheet-banner',
+  path: '/call/peer-sheet-banner',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const ApiPublicRazorpayWebhookRoute =
   ApiPublicRazorpayWebhookRouteImport.update({
@@ -300,6 +312,7 @@ export interface FileRoutesByFullPath {
   '/safety': typeof SafetyRoute
   '/terms': typeof TermsRoute
   '/call-fullscreen': typeof _e2eCallFullscreenRoute
+  '/peer-sheet-banner': typeof _e2ePeerSheetBannerRoute
   '/account-delete': typeof AuthenticatedAccountDeleteRoute
   '/admin': typeof AuthenticatedAdminRouteWithChildren
   '/chat': typeof AuthenticatedChatRouteWithChildren
@@ -327,6 +340,7 @@ export interface FileRoutesByFullPath {
   '/rooms/$id': typeof AuthenticatedRoomsIdRoute
   '/rooms/new': typeof AuthenticatedRoomsNewRoute
   '/api/public/razorpay-webhook': typeof ApiPublicRazorpayWebhookRoute
+  '/call/peer-sheet-banner': typeof Call_e2ePeerSheetBannerRoute
   '/admin/': typeof AuthenticatedAdminIndexRoute
   '/chat/': typeof AuthenticatedChatIndexRoute
   '/call/$kind/$userId': typeof AuthenticatedCallKindUserIdRoute
@@ -345,6 +359,7 @@ export interface FileRoutesByTo {
   '/safety': typeof SafetyRoute
   '/terms': typeof TermsRoute
   '/call-fullscreen': typeof _e2eCallFullscreenRoute
+  '/peer-sheet-banner': typeof _e2ePeerSheetBannerRoute
   '/account-delete': typeof AuthenticatedAccountDeleteRoute
   '/connect': typeof AuthenticatedConnectRoute
   '/creator-dashboard': typeof AuthenticatedCreatorDashboardRoute
@@ -370,6 +385,7 @@ export interface FileRoutesByTo {
   '/rooms/$id': typeof AuthenticatedRoomsIdRoute
   '/rooms/new': typeof AuthenticatedRoomsNewRoute
   '/api/public/razorpay-webhook': typeof ApiPublicRazorpayWebhookRoute
+  '/call/peer-sheet-banner': typeof Call_e2ePeerSheetBannerRoute
   '/admin': typeof AuthenticatedAdminIndexRoute
   '/chat': typeof AuthenticatedChatIndexRoute
   '/call/$kind/$userId': typeof AuthenticatedCallKindUserIdRoute
@@ -390,6 +406,7 @@ export interface FileRoutesById {
   '/safety': typeof SafetyRoute
   '/terms': typeof TermsRoute
   '/__e2e/call-fullscreen': typeof _e2eCallFullscreenRoute
+  '/__e2e/peer-sheet-banner': typeof _e2ePeerSheetBannerRoute
   '/_authenticated/account-delete': typeof AuthenticatedAccountDeleteRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRouteWithChildren
   '/_authenticated/chat': typeof AuthenticatedChatRouteWithChildren
@@ -417,6 +434,7 @@ export interface FileRoutesById {
   '/_authenticated/rooms/$id': typeof AuthenticatedRoomsIdRoute
   '/_authenticated/rooms/new': typeof AuthenticatedRoomsNewRoute
   '/api/public/razorpay-webhook': typeof ApiPublicRazorpayWebhookRoute
+  '/call/__e2e/peer-sheet-banner': typeof Call_e2ePeerSheetBannerRoute
   '/_authenticated/admin/': typeof AuthenticatedAdminIndexRoute
   '/_authenticated/chat/': typeof AuthenticatedChatIndexRoute
   '/_authenticated/call/$kind/$userId': typeof AuthenticatedCallKindUserIdRoute
@@ -437,6 +455,7 @@ export interface FileRouteTypes {
     | '/safety'
     | '/terms'
     | '/call-fullscreen'
+    | '/peer-sheet-banner'
     | '/account-delete'
     | '/admin'
     | '/chat'
@@ -464,6 +483,7 @@ export interface FileRouteTypes {
     | '/rooms/$id'
     | '/rooms/new'
     | '/api/public/razorpay-webhook'
+    | '/call/peer-sheet-banner'
     | '/admin/'
     | '/chat/'
     | '/call/$kind/$userId'
@@ -482,6 +502,7 @@ export interface FileRouteTypes {
     | '/safety'
     | '/terms'
     | '/call-fullscreen'
+    | '/peer-sheet-banner'
     | '/account-delete'
     | '/connect'
     | '/creator-dashboard'
@@ -507,6 +528,7 @@ export interface FileRouteTypes {
     | '/rooms/$id'
     | '/rooms/new'
     | '/api/public/razorpay-webhook'
+    | '/call/peer-sheet-banner'
     | '/admin'
     | '/chat'
     | '/call/$kind/$userId'
@@ -526,6 +548,7 @@ export interface FileRouteTypes {
     | '/safety'
     | '/terms'
     | '/__e2e/call-fullscreen'
+    | '/__e2e/peer-sheet-banner'
     | '/_authenticated/account-delete'
     | '/_authenticated/admin'
     | '/_authenticated/chat'
@@ -553,6 +576,7 @@ export interface FileRouteTypes {
     | '/_authenticated/rooms/$id'
     | '/_authenticated/rooms/new'
     | '/api/public/razorpay-webhook'
+    | '/call/__e2e/peer-sheet-banner'
     | '/_authenticated/admin/'
     | '/_authenticated/chat/'
     | '/_authenticated/call/$kind/$userId'
@@ -573,7 +597,9 @@ export interface RootRouteChildren {
   SafetyRoute: typeof SafetyRoute
   TermsRoute: typeof TermsRoute
   _e2eCallFullscreenRoute: typeof _e2eCallFullscreenRoute
+  _e2ePeerSheetBannerRoute: typeof _e2ePeerSheetBannerRoute
   ApiPublicRazorpayWebhookRoute: typeof ApiPublicRazorpayWebhookRoute
+  Call_e2ePeerSheetBannerRoute: typeof Call_e2ePeerSheetBannerRoute
   ApiPublicHooksKycCleanupRoute: typeof ApiPublicHooksKycCleanupRoute
   ApiPublicHooksResetCallingQuotasRoute: typeof ApiPublicHooksResetCallingQuotasRoute
 }
@@ -797,6 +823,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAccountDeleteRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/__e2e/peer-sheet-banner': {
+      id: '/__e2e/peer-sheet-banner'
+      path: '/peer-sheet-banner'
+      fullPath: '/peer-sheet-banner'
+      preLoaderRoute: typeof _e2ePeerSheetBannerRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/__e2e/call-fullscreen': {
       id: '/__e2e/call-fullscreen'
       path: '/call-fullscreen'
@@ -817,6 +850,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/admin/'
       preLoaderRoute: typeof AuthenticatedAdminIndexRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/call/__e2e/peer-sheet-banner': {
+      id: '/call/__e2e/peer-sheet-banner'
+      path: '/call/peer-sheet-banner'
+      fullPath: '/call/peer-sheet-banner'
+      preLoaderRoute: typeof Call_e2ePeerSheetBannerRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/api/public/razorpay-webhook': {
       id: '/api/public/razorpay-webhook'
@@ -990,7 +1030,9 @@ const rootRouteChildren: RootRouteChildren = {
   SafetyRoute: SafetyRoute,
   TermsRoute: TermsRoute,
   _e2eCallFullscreenRoute: _e2eCallFullscreenRoute,
+  _e2ePeerSheetBannerRoute: _e2ePeerSheetBannerRoute,
   ApiPublicRazorpayWebhookRoute: ApiPublicRazorpayWebhookRoute,
+  Call_e2ePeerSheetBannerRoute: Call_e2ePeerSheetBannerRoute,
   ApiPublicHooksKycCleanupRoute: ApiPublicHooksKycCleanupRoute,
   ApiPublicHooksResetCallingQuotasRoute: ApiPublicHooksResetCallingQuotasRoute,
 }
