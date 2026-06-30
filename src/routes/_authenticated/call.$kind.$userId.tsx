@@ -643,7 +643,8 @@ function CallScreen() {
     }, 1000);
     return () => clearInterval(i);
 
-  }, [connected, remoteJoined]);
+  }, [everConnected]);
+
 
 
 
