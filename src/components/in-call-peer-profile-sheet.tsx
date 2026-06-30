@@ -177,6 +177,39 @@ export function InCallPeerProfileSheet({ userId, open, onOpenChange, inCall = fa
           ) : null}
         </SheetHeader>
 
+        {!showInCallChrome && lastCall ? (
+          <Alert
+            className="mt-3"
+            data-testid="last-call-unavailable-notice"
+          >
+            {lastCall.status === "missed" ? (
+              <PhoneMissed className="size-4 text-amber-500" />
+            ) : (
+              <PhoneOff className="size-4 text-muted-foreground" />
+            )}
+            <AlertTitle>
+              {lastCall.status === "missed"
+                ? lastCall.missedReason === "expired"
+                  ? "Missed call — naya call shuru karein"
+                  : lastCall.missedReason === "declined"
+                    ? "Call decline ho gayi thi"
+                    : lastCall.missedReason === "cancelled"
+                      ? "Call cancel ho gayi thi"
+                      : "Missed call"
+                : lastCall.status === "cancelled"
+                  ? "Call cancel ho gayi thi"
+                  : "Pichla call end ho chuka hai"}
+            </AlertTitle>
+            <AlertDescription>
+              Yeh call ab live nahi hai — dobara baat karne ke liye{" "}
+              {lastCall.kind === "video" ? "Video call" : "Voice call"} button
+              dabaayein.
+            </AlertDescription>
+          </Alert>
+        ) : null}
+
+
+
 
 
         {isLoading || !p ? (
