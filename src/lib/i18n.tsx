@@ -335,18 +335,69 @@ const I18nContext = createContext<Ctx>({
 export function LanguageProvider({ children }: { children: ReactNode }) {
   const [locale, setLocaleState] = useState<Locale>("en");
 
+  const applyLocale = useCallback((l: Locale) => {
+    setLocaleState(l);
+    if (typeof document !== "undefined") document.documentElement.lang = l;
+  }, []);
+
   // Hydrate from localStorage on mount (avoid SSR mismatch by reading after render).
   useEffect(() => {
     if (typeof window === "undefined") return;
     const stored = window.localStorage.getItem(STORAGE_KEY) as Locale | null;
-    if (stored && dictionaries[stored]) setLocaleState(stored);
-  }, []);
+    if (stored && dictionaries[stored]) applyLocale(stored);
+  }, [applyLocale]);
+
+  // After login, pull `profiles.language` so the user's saved preference
+  // wins over the localStorage default — including on a fresh device.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    let cancelled = false;
+
+    async function hydrateFromProfile(userId: string) {
+      try {
+        const { supabase } = await import("@/integrations/supabase/client");
+        const { data } = await supabase
+          .from("profiles")
+          .select("language")
+          .eq("id", userId)
+          .maybeSingle();
+        if (cancelled) return;
+        const lang = (data?.language ?? null) as Locale | null;
+        if (lang && dictionaries[lang]) {
+          window.localStorage.setItem(STORAGE_KEY, lang);
+          applyLocale(lang);
+        }
+      } catch {
+        /* non-fatal: keep current locale */
+      }
+    }
+
+    let cleanup: (() => void) | null = null;
+
+    (async () => {
+      const { supabase } = await import("@/integrations/supabase/client");
+      const { data } = await supabase.auth.getSession();
+      const uid = data.session?.user?.id;
+      if (uid) hydrateFromProfile(uid);
+
+      const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
+        if (event === "SIGNED_IN" || event === "USER_UPDATED") {
+          if (session?.user?.id) hydrateFromProfile(session.user.id);
+        }
+      });
+      cleanup = () => sub.subscription.unsubscribe();
+    })();
+
+    return () => {
+      cancelled = true;
+      cleanup?.();
+    };
+  }, [applyLocale]);
 
   const setLocale = useCallback((l: Locale) => {
-    setLocaleState(l);
+    applyLocale(l);
     if (typeof window !== "undefined") window.localStorage.setItem(STORAGE_KEY, l);
-    if (typeof document !== "undefined") document.documentElement.lang = l;
-  }, []);
+  }, [applyLocale]);
 
   const t = useCallback(
     (key: string, vars?: Record<string, string | number>) => {
