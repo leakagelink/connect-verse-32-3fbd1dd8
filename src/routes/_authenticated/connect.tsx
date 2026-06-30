@@ -177,12 +177,24 @@ function ConnectScreen() {
       }
     }
 
-    // priority score: matched language (4) > my profile language (3) > state (2) > country (1)
+    // priority score with primary > secondary language distinction:
+    //   picked-lang primary (5) / picked-lang secondary (3)
+    //   my-lang primary    (4) / my-lang secondary    (2)
+    //   state (2), country (1)
     const score = (u: Creator) => {
       let s = 0;
-      const langs = langsOf(u);
-      if (used && langs.has(used)) s += 4;
-      if (me.language && langs.has(me.language)) s += 3;
+      const primary = u.language ?? null;
+      const additional = new Set<string>(
+        (u.languages ?? []).filter((l): l is string => !!l && l !== primary),
+      );
+      if (used) {
+        if (primary === used) s += 5;
+        else if (additional.has(used)) s += 3;
+      }
+      if (me.language) {
+        if (primary === me.language) s += 4;
+        else if (additional.has(me.language)) s += 2;
+      }
       if (me.state && u.state === me.state) s += 2;
       if (me.country && u.country === me.country) s += 1;
       return s;

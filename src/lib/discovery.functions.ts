@@ -199,12 +199,19 @@ export const listForYouCreators = createServerFn({ method: "GET" })
     const onlineCutoff = new Date(Date.now() - ONLINE_WINDOW_SECONDS * 1000).toISOString();
     const scored = withAiAvatars((creators ?? []).filter((c: any) => c.id !== userId)).map((c) => {
       let score = 0;
-      const cLangs = new Set<string>(
-        [c.language, ...((c.languages ?? []) as string[])].filter((x): x is string => !!x),
+      const primary = c.language ?? null;
+      const additional = new Set<string>(
+        ((c.languages ?? []) as string[]).filter((l) => l && l !== primary),
       );
-      if (me?.language && cLangs.has(me.language)) score += 5;
-      if (me?.state && c.state === me.state) score += 3;
-      if (me?.country && c.country === me.country) score += 2;
+      // Primary language match weighs higher than a secondary/spoken match —
+      // a creator whose main language is mine should rank above one who only
+      // lists it as an additional spoken language.
+      if (me?.language) {
+        if (primary === me.language) score += 6;
+        else if (additional.has(me.language)) score += 3;
+      }
+      if (me?.state && c.state === me.state) score += 2;
+      if (me?.country && c.country === me.country) score += 1;
       if (c.last_seen_at && c.last_seen_at >= onlineCutoff) score += 4;
       return { ...c, _score: score, online: c.last_seen_at && c.last_seen_at >= onlineCutoff };
     });
