@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { PrecallPermissionDialog } from "@/components/precall-permission-dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { acceptCallInvite, listIncomingCallInvites, markCallInviteDelivered, rejectCallInvite } from "@/lib/call-invites.functions";
+import { acceptInviteWithRetry, type AcceptRetryAttempt } from "@/lib/accept-call-retry";
 
 type IncomingInvite = {
   id: string;
