@@ -305,8 +305,12 @@ export function InCallPeerProfileSheet({ userId, open, onOpenChange, inCall = fa
               </AlertDialogTitle>
               <AlertDialogDescription>
                 {confirm === "unfollow"
-                  ? "Aap unhe unfollow kar denge. Call abhi bhi chalu rahegi."
-                  : "Hum unhe ek friend request bhejenge. Call disturb nahi hogi."}
+                  ? showInCallChrome
+                    ? "Aap unhe unfollow kar denge. Call abhi bhi chalu rahegi."
+                    : "Aap unhe unfollow kar denge."
+                  : showInCallChrome
+                    ? "Hum unhe ek friend request bhejenge. Call disturb nahi hogi."
+                    : "Hum unhe ek friend request bhejenge."}
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
