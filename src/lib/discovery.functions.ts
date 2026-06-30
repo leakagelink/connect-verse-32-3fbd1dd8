@@ -188,7 +188,7 @@ export const listForYouCreators = createServerFn({ method: "GET" })
     const cutoff = new Date(Date.now() - 24 * 3600_000).toISOString();
     const { data: creators } = await supabaseAdmin
       .from("profiles")
-      .select("id, username, gender, country, state, language, avatar_url, ai_avatar_style, is_creator, last_seen_at, is_banned, onboarded, deleted_at")
+      .select("id, username, gender, country, state, language, languages, avatar_url, ai_avatar_style, is_creator, last_seen_at, is_banned, onboarded, deleted_at")
       .eq("is_banned", false)
       .eq("onboarded", true)
       .eq("is_creator", true)
