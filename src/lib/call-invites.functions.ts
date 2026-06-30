@@ -401,6 +401,13 @@ export const createCallInvite = createServerFn({ method: "POST" })
 
     const { caller } = await assertCallable(db, callerId, data.calleeId);
 
+    // Unconditional pre-flight reconciliation. Closes orphan call_logs
+    // (ended_at IS NULL, heartbeat silent) and cancels ghost "accepted"
+    // invites on BOTH sides — without this, an app-kill mid-call leaves
+    // state that blocks the next call from ever connecting.
+    await refreshStaleBusy(db, data.calleeId).catch(() => false);
+    await refreshStaleBusy(db, callerId).catch(() => false);
+
     // Busy detection: callee already ringing with someone else or in an active accepted call.
     // We JOIN to call_logs so an "accepted" invite whose call already ended
     // (ended_at IS NOT NULL) is NOT treated as busy — otherwise stale rows
@@ -425,7 +432,7 @@ export const createCallInvite = createServerFn({ method: "POST" })
     };
     let isBusy = await computeBusy();
     if (isBusy) {
-      // One-time stale-busy reconciliation + retry
+      // One-time stale-busy reconciliation + retry (in case state changed mid-flight)
       const changed = await refreshStaleBusy(db, data.calleeId);
       if (changed) isBusy = await computeBusy();
     }
