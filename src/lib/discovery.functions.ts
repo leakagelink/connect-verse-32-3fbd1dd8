@@ -199,7 +199,8 @@ export const listForYouCreators = createServerFn({ method: "GET" })
     const onlineCutoff = new Date(Date.now() - ONLINE_WINDOW_SECONDS * 1000).toISOString();
     const scored = withAiAvatars((creators ?? []).filter((c: any) => c.id !== userId)).map((c) => {
       let score = 0;
-      if (me?.language && c.language === me.language) score += 5;
+      const cLangs = new Set<string>([c.language, ...((c.languages ?? []) as string[])].filter(Boolean));
+      if (me?.language && cLangs.has(me.language)) score += 5;
       if (me?.state && c.state === me.state) score += 3;
       if (me?.country && c.country === me.country) score += 2;
       if (c.last_seen_at && c.last_seen_at >= onlineCutoff) score += 4;
