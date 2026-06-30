@@ -141,6 +141,8 @@ export function InCallPeerProfileSheet({ userId, open, onOpenChange, inCall = fa
               liye “Back to call” dabayein.
             </SheetDescription>
           ) : null}
+        </SheetHeader>
+
 
 
         {isLoading || !p ? (
