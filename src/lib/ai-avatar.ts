@@ -106,15 +106,13 @@ function computeAvatarUrl(
   const safeStyle = style && STYLE_IDS.has(style) ? style : pickDefaultStyle(gender, isCreator);
   const safeSeed = encodeURIComponent(seed || "talkora");
   const params = new URLSearchParams({ seed: safeSeed, radius: "50" });
-  if (isCreator) {
-    const [a, b] = gradientFor(seed);
-    params.set("backgroundType", "gradientLinear");
-    params.set("backgroundColor", `${a},${b}`);
-    params.set("backgroundRotation", "0,360");
-    params.set("scale", "110");
-  } else {
-    params.set("backgroundType", "gradientLinear");
-  }
+  // Apply a soft pastel gradient backdrop for everyone — keeps default
+  // avatars looking cute and premium even before users customize.
+  const [a, b] = gradientFor(seed);
+  params.set("backgroundType", "gradientLinear");
+  params.set("backgroundColor", `${a},${b}`);
+  params.set("backgroundRotation", "0,360");
+  if (isCreator) params.set("scale", "110");
   return `${DICEBEAR_BASE}/${safeStyle}/svg?${params.toString()}`;
 }
 
