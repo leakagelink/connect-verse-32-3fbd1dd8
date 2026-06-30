@@ -340,8 +340,16 @@ function CallScreen() {
         // the in-app UI, so do it here before joining.
         if (autoAccept && invite.status === "pending" && invite.role === "callee") {
           try {
-            invite = await acceptInviteFn({ data: { inviteId } });
+            invite = await acceptInviteWithRetry(acceptInviteFn, inviteId, {
+              onAttempt: (info) => {
+                if (info.attempt > 1) {
+                  setAcceptRetry({ attempt: info.attempt, max: info.maxAttempts });
+                }
+              },
+            });
+            setAcceptRetry(null);
           } catch (e: any) {
+            setAcceptRetry(null);
             throw new Error(e?.message || "Could not accept this call.");
           }
         }
