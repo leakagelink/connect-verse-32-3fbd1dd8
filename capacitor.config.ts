@@ -23,10 +23,11 @@ const config: CapacitorConfig = {
     //
     // Loading the published deployment makes the Android wrap behave exactly
     // like the website that already works for the user.
-    url: 'https://connect-verse-32.lovable.app',
+    url: 'https://talkoraapp.com',
     cleartext: false,
     androidScheme: 'https',
-    allowNavigation: ['connect-verse-32.lovable.app', '*.lovable.app', 'talkora.app', '*.talkora.app'],
+    allowNavigation: ['talkoraapp.com', '*.talkoraapp.com', '*.lovable.app'],
+
   },
   android: {
     allowMixedContent: false,
