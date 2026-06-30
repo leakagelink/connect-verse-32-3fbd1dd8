@@ -18,12 +18,12 @@ import { shouldShowInCallChrome } from "@/lib/call-banner-visibility";
  */
 export function PeerSheetBannerE2EMock() {
   const path = useRouterState({ select: (s) => s.location.pathname });
-  const search = useRouterState({ select: (s) => s.location.search }) as Record<
-    string,
-    unknown
-  >;
+  const search = useRouterState({
+    select: (s) => s.location.search as Record<string, unknown>,
+  });
   const inCall = String(search?.inCall ?? "false") === "true";
   const show = shouldShowInCallChrome(inCall, path);
+
 
   return (
     <div
