@@ -153,6 +153,11 @@ export function CallInviteDialog({
     setEndState(null);
     setBusyState(null);
     busyRetriedRef.current = false;
+    cancelledRef.current = false;
+    if (busyRetryTimerRef.current) {
+      clearTimeout(busyRetryTimerRef.current);
+      busyRetryTimerRef.current = null;
+    }
     setDeliveryAttempt(1);
     setMessage("Sending call request…");
     if (pendingCall) {
@@ -162,6 +167,14 @@ export function CallInviteDialog({
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pendingCall?.kind, pendingCall?.userId]);
+
+  // Cleanup pending retry timer if the dialog unmounts mid-attempt.
+  useEffect(() => () => {
+    if (busyRetryTimerRef.current) {
+      clearTimeout(busyRetryTimerRef.current);
+      busyRetryTimerRef.current = null;
+    }
+  }, []);
 
   // Delivery-ack timeout: if creator's device doesn't ack within DELIVERY_TIMEOUT_MS,
   // silently cancel the current invite and re-initiate to the same creator with a
@@ -176,8 +189,11 @@ export function CallInviteDialog({
 
     const inviteId = invite.id;
     const t = setTimeout(async () => {
+      // User tapped End during the 8s wait — stop the retry chain.
+      if (cancelledRef.current) return;
       if (deliveryAttempt >= MAX_DELIVERY_ATTEMPTS) {
         try { await cancelFn({ data: { inviteId } }); } catch { /* ignore */ }
+        if (cancelledRef.current) return;
         setEndState({
           tone: "timeout",
           title: "Couldn't reach creator's device",
@@ -186,9 +202,13 @@ export function CallInviteDialog({
         return;
       }
       try { await cancelFn({ data: { inviteId } }); } catch { /* ignore */ }
+      if (cancelledRef.current) return;
       setInvite(null);
       const next = deliveryAttempt + 1;
       setDeliveryAttempt(next);
+      // Banner-consistency: clear any leftover "clearing" state so the user sees
+      // the retry banner, not a stale prior-attempt banner.
+      setBusyState(null);
       setMessage(`Retrying delivery… (attempt ${next}/${MAX_DELIVERY_ATTEMPTS})`);
       const id = newAttemptId();
       setAttemptId(id);
