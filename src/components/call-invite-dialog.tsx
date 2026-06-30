@@ -68,14 +68,25 @@ export function CallInviteDialog({
     mutationFn: (p: NonNullable<PendingCall> & { attemptId: string }) =>
       createInviteFn({ data: { calleeId: p.userId, kind: p.kind, attemptId: p.attemptId } }),
     onSuccess: (res) => {
+      const inv = res as InviteStatus;
+      // User tapped End between create-send and create-response: don't surface
+      // a ringing UI, and proactively cancel the freshly-created invite so the
+      // callee's device dismisses any incoming ring.
+      if (cancelledRef.current) {
+        if (inv?.id) {
+          cancelFn({ data: { inviteId: inv.id } }).catch(() => {});
+        }
+        return;
+      }
       setBusyState(null);
-      setInvite(res as InviteStatus);
+      setInvite(inv);
       setMessage(deliveryAttempt > 1
         ? `Retrying delivery… (attempt ${deliveryAttempt}/${MAX_DELIVERY_ATTEMPTS})`
         : "Ringing… waiting for creator to answer");
       qc.invalidateQueries({ queryKey: ["notifications"] });
     },
     onError: (e: any) => {
+      if (cancelledRef.current) return;
       const msg = String(e?.message ?? "Could not send call request");
       if (msg.startsWith("BUSY:") && pendingCall && !busyRetriedRef.current) {
         // First BUSY — most often a stuck "accepted" row from a prior
@@ -84,16 +95,19 @@ export function CallInviteDialog({
         busyRetriedRef.current = true;
         setBusyState("clearing");
         setMessage("Pichli call ka session clear ho raha hai…");
-        setTimeout(() => {
-          if (!pendingCall) return;
+        if (busyRetryTimerRef.current) clearTimeout(busyRetryTimerRef.current);
+        busyRetryTimerRef.current = setTimeout(() => {
+          busyRetryTimerRef.current = null;
+          if (cancelledRef.current || !pendingCall) return;
           const id = newAttemptId();
           setAttemptId(id);
           createMut.mutate({ ...pendingCall, attemptId: id });
         }, 2500);
         return;
       }
+      // Clear stale "clearing" banner for any non-BUSY follow-up error after retry.
+      setBusyState(msg.startsWith("BUSY:") ? "blocked" : null);
       if (msg.startsWith("BUSY:")) {
-        setBusyState("blocked");
         setEndState({
           tone: "busy",
           title: "Creator is busy",
@@ -110,6 +124,28 @@ export function CallInviteDialog({
     mutationFn: (id: string) => cancelFn({ data: { inviteId: id } }),
     onSettled: () => onClose(),
   });
+
+  // Single source of truth for "user wants to stop this call attempt right now".
+  // Aborts the pending BUSY auto-retry, marks the attempt cancelled so any
+  // in-flight create response becomes a no-op, then either cancels the live
+  // invite or just closes the dialog. Used by both the End button and the
+  // dialog's onOpenChange (e.g. swipe/escape) for consistent behaviour.
+  const stopAttempt = () => {
+    cancelledRef.current = true;
+    if (busyRetryTimerRef.current) {
+      clearTimeout(busyRetryTimerRef.current);
+      busyRetryTimerRef.current = null;
+    }
+    setBusyState(null);
+    setMessage("Call cancelled");
+    if (invite?.id && invite.status === "pending") {
+      cancelMut.mutate(invite.id);
+    } else {
+      onClose();
+    }
+  };
+
+
 
 
   useEffect(() => {
