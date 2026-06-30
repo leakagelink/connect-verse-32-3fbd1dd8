@@ -123,6 +123,7 @@ function AdminPanel() {
         </TabsContent>
 
         <TabsContent value="call-audit" className="space-y-3">
+          <CallTelemetryPanel />
           <ReconcilerCleanupE2E />
           <BusyResetE2E />
           <CallEndE2E />
