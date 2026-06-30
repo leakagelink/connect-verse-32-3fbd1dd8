@@ -126,6 +126,8 @@ const en: Dict = {
   "settings.profileDetails": "Profile details",
   "settings.languageRow": "Language",
   "settings.langUpdated": "Language updated",
+};
+
 
 const hi: Dict = {
   "nav.discover": "खोजें",
