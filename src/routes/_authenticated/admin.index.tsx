@@ -37,6 +37,7 @@ import { CallTelemetryPanel } from "@/components/admin/CallTelemetryPanel";
 import { ConcurrentCallE2E } from "@/components/admin/ConcurrentCallE2E";
 import { CreatorInitiatedCallE2E } from "@/components/admin/CreatorInitiatedCallE2E";
 import { CallFullscreenE2E } from "@/components/admin/CallFullscreenE2E";
+import { CallControlsActionsE2E } from "@/components/admin/CallControlsActionsE2E";
 import { FollowPushDiagnostics } from "@/components/admin/FollowPushDiagnostics";
 
 import { adminListKyc, adminReviewKyc, adminListWithdrawals, adminProcessWithdrawal, getKycDocUrl, adminListKycPurgeLog } from "@/lib/kyc.functions";
@@ -132,6 +133,7 @@ function AdminPanel() {
           <ConcurrentCallE2E />
           <CreatorInitiatedCallE2E />
           <CallFullscreenE2E />
+          <CallControlsActionsE2E />
           <CallAuditTab />
         </TabsContent>
 
