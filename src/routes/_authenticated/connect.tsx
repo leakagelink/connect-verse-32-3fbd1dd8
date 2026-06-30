@@ -541,3 +541,95 @@ function CreatorMarquee({
     </div>
   );
 }
+
+function LanguageChipBar({
+  all,
+  value,
+  myLanguage,
+  onChange,
+}: {
+  all: Creator[];
+  value: string;
+  myLanguage: string | null;
+  onChange: (v: string) => void;
+}) {
+  // Count creators per language (primary + spoken). Order chips by count desc
+  // so the most useful languages surface first; always include "All" and the
+  // user's own language as pinned chips.
+  const counts = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const u of all) {
+      const set = new Set<string>();
+      if (u.language) set.add(u.language);
+      for (const l of u.languages ?? []) if (l) set.add(l);
+      for (const code of set) m.set(code, (m.get(code) ?? 0) + 1);
+    }
+    return m;
+  }, [all]);
+
+  const chips = useMemo(() => {
+    const seen = new Set<string>();
+    const list: { code: string; label: string; count: number | null }[] = [
+      { code: "any", label: "All", count: all.length },
+    ];
+    if (myLanguage) {
+      const meta = APP_LANGUAGES.find((l) => l.code === myLanguage);
+      list.push({
+        code: myLanguage,
+        label: `${meta?.name ?? myLanguage} (mine)`,
+        count: counts.get(myLanguage) ?? 0,
+      });
+      seen.add(myLanguage);
+    }
+    const ranked = APP_LANGUAGES
+      .filter((l) => !seen.has(l.code))
+      .map((l) => ({ code: l.code, label: l.name, count: counts.get(l.code) ?? 0 }))
+      .sort((a, b) => (b.count ?? 0) - (a.count ?? 0));
+    return [...list, ...ranked];
+  }, [all.length, counts, myLanguage]);
+
+  return (
+    <div className="mb-4 -mx-1">
+      <div className="flex items-center gap-1.5 px-1 mb-1.5">
+        <Languages className="size-3.5 text-primary" />
+        <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">
+          Language
+        </span>
+      </div>
+      <div className="flex gap-2 overflow-x-auto px-1 pb-1 scrollbar-none">
+        {chips.map((c) => {
+          const active = value === c.code || (c.code === "any" && (value === "auto" || value === "any"));
+          const dim = c.count === 0 && c.code !== "any";
+          return (
+            <button
+              key={c.code}
+              type="button"
+              onClick={() => onChange(c.code)}
+              className={
+                "shrink-0 inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition " +
+                (active
+                  ? "bg-primary text-primary-foreground border-primary shadow-sm"
+                  : dim
+                    ? "bg-muted/30 text-muted-foreground border-border/50 opacity-60"
+                    : "bg-muted/40 text-foreground border-border hover:bg-muted")
+              }
+            >
+              <span>{c.label}</span>
+              {c.count !== null && (
+                <span
+                  className={
+                    "rounded-full px-1.5 py-0 text-[10px] font-semibold " +
+                    (active ? "bg-primary-foreground/20" : "bg-background/60 text-muted-foreground")
+                  }
+                >
+                  {c.count}
+                </span>
+              )}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
