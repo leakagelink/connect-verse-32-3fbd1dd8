@@ -124,8 +124,9 @@ function ConnectScreen() {
 
   // Filter + priority sorting
   const sorted = useMemo(() => {
-    // If admin has hidden the filter UI, ignore the filter state entirely.
-    const langFilter = !filtersVisible || language === "any" ? null : language;
+    // Language chip-filter is always honored (visible on Connect screen).
+    // Country/state/active-only stay gated behind the admin-controlled card.
+    const langFilter = language === "any" || language === "auto" ? null : language;
     const countryFilter = !filtersVisible || country === "any" ? null : country;
     const stateFilter = !filtersVisible || state === "any" ? null : state;
     const useActiveOnly = filtersVisible && activeOnly;
