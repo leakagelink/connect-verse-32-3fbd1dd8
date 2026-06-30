@@ -26,7 +26,7 @@ export const ONLINE_WINDOW_SECONDS = 300; // 5 minutes — tolerant of mobile sl
 export const CREATOR_STALE_WINDOW_SECONDS = 60 * 60 * 24 * 7; // 7d — creators who explicitly set availability=online
 
 const SAFE_PROFILE_FIELDS =
-  "id, username, gender, country, state, language, avatar_url, ai_avatar_style, is_creator, last_seen_at, availability";
+  "id, username, gender, country, state, language, languages, avatar_url, ai_avatar_style, is_creator, last_seen_at, availability";
 
 async function getHiddenAdminIds(supabaseAdmin: any): Promise<Set<string>> {
   const { data } = await supabaseAdmin
