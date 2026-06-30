@@ -28,7 +28,7 @@ export const Route = createFileRoute("/_authenticated/settings")({
 function Settings() {
   const navigate = useNavigate();
   const qc = useQueryClient();
-  const { t } = useT();
+  const { t, setLocale } = useT();
   const profileFn = useServerFn(getMyProfile);
   const langFn = useServerFn(updateMyLanguage);
   const blockedFn = useServerFn(listBlockedUsers);
