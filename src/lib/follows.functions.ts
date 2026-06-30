@@ -56,13 +56,35 @@ export const sendFollowRequest = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
     if (data.userId === userId) throw new Error("Cannot follow yourself");
+    const nowMs = Date.now();
+    const freshExpiry = new Date(nowMs + 14 * 24 * 60 * 60 * 1000).toISOString();
     const { error } = await supabase
       .from("follows")
-      .insert({ follower_id: userId, following_id: data.userId, status: "pending" });
-    if (error && !/duplicate/i.test(error.message)) throw new Error(error.message);
+      .insert({
+        follower_id: userId,
+        following_id: data.userId,
+        status: "pending",
+        expires_at: freshExpiry,
+      });
+    let inserted = !error;
+    if (error && /duplicate/i.test(error.message)) {
+      // Existing row — if it's a stale pending one, revive it with a fresh expiry
+      // and clear the recipient's "seen" flag so it surfaces as unread again.
+      const { data: revived } = await supabase
+        .from("follows")
+        .update({ expires_at: freshExpiry, seen_at: null })
+        .eq("follower_id", userId)
+        .eq("following_id", data.userId)
+        .eq("status", "pending")
+        .select("id")
+        .maybeSingle();
+      inserted = !!revived;
+    } else if (error) {
+      throw new Error(error.message);
+    }
 
     // Notify recipient (in-app bell + push). Best-effort — never fail the request.
-    if (!error) {
+    if (inserted) {
       try {
         const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
         const { data: me } = await supabaseAdmin
