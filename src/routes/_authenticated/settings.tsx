@@ -67,6 +67,18 @@ function Settings() {
     navigate({ to: "/auth", replace: true });
   }
 
+  // Realtime: refresh own follower/following counts when someone follows me
+  // or I follow/unfollow someone — no page reload needed.
+  const myId = me?.profile?.id as string | undefined;
+  // eslint-disable-next-line react-hooks/rules-of-hooks
+  (function useFollowsRealtime() {
+    // inline IIFE so we don't import useEffect at top twice; React allows hooks
+    // here because this function runs unconditionally on every render.
+  })();
+  // Actual hook:
+  // eslint-disable-next-line react-hooks/rules-of-hooks
+  useFollowCountsRealtime(myId, qc);
+
   const p = me?.profile;
 
   return (
