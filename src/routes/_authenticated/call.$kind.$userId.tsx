@@ -584,8 +584,15 @@ function CallScreen() {
         // Translate server timestamps to the local clock by removing skew.
         const skewMs = Date.now() - new Date(res.serverNow).getTime();
         connectedAtMsRef.current = new Date(res.connectedAt).getTime() + skewMs;
+        // The server anchor already covers every second since the call was
+        // marked connected (including any prior, now-resumed session), so
+        // any baseline duration carried in by acceptCallInvite would
+        // double-count if we kept it. Zero it out — the anchored elapsed
+        // IS the authoritative total for display purposes.
+        sessionStartElapsedRef.current = 0;
         // Snap the displayed elapsed to the server-anchored value immediately.
         const snap = Math.max(0, Math.floor((Date.now() - connectedAtMsRef.current) / 1000));
+
         elapsedRef.current = snap;
         setElapsed(snap);
       } catch {
