@@ -20,10 +20,18 @@ export const getPartnerProfile = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     if (!p || p.deleted_at || p.is_banned || !p.onboarded) throw new Error("User not found");
 
-    // counts (accepted only)
-    const [{ count: followers }, { count: following }] = await Promise.all([
+    // counts — show accepted followers + pending requests so the creator
+    // sees an immediate "+1" when someone taps Follow (even before they
+    // accept the friend request through the gate).
+    const [
+      { count: followersAccepted },
+      { count: followersPending },
+      { count: following },
+    ] = await Promise.all([
       supabaseAdmin.from("follows").select("id", { count: "exact", head: true })
         .eq("following_id", data.userId).eq("status", "accepted"),
+      supabaseAdmin.from("follows").select("id", { count: "exact", head: true })
+        .eq("following_id", data.userId).eq("status", "pending"),
       supabaseAdmin.from("follows").select("id", { count: "exact", head: true })
         .eq("follower_id", data.userId).eq("status", "accepted"),
     ]);
@@ -43,7 +51,9 @@ export const getPartnerProfile = createServerFn({ method: "POST" })
 
     return {
       profile: withAiAvatar(safeProfile),
-      followers: followers ?? 0,
+      followers: (followersAccepted ?? 0) + (followersPending ?? 0),
+      followersAccepted: followersAccepted ?? 0,
+      followersPending: followersPending ?? 0,
       following: following ?? 0,
       outgoing: outgoing ? outgoing.status : null, // 'pending' | 'accepted' | null
       incoming: incoming ? incoming.status : null,
@@ -98,7 +108,11 @@ export const sendFollowRequest = createServerFn({ method: "POST" })
           body: `${name} wants to connect with you on Talkora.`,
           deepLink: "/requests",
         });
-      } catch { /* notification is best-effort */ }
+      } catch (err) {
+        // Best-effort — log so the issue is visible in server-fn logs
+        // instead of disappearing into a swallowed catch.
+        console.error("[sendFollowRequest] notifyUser failed", err);
+      }
     }
     return { ok: true };
   });
