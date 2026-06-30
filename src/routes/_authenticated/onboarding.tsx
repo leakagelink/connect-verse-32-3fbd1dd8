@@ -123,7 +123,15 @@ function Onboarding() {
         </div>
         <div>
           <Label>Language</Label>
-          <Input value={language} onChange={(e) => setL(e.target.value)} />
+          <Select value={language} onValueChange={setL}>
+            <SelectTrigger><SelectValue placeholder="Select language" /></SelectTrigger>
+            <SelectContent className="max-h-72">
+              {APP_LANGUAGES.map((l) => (
+                <SelectItem key={l.code} value={l.code}>{l.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <p className="mt-1 text-[11px] text-muted-foreground">You can change this anytime from Profile → App language.</p>
         </div>
 
         {gender === "female" && (
