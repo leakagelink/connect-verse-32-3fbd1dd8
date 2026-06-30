@@ -898,6 +898,24 @@ function CallScreen() {
     return () => clearInterval(i);
   }, [connected]);
 
+  // Liveness heartbeat every 15s — fires from BOTH caller and callee so the
+  // backend can distinguish a real in-progress call from a ghost "accepted"
+  // invite whose log never got an ended_at. Without this, the next caller
+  // hits "this creator just picked up another call" against a dead session.
+  const heartbeatFn = useServerFn(heartbeatCall);
+  useEffect(() => {
+    if (!connected) return;
+    const ping = () => {
+      const id = callLogIdRef.current;
+      if (!id) return;
+      heartbeatFn({ data: { callLogId: id } }).catch(() => { /* best-effort */ });
+    };
+    ping();
+    const i = setInterval(ping, 15000);
+    return () => clearInterval(i);
+  }, [connected, heartbeatFn]);
+
+
   // Flush when the tab is hidden / about to unload so a refresh keeps state.
   useEffect(() => {
     const onHide = () => flushUsage.current();
