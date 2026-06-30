@@ -40,6 +40,7 @@ import { Route as AuthenticatedConnectRouteImport } from './routes/_authenticate
 import { Route as AuthenticatedChatRouteImport } from './routes/_authenticated/chat'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
 import { Route as AuthenticatedAccountDeleteRouteImport } from './routes/_authenticated/account-delete'
+import { Route as _e2ePeerSheetBannerRouteImport } from './routes/__e2e.peer-sheet-banner'
 import { Route as _e2eCallFullscreenRouteImport } from './routes/__e2e.call-fullscreen'
 import { Route as AuthenticatedChatIndexRouteImport } from './routes/_authenticated/chat.index'
 import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authenticated/admin.index'
@@ -214,6 +215,11 @@ const AuthenticatedAccountDeleteRoute =
     path: '/account-delete',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const _e2ePeerSheetBannerRoute = _e2ePeerSheetBannerRouteImport.update({
+  id: '/__e2e/peer-sheet-banner',
+  path: '/peer-sheet-banner',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const _e2eCallFullscreenRoute = _e2eCallFullscreenRouteImport.update({
   id: '/__e2e/call-fullscreen',
   path: '/call-fullscreen',
@@ -300,6 +306,7 @@ export interface FileRoutesByFullPath {
   '/safety': typeof SafetyRoute
   '/terms': typeof TermsRoute
   '/call-fullscreen': typeof _e2eCallFullscreenRoute
+  '/peer-sheet-banner': typeof _e2ePeerSheetBannerRoute
   '/account-delete': typeof AuthenticatedAccountDeleteRoute
   '/admin': typeof AuthenticatedAdminRouteWithChildren
   '/chat': typeof AuthenticatedChatRouteWithChildren
@@ -345,6 +352,7 @@ export interface FileRoutesByTo {
   '/safety': typeof SafetyRoute
   '/terms': typeof TermsRoute
   '/call-fullscreen': typeof _e2eCallFullscreenRoute
+  '/peer-sheet-banner': typeof _e2ePeerSheetBannerRoute
   '/account-delete': typeof AuthenticatedAccountDeleteRoute
   '/connect': typeof AuthenticatedConnectRoute
   '/creator-dashboard': typeof AuthenticatedCreatorDashboardRoute
@@ -390,6 +398,7 @@ export interface FileRoutesById {
   '/safety': typeof SafetyRoute
   '/terms': typeof TermsRoute
   '/__e2e/call-fullscreen': typeof _e2eCallFullscreenRoute
+  '/__e2e/peer-sheet-banner': typeof _e2ePeerSheetBannerRoute
   '/_authenticated/account-delete': typeof AuthenticatedAccountDeleteRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRouteWithChildren
   '/_authenticated/chat': typeof AuthenticatedChatRouteWithChildren
@@ -437,6 +446,7 @@ export interface FileRouteTypes {
     | '/safety'
     | '/terms'
     | '/call-fullscreen'
+    | '/peer-sheet-banner'
     | '/account-delete'
     | '/admin'
     | '/chat'
@@ -482,6 +492,7 @@ export interface FileRouteTypes {
     | '/safety'
     | '/terms'
     | '/call-fullscreen'
+    | '/peer-sheet-banner'
     | '/account-delete'
     | '/connect'
     | '/creator-dashboard'
@@ -526,6 +537,7 @@ export interface FileRouteTypes {
     | '/safety'
     | '/terms'
     | '/__e2e/call-fullscreen'
+    | '/__e2e/peer-sheet-banner'
     | '/_authenticated/account-delete'
     | '/_authenticated/admin'
     | '/_authenticated/chat'
@@ -573,6 +585,7 @@ export interface RootRouteChildren {
   SafetyRoute: typeof SafetyRoute
   TermsRoute: typeof TermsRoute
   _e2eCallFullscreenRoute: typeof _e2eCallFullscreenRoute
+  _e2ePeerSheetBannerRoute: typeof _e2ePeerSheetBannerRoute
   ApiPublicRazorpayWebhookRoute: typeof ApiPublicRazorpayWebhookRoute
   ApiPublicHooksKycCleanupRoute: typeof ApiPublicHooksKycCleanupRoute
   ApiPublicHooksResetCallingQuotasRoute: typeof ApiPublicHooksResetCallingQuotasRoute
@@ -797,6 +810,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAccountDeleteRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/__e2e/peer-sheet-banner': {
+      id: '/__e2e/peer-sheet-banner'
+      path: '/peer-sheet-banner'
+      fullPath: '/peer-sheet-banner'
+      preLoaderRoute: typeof _e2ePeerSheetBannerRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/__e2e/call-fullscreen': {
       id: '/__e2e/call-fullscreen'
       path: '/call-fullscreen'
@@ -990,6 +1010,7 @@ const rootRouteChildren: RootRouteChildren = {
   SafetyRoute: SafetyRoute,
   TermsRoute: TermsRoute,
   _e2eCallFullscreenRoute: _e2eCallFullscreenRoute,
+  _e2ePeerSheetBannerRoute: _e2ePeerSheetBannerRoute,
   ApiPublicRazorpayWebhookRoute: ApiPublicRazorpayWebhookRoute,
   ApiPublicHooksKycCleanupRoute: ApiPublicHooksKycCleanupRoute,
   ApiPublicHooksResetCallingQuotasRoute: ApiPublicHooksResetCallingQuotasRoute,
