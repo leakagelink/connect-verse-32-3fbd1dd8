@@ -23,10 +23,13 @@ export const AI_AVATAR_STYLES: ReadonlyArray<{ id: string; label: string }> = [
 
 const STYLE_IDS = new Set(AI_AVATAR_STYLES.map((s) => s.id));
 
+// Cute, beautiful, soft-illustrated defaults for every new account.
+// Lorelei + Adventurer + Micah all render warm portrait-style avatars
+// that feel premium out of the box (no robot/pixel fallbacks).
 const DEFAULT_STYLE_BY_GENDER: Record<string, string> = {
   female: "lorelei",
-  male: "avataaars",
-  other: "personas",
+  male: "adventurer",
+  other: "micah",
 };
 
 // Polished, portrait-leaning styles reserved for creators so their cards
