@@ -150,7 +150,10 @@ function Settings() {
         <p className="text-xs text-muted-foreground mb-3">{t("settings.appLangHint")}</p>
         <Select
           value={p?.language ?? "en"}
-          onValueChange={(v) => langMut.mutate(v)}
+          onValueChange={(v) => {
+            setLocale(v as any);
+            langMut.mutate(v);
+          }}
           disabled={langMut.isPending}
         >
           <SelectTrigger><SelectValue placeholder={t("settings.selectLang")} /></SelectTrigger>
