@@ -36,6 +36,8 @@ import { connectCall, type AnySession } from "@/lib/call-session";
 import { Signal, SignalHigh, SignalLow, SignalMedium, SignalZero } from "lucide-react";
 import { getCallInviteStatus, acceptCallInvite } from "@/lib/call-invites.functions";
 import { acceptInviteWithRetry } from "@/lib/accept-call-retry";
+import { useCallPointerSafeguard } from "@/hooks/use-call-pointer-safeguard";
+
 
 
 
@@ -1545,8 +1547,10 @@ function CallScreen() {
     // cannot navigate to any other screen until they explicitly end the
     // call (or open the in-call peer profile sheet, which keeps the call
     // session mounted).
-    <div data-testid="call-fullscreen" className="fixed inset-0 z-[60] bg-black flex flex-col overflow-y-auto safe-top safe-bottom">
+    <div data-testid="call-fullscreen" data-call-surface="1" className="fixed inset-0 z-[60] bg-black flex flex-col overflow-y-auto safe-top safe-bottom">
+      <CallPointerSafeguardMount />
       <SafetyTipOverlay />
+
       <Card className="glass overflow-hidden p-0 flex-1 rounded-none border-0">
         {paused && (
           <div className="bg-amber-500/90 text-black text-xs font-semibold text-center px-3 py-2">
@@ -2295,6 +2299,18 @@ function NetworkBars({ q }: { q: number }) {
     </span>
   );
 }
+
+/**
+ * Tiny child component that activates the call-pointer safeguard for as long
+ * as the call surface is mounted. Lives as a child so the hook only runs on
+ * the real call route (not on every CallScreen render of unrelated panels).
+ */
+function CallPointerSafeguardMount() {
+  useCallPointerSafeguard(true);
+  return null;
+}
+
+
 
 /**
  * Headless visual contract used by the Call Fullscreen E2E.
