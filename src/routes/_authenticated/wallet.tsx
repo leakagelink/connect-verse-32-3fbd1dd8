@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { CoinBadge } from "@/components/coin-badge";
 import { Coins, Sparkles, ArrowUpRight, ArrowDownRight } from "lucide-react";
 import { format } from "date-fns";
+import { useT } from "@/lib/i18n";
 
 export const Route = createFileRoute("/_authenticated/wallet")({
   component: Wallet,
