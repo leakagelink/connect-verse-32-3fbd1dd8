@@ -37,6 +37,7 @@ export function IncomingCallDialog({ disabled }: { disabled?: boolean }) {
   const rejectFn = useServerFn(rejectCallInvite);
   const ackFn = useServerFn(markCallInviteDelivered);
   const [permissionFor, setPermissionFor] = useState<IncomingInvite | null>(null);
+  const [retryInfo, setRetryInfo] = useState<AcceptRetryAttempt | null>(null);
   const ackedRef = useRef<Set<string>>(new Set());
 
 
