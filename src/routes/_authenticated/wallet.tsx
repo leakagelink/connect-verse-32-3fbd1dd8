@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { CoinBadge } from "@/components/coin-badge";
 import { Coins, Sparkles, ArrowUpRight, ArrowDownRight } from "lucide-react";
 import { format } from "date-fns";
+import { useT } from "@/lib/i18n";
 
 export const Route = createFileRoute("/_authenticated/wallet")({
   component: Wallet,
@@ -19,32 +20,33 @@ function Wallet() {
   const profileFn = useServerFn(getMyProfile);
   const { data: me } = useQuery({ queryKey: ["me"], queryFn: () => profileFn() });
   const { data, isLoading } = useQuery({ queryKey: ["wallet"], queryFn: () => walletFn() });
+  const { t } = useT();
 
   return (
     <AppShell isAdmin={me?.isAdmin}>
-      <h1 className="text-2xl font-bold mb-4">Wallet</h1>
+      <h1 className="text-2xl font-bold mb-4">{t("wallet.title")}</h1>
       <Card className="glass p-6 border-primary/30">
-        <div className="flex items-center gap-2 text-xs text-muted-foreground"><Coins className="size-4 text-coin" /> Balance</div>
+        <div className="flex items-center gap-2 text-xs text-muted-foreground"><Coins className="size-4 text-coin" /> {t("wallet.balanceLabel")}</div>
         <div className="mt-1 flex items-baseline gap-2">
           <span className="text-4xl font-bold text-coin">{(data?.balance ?? 0).toLocaleString("en-IN")}</span>
-          <span className="text-sm text-muted-foreground">coins</span>
+          <span className="text-sm text-muted-foreground">{t("common.coins")}</span>
         </div>
         {data && data.freeSeconds > 0 && (
           <div className="mt-3 flex items-center gap-2 text-sm text-primary">
-            <Sparkles className="size-4" /> {Math.floor(data.freeSeconds/60)} free minutes remaining
+            <Sparkles className="size-4" /> {t("wallet.freeMinsLeft", { m: Math.floor(data.freeSeconds/60) })}
           </div>
         )}
         <div className="mt-4 flex gap-2">
-          <Link to="/recharge"><Button className="brand-gradient text-primary-foreground">Recharge coins</Button></Link>
-          <Link to="/withdraw"><Button variant="outline">Withdraw</Button></Link>
+          <Link to="/recharge"><Button className="brand-gradient text-primary-foreground">{t("wallet.rechargeCoins")}</Button></Link>
+          <Link to="/withdraw"><Button variant="outline">{t("wallet.withdraw")}</Button></Link>
         </div>
       </Card>
 
-      <h2 className="mt-8 mb-3 text-sm font-semibold text-muted-foreground">Recent transactions</h2>
+      <h2 className="mt-8 mb-3 text-sm font-semibold text-muted-foreground">{t("wallet.recentTxn")}</h2>
       {isLoading ? (
-        <p className="text-muted-foreground text-sm">Loading…</p>
+        <p className="text-muted-foreground text-sm">{t("common.loading")}</p>
       ) : !data?.transactions?.length ? (
-        <Card className="glass p-6 text-center text-muted-foreground text-sm">No transactions yet.</Card>
+        <Card className="glass p-6 text-center text-muted-foreground text-sm">{t("wallet.noTxn")}</Card>
       ) : (
         <div className="space-y-2">
           {data.transactions.map((t: any) => (

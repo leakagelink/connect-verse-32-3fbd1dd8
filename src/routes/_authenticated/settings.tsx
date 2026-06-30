@@ -19,6 +19,7 @@ import { PermissionDebugPanel } from "@/components/permission-debug-panel";
 import { AvatarUploadCard } from "@/components/avatar-upload-card";
 import { AiAvatarPicker } from "@/components/ai-avatar-picker";
 import { toast } from "sonner";
+import { useT } from "@/lib/i18n";
 
 export const Route = createFileRoute("/_authenticated/settings")({
   component: Settings,
@@ -27,6 +28,7 @@ export const Route = createFileRoute("/_authenticated/settings")({
 function Settings() {
   const navigate = useNavigate();
   const qc = useQueryClient();
+  const { t } = useT();
   const profileFn = useServerFn(getMyProfile);
   const langFn = useServerFn(updateMyLanguage);
   const blockedFn = useServerFn(listBlockedUsers);
@@ -41,7 +43,7 @@ function Settings() {
   const langMut = useMutation({
     mutationFn: (language: string) => langFn({ data: { language } }),
     onSuccess: () => {
-      toast.success("Language updated");
+      toast.success(t("settings.langUpdated"));
       qc.invalidateQueries({ queryKey: ["me"] });
     },
     onError: (e: any) => toast.error(e.message),
@@ -67,7 +69,7 @@ function Settings() {
 
   return (
     <AppShell isAdmin={me?.isAdmin}>
-      <h1 className="text-2xl font-bold mb-4">Profile</h1>
+      <h1 className="text-2xl font-bold mb-4">{t("settings.heading")}</h1>
 
       <Card className="glass p-6">
         <div className="flex items-center gap-4">
@@ -97,18 +99,18 @@ function Settings() {
         <div className="mt-5 grid grid-cols-3 gap-2 text-center">
           <div className="rounded-lg bg-muted/40 py-3">
             <p className="text-lg font-bold">{me?.followerCount ?? 0}</p>
-            <p className="text-[11px] text-muted-foreground uppercase tracking-wide">Followers</p>
+            <p className="text-[11px] text-muted-foreground uppercase tracking-wide">{t("settings.followers")}</p>
           </div>
           <div className="rounded-lg bg-muted/40 py-3">
             <p className="text-lg font-bold">{me?.followingCount ?? 0}</p>
-            <p className="text-[11px] text-muted-foreground uppercase tracking-wide">Following</p>
+            <p className="text-[11px] text-muted-foreground uppercase tracking-wide">{t("settings.following")}</p>
           </div>
           <div className="rounded-lg bg-coin/10 py-3">
             <p className="text-lg font-bold text-coin flex items-center justify-center gap-1">
               <Coins className="size-4" />
               {(me?.walletBalance ?? 0).toLocaleString("en-IN")}
             </p>
-            <p className="text-[11px] text-muted-foreground uppercase tracking-wide">Coins</p>
+            <p className="text-[11px] text-muted-foreground uppercase tracking-wide">{t("settings.coins")}</p>
           </div>
         </div>
       </Card>
@@ -132,26 +134,26 @@ function Settings() {
 
       {/* Profile details */}
       <Card className="glass mt-4 p-4 space-y-3 text-sm">
-        <p className="text-xs text-muted-foreground uppercase tracking-wide">Profile details</p>
-        <Row icon={<UserCircle className="size-4" />} label="Username" value={p?.username ?? "—"} />
-        <Row icon={<Globe className="size-4" />} label="Country" value={p?.country ?? "—"} />
-        <Row icon={<MapPin className="size-4" />} label="State" value={p?.state ?? "—"} />
-        <Row icon={<Languages className="size-4" />} label="Language" value={labelForLang(p?.language)} />
+        <p className="text-xs text-muted-foreground uppercase tracking-wide">{t("settings.profileDetails")}</p>
+        <Row icon={<UserCircle className="size-4" />} label={t("onb.username")} value={p?.username ?? "—"} />
+        <Row icon={<Globe className="size-4" />} label={t("onb.country")} value={p?.country ?? "—"} />
+        <Row icon={<MapPin className="size-4" />} label={t("onb.state")} value={p?.state ?? "—"} />
+        <Row icon={<Languages className="size-4" />} label={t("settings.languageRow")} value={labelForLang(p?.language)} />
       </Card>
 
       {/* App language */}
       <Card className="glass mt-4 p-4">
         <div className="flex items-center gap-2 mb-2">
           <Languages className="size-4 text-primary" />
-          <p className="text-sm font-semibold">App language</p>
+          <p className="text-sm font-semibold">{t("settings.appLang")}</p>
         </div>
-        <p className="text-xs text-muted-foreground mb-3">Choose the language you want to see across the app.</p>
+        <p className="text-xs text-muted-foreground mb-3">{t("settings.appLangHint")}</p>
         <Select
           value={p?.language ?? "en"}
           onValueChange={(v) => langMut.mutate(v)}
           disabled={langMut.isPending}
         >
-          <SelectTrigger><SelectValue placeholder="Select language" /></SelectTrigger>
+          <SelectTrigger><SelectValue placeholder={t("settings.selectLang")} /></SelectTrigger>
           <SelectContent>
             {APP_LANGUAGES.map((l) => (
               <SelectItem key={l.code} value={l.code}>{l.name}</SelectItem>
