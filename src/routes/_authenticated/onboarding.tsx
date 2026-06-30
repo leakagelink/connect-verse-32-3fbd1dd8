@@ -13,6 +13,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { COUNTRIES, STATES_BY_COUNTRY } from "@/lib/locations";
+import { APP_LANGUAGES } from "@/lib/constants";
 
 export const Route = createFileRoute("/_authenticated/onboarding")({
   beforeLoad: async ({ context }) => {
@@ -49,7 +50,7 @@ function Onboarding() {
   const [dob, setD] = useState("");
   const [country, setC] = useState("India");
   const [state, setSt] = useState("");
-  const [language, setL] = useState("English");
+  const [language, setL] = useState("hi");
   const [accept, setA] = useState(false);
   const [creator, setCr] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -122,7 +123,15 @@ function Onboarding() {
         </div>
         <div>
           <Label>Language</Label>
-          <Input value={language} onChange={(e) => setL(e.target.value)} />
+          <Select value={language} onValueChange={setL}>
+            <SelectTrigger><SelectValue placeholder="Select language" /></SelectTrigger>
+            <SelectContent className="max-h-72">
+              {APP_LANGUAGES.map((l) => (
+                <SelectItem key={l.code} value={l.code}>{l.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <p className="mt-1 text-[11px] text-muted-foreground">You can change this anytime from Profile → App language.</p>
         </div>
 
         {gender === "female" && (
