@@ -1374,6 +1374,7 @@ export type Database = {
           is_banned: boolean
           is_creator: boolean
           language: string | null
+          languages: string[]
           last_checkin_date: string | null
           last_online_notified_at: string | null
           last_seen_at: string | null
@@ -1409,6 +1410,7 @@ export type Database = {
           is_banned?: boolean
           is_creator?: boolean
           language?: string | null
+          languages?: string[]
           last_checkin_date?: string | null
           last_online_notified_at?: string | null
           last_seen_at?: string | null
@@ -1444,6 +1446,7 @@ export type Database = {
           is_banned?: boolean
           is_creator?: boolean
           language?: string | null
+          languages?: string[]
           last_checkin_date?: string | null
           last_online_notified_at?: string | null
           last_seen_at?: string | null
