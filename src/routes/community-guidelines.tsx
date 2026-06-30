@@ -8,9 +8,9 @@ export const Route = createFileRoute("/community-guidelines")({
       { name: "description", content: `${APP_NAME} community rules: stay safe, be respectful, no harassment, nudity, hate, scams or illegal activity.` },
       { property: "og:title", content: `Community Guidelines — ${APP_NAME}` },
       { property: "og:description", content: `Rules that keep ${APP_NAME} safe and respectful for everyone.` },
-      { property: "og:url", content: "https://connect-verse-32.lovable.app/community-guidelines" },
+      { property: "og:url", content: "https://talkoraapp.com/community-guidelines" },
     ],
-    links: [{ rel: "canonical", href: "https://connect-verse-32.lovable.app/community-guidelines" }],
+    links: [{ rel: "canonical", href: "https://talkoraapp.com/community-guidelines" }],
   }),
   component: Page,
 });

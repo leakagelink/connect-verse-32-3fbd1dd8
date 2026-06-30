@@ -7,9 +7,9 @@ export const Route = createFileRoute("/refund-policy")({
       { title: `Refund & Cancellation Policy — ${APP_NAME}` },
       { name: "description", content: `Refund and cancellation policy for ${APP_NAME} coin purchases.` },
       { property: "og:title", content: `Refund & Cancellation Policy — ${APP_NAME}` },
-      { property: "og:url", content: "https://connect-verse-32.lovable.app/refund-policy" },
+      { property: "og:url", content: "https://talkoraapp.com/refund-policy" },
     ],
-    links: [{ rel: "canonical", href: "https://connect-verse-32.lovable.app/refund-policy" }],
+    links: [{ rel: "canonical", href: "https://talkoraapp.com/refund-policy" }],
   }),
   component: Page,
 });

@@ -8,9 +8,9 @@ export const Route = createFileRoute("/safety")({
       { name: "description", content: `Stay safe on ${APP_NAME}: tips for chats, calls and rooms, blocking, reporting and how we protect women creators.` },
       { property: "og:title", content: `Safety Center — ${APP_NAME}` },
       { property: "og:description", content: `Safety tips and tools on ${APP_NAME}.` },
-      { property: "og:url", content: "https://connect-verse-32.lovable.app/safety" },
+      { property: "og:url", content: "https://talkoraapp.com/safety" },
     ],
-    links: [{ rel: "canonical", href: "https://connect-verse-32.lovable.app/safety" }],
+    links: [{ rel: "canonical", href: "https://talkoraapp.com/safety" }],
   }),
   component: Page,
 });
