@@ -1867,17 +1867,28 @@ function CallScreen() {
               🔊 Tap to enable speaker audio
             </button>
           )}
-          <div className="absolute top-3 left-3 right-3 flex items-center justify-between text-white">
-            <div className="px-2.5 py-1 rounded-full bg-black/50 text-xs flex items-center gap-1.5">
-              {acceptRetry
-                ? `Reconnecting… (retry ${acceptRetry.attempt}/${acceptRetry.max})`
-                : connected && remoteJoined
-                  ? `Connected · ${mm}:${ss}`
-                  : (connected ? "Ringing…" : "Connecting…")}
-              {provider === "agora" && networkQ > 0 && (
-                <NetworkBars q={networkQ} />
+          <div className="absolute top-3 left-3 right-3 flex items-start justify-between text-white gap-2">
+            <div className="flex flex-col gap-1 min-w-0">
+              <div className="px-2.5 py-1 rounded-full bg-black/50 text-xs flex items-center gap-1.5 w-fit">
+                {acceptRetry
+                  ? `Reconnecting… (retry ${acceptRetry.attempt}/${acceptRetry.max})`
+                  : connected && remoteJoined
+                    ? `Call connected · ${connMm}:${connSs}`
+                    : (connected ? "Ringing…" : "Connecting…")}
+                {provider === "agora" && networkQ > 0 && (
+                  <NetworkBars q={networkQ} />
+                )}
+              </div>
+              {connected && remoteJoined && (
+                <div
+                  className="px-2.5 py-1 rounded-full bg-black/40 text-[10px] flex items-center gap-1 w-fit tabular-nums"
+                  title="Total call duration including any earlier session segments"
+                >
+                  Call started · {mm}:{ss}
+                </div>
               )}
             </div>
+
             <div className="flex items-center gap-2">
               <button
                 type="button"
