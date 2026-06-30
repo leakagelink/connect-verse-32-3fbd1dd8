@@ -123,7 +123,7 @@ export type FcmPayload = {
    * (incoming_calls | missed_calls | messages | general). Falls back to
    * "general" when omitted so we never ship a payload without a channel.
    */
-  channelId?: "incoming_calls" | "missed_calls" | "messages" | "general";
+  channelId?: "incoming_calls" | "incoming_calls_v2" | "missed_calls" | "messages" | "general";
 };
 
 /**
