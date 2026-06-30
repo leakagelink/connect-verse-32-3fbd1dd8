@@ -586,6 +586,8 @@ function CallScreen() {
         // Translate server timestamps to the local clock by removing skew.
         const skewMs = Date.now() - new Date(res.serverNow).getTime();
         connectedAtMsRef.current = new Date(res.connectedAt).getTime() + skewMs;
+        setConnectedAtMs(connectedAtMsRef.current);
+
         // The server anchor already covers every second since the call was
         // marked connected (including any prior, now-resumed session), so
         // any baseline duration carried in by acceptCallInvite would
