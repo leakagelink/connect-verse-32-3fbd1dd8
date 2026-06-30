@@ -440,13 +440,15 @@ export function CallInviteDialog({
             <Button
               variant="destructive"
               className="w-full gap-2"
-              disabled={cancelMut.isPending}
-              onClick={() => {
-                if (invite?.id && invite.status === "pending") cancelMut.mutate(invite.id);
-                else onClose();
-              }}
+              disabled={cancelMut.isPending || cancelledRef.current}
+              onClick={stopAttempt}
             >
-              <PhoneOff className="size-4" /> Cancel call
+              <PhoneOff className="size-4" />
+              {busyState === "clearing"
+                ? "Stop & cancel"
+                : deliveryAttempt > 1
+                ? `Cancel (attempt ${deliveryAttempt}/${MAX_DELIVERY_ATTEMPTS})`
+                : "Cancel call"}
             </Button>
           </>
         )}
