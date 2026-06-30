@@ -122,11 +122,11 @@ function ConnectScreen() {
     return STATES_BY_COUNTRY[country] ?? [];
   }, [country]);
 
-  // Filter + priority sorting
-  const sorted = useMemo(() => {
+  // Filter + priority sorting (with graceful language fallback)
+  const { sorted, langFallback } = useMemo(() => {
     // Language chip-filter is always honored (visible on Connect screen).
     // Country/state/active-only stay gated behind the admin-controlled card.
-    const langFilter = language === "any" || language === "auto" ? null : language;
+    const langPicked = language === "any" || language === "auto" ? null : language;
     const countryFilter = !filtersVisible || country === "any" ? null : country;
     const stateFilter = !filtersVisible || state === "any" ? null : state;
     const useActiveOnly = filtersVisible && activeOnly;
@@ -141,8 +141,7 @@ function ConnectScreen() {
       return set;
     };
 
-    const filtered = all.filter((u) => {
-      if (langFilter && !langsOf(u).has(langFilter)) return false;
+    const applyNonLang = (u: Creator) => {
       if (countryFilter && u.country !== countryFilter) return false;
       if (stateFilter && u.state !== stateFilter) return false;
       if (useActiveOnly) {
@@ -150,29 +149,57 @@ function ConnectScreen() {
         if (t < activeCutoff) return false;
       }
       return true;
-    });
+    };
 
-    // priority score: language match (4) + state match (2) + country match (1)
+    // Graceful language fallback chain: picked → Hindi → English → any.
+    // We try each tier in order and stop at the first one that yields results,
+    // so discovery is never blank just because no one speaks the chosen lang.
+    const tryLang = (code: string | null) =>
+      all.filter((u) => {
+        if (code && !langsOf(u).has(code)) return false;
+        return applyNonLang(u);
+      });
+
+    let used: string | null = langPicked;
+    let filtered = tryLang(langPicked);
+    let fallback: { from: string; to: string | null } | null = null;
+    if (langPicked && !filtered.length) {
+      const chain: (string | null)[] = ["hi", "en", null];
+      for (const next of chain) {
+        if (next === langPicked) continue;
+        const tryNext = tryLang(next);
+        if (tryNext.length) {
+          filtered = tryNext;
+          used = next;
+          fallback = { from: langPicked, to: next };
+          break;
+        }
+      }
+    }
+
+    // priority score: matched language (4) > my profile language (3) > state (2) > country (1)
     const score = (u: Creator) => {
       let s = 0;
-      if (me.language && langsOf(u).has(me.language)) s += 4;
+      const langs = langsOf(u);
+      if (used && langs.has(used)) s += 4;
+      if (me.language && langs.has(me.language)) s += 3;
       if (me.state && u.state === me.state) s += 2;
       if (me.country && u.country === me.country) s += 1;
       return s;
     };
-    // Mobile app users were getting an empty Connect screen when their saved
-    // profile country/language did not match available creators. Keep filters
-    // as priority, not a hard blocker: if strict filtering returns nothing,
-    // show all online creators so calls can still start — UNLESS the user
-    // explicitly picked a language chip (then respect their choice).
-    const visibleCreators = filtered.length || langFilter ? filtered : all;
 
-    return [...visibleCreators].sort((a, b) => {
+    // Final safety net: if every tier was empty (e.g. all filters too narrow),
+    // still surface online creators so calls can start.
+    const visibleCreators = filtered.length ? filtered : all;
+
+    const sortedList = [...visibleCreators].sort((a, b) => {
       const d = score(b) - score(a);
       if (d !== 0) return d;
       // tiebreak: more recently seen first
       return (b.last_seen_at ?? "").localeCompare(a.last_seen_at ?? "");
     });
+
+    return { sorted: sortedList, langFallback: fallback };
   }, [all, me, language, country, state, activeOnly, filtersVisible]);
 
   // Warm the browser image cache for the visible creator list so cards
