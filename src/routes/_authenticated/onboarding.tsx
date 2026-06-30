@@ -58,17 +58,37 @@ function Onboarding() {
   const [accept, setA] = useState(false);
   const [creator, setCr] = useState(false);
   const [busy, setBusy] = useState(false);
+  // Cute AI avatar — seed lets user "shuffle" the look without changing style.
+  const [avatarStyle, setAvatarStyle] = useState<string>("lorelei");
+  const [avatarSeedSalt, setAvatarSeedSalt] = useState(0);
+  const [avatarLocked, setAvatarLocked] = useState(false);
 
   useEffect(() => {
     if (data?.profile?.is_banned) navigate({ to: "/banned", replace: true });
     if (data?.profile?.onboarded) navigate({ to: "/home", replace: true });
   }, [data, navigate]);
 
+  // When gender flips, suggest the matching cute default — but never overwrite
+  // a style the user has already explicitly locked.
+  useEffect(() => {
+    if (avatarLocked) return;
+    setAvatarStyle(pickDefaultStyle(gender || null, creator));
+  }, [gender, creator, avatarLocked]);
+
+  const avatarSeed = useMemo(
+    () => `${data?.profile?.id ?? "preview"}|${avatarSeedSalt}`,
+    [data?.profile?.id, avatarSeedSalt],
+  );
+  const previewUrl = useMemo(
+    () => aiAvatarUrl(avatarSeed, avatarStyle, gender || null, creator),
+    [avatarSeed, avatarStyle, gender, creator],
+  );
+
   async function submit() {
     if (!gender || !dob) return toast.error("Fill all fields");
     setBusy(true);
     try {
-      await onboard({ data: { username, gender, dob, country, state: state || undefined, language, acceptGuidelines: true as const, asCreator: creator } });
+      await onboard({ data: { username, gender, dob, country, state: state || undefined, language, acceptGuidelines: true as const, asCreator: creator, aiAvatarStyle: avatarStyle as any } });
       await queryClient.invalidateQueries({ queryKey: ["me"] });
       await queryClient.refetchQueries({ queryKey: ["me"] });
       toast.success(t("onb.welcome"));
