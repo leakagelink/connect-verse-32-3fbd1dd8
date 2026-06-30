@@ -96,8 +96,9 @@ export function InCallPeerProfileSheet({ userId, open, onOpenChange, inCall = fa
   // outside `/call/:kind/:userId` even if a caller forgets to pass the
   // prop correctly (recents, profile preview, deep links, etc.).
   const currentPath = useRouterState({ select: (s) => s.location.pathname });
-  const isOnCallRoute = /^\/call\//.test(currentPath);
-  const showInCallChrome = inCall && isOnCallRoute;
+  const isOnCallRoute = isCallRoutePath(currentPath);
+  const showInCallChrome = shouldShowInCallChrome(inCall, currentPath);
+
 
 
   const { data, isLoading } = useQuery({
