@@ -13,7 +13,7 @@ import { AppShell } from "@/components/app-shell";
 import { InCallPeerProfileSheet } from "@/components/in-call-peer-profile-sheet";
 import { toast } from "sonner";
 import { VOICE_CALL_COINS_PER_MINUTE, VIDEO_CALL_COINS_PER_MINUTE } from "@/lib/constants";
-import { endCallLog, applyCallUsage, getCallPeerWallets } from "@/lib/calls.functions";
+import { endCallLog, applyCallUsage, getCallPeerWallets, heartbeatCall } from "@/lib/calls.functions";
 import { generateMysteryCase, CASE_GENERATION_COIN_COST } from "@/lib/mystery.functions";
 import { getMyProfile } from "@/lib/onboarding.functions";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
