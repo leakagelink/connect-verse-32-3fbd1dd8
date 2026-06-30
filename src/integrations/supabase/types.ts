@@ -1229,7 +1229,7 @@ export type Database = {
           reporter_user_id: string | null
           reviewed_at: string | null
           reviewed_by: string | null
-          severity: number
+          severity: number | null
           status: string
           user_id: string
         }
@@ -1246,7 +1246,7 @@ export type Database = {
           reporter_user_id?: string | null
           reviewed_at?: string | null
           reviewed_by?: string | null
-          severity: number
+          severity?: number | null
           status?: string
           user_id: string
         }
@@ -1263,7 +1263,7 @@ export type Database = {
           reporter_user_id?: string | null
           reviewed_at?: string | null
           reviewed_by?: string | null
-          severity?: number
+          severity?: number | null
           status?: string
           user_id?: string
         }
