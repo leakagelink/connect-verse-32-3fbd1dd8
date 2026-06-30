@@ -1259,6 +1259,13 @@ function CallScreen() {
   const totalElapsed = sessionStartElapsedRef.current + elapsed;
   const mm = String(Math.floor(totalElapsed / 60)).padStart(2, "0");
   const ss = String(totalElapsed % 60).padStart(2, "0");
+  // "Call connected" = time since this session connected (resets across
+  // resume/reconnect). "Call started" = total duration of the whole call
+  // including any prior session segments — both peers see identical values
+  // because both derive from the same server-anchored `elapsed`.
+  const connMm = String(Math.floor(elapsed / 60)).padStart(2, "0");
+  const connSs = String(elapsed % 60).padStart(2, "0");
+
 
   // One-click end-to-end gift verification used by the debug overlay.
   // Picks the cheapest affordable gift, snapshots UI + server balances,
