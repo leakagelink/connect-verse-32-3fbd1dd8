@@ -254,6 +254,15 @@ function ConnectScreen() {
         </button>
       </div>
 
+      {/* Always-visible language chip bar — quick selective filter */}
+      <LanguageChipBar
+        all={all}
+        value={language}
+        myLanguage={me.language}
+        onChange={setLanguage}
+      />
+
+
       {/* Filters (admin-controlled visibility) */}
       {filtersVisible && (
       <Card className="glass p-3 mb-5">
