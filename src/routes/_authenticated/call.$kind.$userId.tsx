@@ -1900,6 +1900,33 @@ function CallScreen() {
             partnerUserId={userId}
             callLogId={callLogIdRef.current}
             onEndCall={confirmEndCall}
+            onTelemetry={(ev) => {
+              const base = {
+                callLogId: callLogIdRef.current,
+                partnerUserId: userId,
+                kind,
+              } as const;
+              if (ev.type === "opened") {
+                recordCallUiEvent({ ...base, eventType: "ui_sos_opened", ok: true });
+              } else if (ev.type === "confirmed") {
+                recordCallUiEvent({
+                  ...base,
+                  eventType: "ui_sos_confirmed",
+                  ok: true,
+                  reason: ev.reason,
+                  durationMs: ev.durationMs,
+                });
+              } else {
+                recordCallUiEvent({
+                  ...base,
+                  eventType: "ui_sos_blocked",
+                  ok: false,
+                  reason: ev.reason,
+                  durationMs: ev.durationMs,
+                  meta: { error: ev.error },
+                });
+              }
+            }}
           />
         </div>
 
