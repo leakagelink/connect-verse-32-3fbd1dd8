@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useRouterState } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
@@ -68,6 +69,16 @@ export function InCallPeerProfileSheet({ userId, open, onOpenChange, inCall = fa
   const { user: me } = useSession();
   const [confirm, setConfirm] = useState<ConfirmKind>(null);
 
+  // Single source of truth for "are we actually on the live call screen?".
+  // The `inCall` prop is a hint from the caller, but we additionally verify
+  // against the current route — the in-call banner/CTA must NEVER render
+  // outside `/call/:kind/:userId` even if a caller forgets to pass the
+  // prop correctly (recents, profile preview, deep links, etc.).
+  const currentPath = useRouterState({ select: (s) => s.location.pathname });
+  const isOnCallRoute = /^\/call\//.test(currentPath);
+  const showInCallChrome = inCall && isOnCallRoute;
+
+
   const { data, isLoading } = useQuery({
     queryKey: ["in-call-peer", userId],
     queryFn: () => fetchProfile({ data: { userId: userId! } }),
@@ -135,7 +146,7 @@ export function InCallPeerProfileSheet({ userId, open, onOpenChange, inCall = fa
       <SheetContent side="bottom" className="max-h-[85vh] overflow-y-auto">
         <SheetHeader className="text-left">
           <SheetTitle>Profile</SheetTitle>
-          {inCall ? (
+          {showInCallChrome ? (
             <SheetDescription>
               Apka call abhi bhi chal raha hai. Wapis call screen pe jaane ke
               liye “Back to call” dabayein.
@@ -267,7 +278,7 @@ export function InCallPeerProfileSheet({ userId, open, onOpenChange, inCall = fa
             className="w-full"
             onClick={() => onOpenChange(false)}
           >
-            <ArrowLeft className="size-4 mr-2" /> {inCall ? "Back to call" : "Close"}
+            <ArrowLeft className="size-4 mr-2" /> {showInCallChrome ? "Back to call" : "Close"}
           </Button>
         </SheetFooter>
 
@@ -294,8 +305,12 @@ export function InCallPeerProfileSheet({ userId, open, onOpenChange, inCall = fa
               </AlertDialogTitle>
               <AlertDialogDescription>
                 {confirm === "unfollow"
-                  ? "Aap unhe unfollow kar denge. Call abhi bhi chalu rahegi."
-                  : "Hum unhe ek friend request bhejenge. Call disturb nahi hogi."}
+                  ? showInCallChrome
+                    ? "Aap unhe unfollow kar denge. Call abhi bhi chalu rahegi."
+                    : "Aap unhe unfollow kar denge."
+                  : showInCallChrome
+                    ? "Hum unhe ek friend request bhejenge. Call disturb nahi hogi."
+                    : "Hum unhe ek friend request bhejenge."}
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
