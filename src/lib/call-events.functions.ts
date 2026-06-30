@@ -65,11 +65,28 @@ export const listCallEvents = createServerFn({ method: "POST" })
     const { data: rows, error } = await q;
     if (error) throw new Error(error.message);
 
+    const mapped: CallEventRow[] = ((rows ?? []) as any[]).map((r) => ({
+      id: r.id,
+      created_at: r.created_at,
+      event_type: r.event_type,
+      invite_id: r.invite_id ?? null,
+      call_log_id: r.call_log_id ?? null,
+      caller_id: r.caller_id ?? null,
+      callee_id: r.callee_id ?? null,
+      actor_id: r.actor_id ?? null,
+      kind: r.kind ?? null,
+      status: r.status ?? null,
+      reason: r.reason ?? null,
+      duration_ms: r.duration_ms ?? null,
+      ok: r.ok ?? null,
+      meta: r.meta == null ? null : JSON.stringify(r.meta),
+    }));
+
     const summary: Record<string, number> = {};
-    for (const r of (rows ?? []) as CallEventRow[]) {
+    for (const r of mapped) {
       summary[r.event_type] = (summary[r.event_type] ?? 0) + 1;
     }
-    return { rows: (rows ?? []) as CallEventRow[], summary };
+    return { rows: mapped, summary };
   });
 
 export const purgeCallEventsOlderThan14d = createServerFn({ method: "POST" })
