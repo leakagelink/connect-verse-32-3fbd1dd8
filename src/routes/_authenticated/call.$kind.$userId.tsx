@@ -84,6 +84,7 @@ function CallScreen() {
   } | null>(null);
   const [joinAttempt, setJoinAttempt] = useState(0);
   const [retrying, setRetrying] = useState(false);
+  const [acceptRetry, setAcceptRetry] = useState<{ attempt: number; max: number } | null>(null);
   
   
   const elapsedRef = useRef(0);
