@@ -135,6 +135,54 @@ export function InCallPeerProfileSheet({ userId, open, onOpenChange, inCall = fa
     };
   }, [open, userId, me?.id, qc]);
 
+  // Realtime: keep in-call vs out-of-call state in sync. Subscribes to
+  // call_invites + call_logs rows touching me ↔ peer and to the peer's
+  // profile row (is_in_call / online_status). Any change instantly
+  // refreshes this sheet's partner profile query AND the recents list,
+  // so pills/banner ("Busy", "Available", missed/cancelled notice) flip
+  // without waiting for a poll or manual reload.
+  useEffect(() => {
+    if (!open || !userId || !me?.id) return;
+    const myId = me.id;
+    const peer = userId;
+    const touchesPair = (row: any) =>
+      row &&
+      ((row.caller_id === myId && row.callee_id === peer) ||
+        (row.caller_id === peer && row.callee_id === myId));
+    const refresh = () => {
+      qc.invalidateQueries({ queryKey: ["in-call-peer", peer] });
+      qc.invalidateQueries({ queryKey: ["recent-calls"] });
+      qc.invalidateQueries({ queryKey: ["call-logs"] });
+    };
+    const channel = supabase
+      .channel(`in-call-peer-callstate:${myId}:${peer}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "call_invites" },
+        (payload) => {
+          if (touchesPair(payload.new) || touchesPair(payload.old)) refresh();
+        },
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "call_logs" },
+        (payload) => {
+          if (touchesPair(payload.new) || touchesPair(payload.old)) refresh();
+        },
+      )
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "profiles", filter: `id=eq.${peer}` },
+        () => refresh(),
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [open, userId, me?.id, qc]);
+
+
+
 
   const followMut = useMutation({
     mutationFn: () => follow({ data: { userId: userId! } }),
