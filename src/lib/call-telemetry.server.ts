@@ -27,7 +27,20 @@ export type CallEventType =
   | "stale_invite_expired"
   | "stale_accepted_cancelled"
   | "stale_availability_reset"
-  | "orphan_log_closed";
+  | "orphan_log_closed"
+  // In-call UI actions (recorded from the client via logCallUiEvent)
+  | "ui_gift_open"
+  | "ui_gift_send_confirmed"
+  | "ui_gift_send_blocked"
+  | "ui_mute_toggled"
+  | "ui_mute_blocked"
+  | "ui_speaker_toggled"
+  | "ui_speaker_blocked"
+  | "ui_end_call_clicked"
+  | "ui_end_call_blocked"
+  | "ui_sos_opened"
+  | "ui_sos_confirmed"
+  | "ui_sos_blocked";
 
 export interface CallEventInput {
   eventType: CallEventType;
