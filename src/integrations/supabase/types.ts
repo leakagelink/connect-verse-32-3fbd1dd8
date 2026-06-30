@@ -321,6 +321,7 @@ export type Database = {
           caller_id: string
           channel_name: string | null
           coins_spent: number
+          connected_at: string | null
           created_at: string
           credential_id: string | null
           disconnects: number
@@ -345,6 +346,7 @@ export type Database = {
           caller_id: string
           channel_name?: string | null
           coins_spent?: number
+          connected_at?: string | null
           created_at?: string
           credential_id?: string | null
           disconnects?: number
@@ -369,6 +371,7 @@ export type Database = {
           caller_id?: string
           channel_name?: string | null
           coins_spent?: number
+          connected_at?: string | null
           created_at?: string
           credential_id?: string | null
           disconnects?: number
