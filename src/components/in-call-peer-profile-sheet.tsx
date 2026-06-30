@@ -146,7 +146,7 @@ export function InCallPeerProfileSheet({ userId, open, onOpenChange, inCall = fa
       <SheetContent side="bottom" className="max-h-[85vh] overflow-y-auto">
         <SheetHeader className="text-left">
           <SheetTitle>Profile</SheetTitle>
-          {inCall ? (
+          {showInCallChrome ? (
             <SheetDescription>
               Apka call abhi bhi chal raha hai. Wapis call screen pe jaane ke
               liye “Back to call” dabayein.
