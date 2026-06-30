@@ -31,6 +31,7 @@ import { PerformanceTab } from "@/components/admin/PerformanceTab";
 import { CallAuditTab } from "@/components/admin/CallAuditTab";
 import { BusyResetE2E } from "@/components/admin/BusyResetE2E";
 import { ReconcilerCleanupE2E } from "@/components/admin/ReconcilerCleanupE2E";
+import { StuckSessionReconnectE2E } from "@/components/admin/StuckSessionReconnectE2E";
 import { CallEndE2E } from "@/components/admin/CallEndE2E";
 import { CallTelemetryPanel } from "@/components/admin/CallTelemetryPanel";
 import { ConcurrentCallE2E } from "@/components/admin/ConcurrentCallE2E";
@@ -125,6 +126,7 @@ function AdminPanel() {
         <TabsContent value="call-audit" className="space-y-3">
           <CallTelemetryPanel />
           <ReconcilerCleanupE2E />
+          <StuckSessionReconnectE2E />
           <BusyResetE2E />
           <CallEndE2E />
           <ConcurrentCallE2E />
