@@ -14,6 +14,27 @@ import type {
   IMicrophoneAudioTrack,
   NetworkQuality,
 } from "agora-rtc-sdk-ng";
+import { pushAgoraDebug } from "./agora-debug";
+
+function describeTrack(t: MediaStreamTrack | null | undefined) {
+  if (!t) return { present: false };
+  return {
+    present: true,
+    id: t.id,
+    kind: t.kind,
+    readyState: t.readyState,
+    muted: t.muted,
+    enabled: t.enabled,
+  };
+}
+
+function watchTrackEnded(t: MediaStreamTrack | null | undefined, label: string, uid?: string | number) {
+  if (!t) return;
+  const handler = () => pushAgoraDebug("track-ended", { label, uid, id: t.id, kind: t.kind }, "warn");
+  try { t.addEventListener("ended", handler, { once: true }); } catch { /* ignore */ }
+  try { t.addEventListener("mute", () => pushAgoraDebug("track-muted", { label, uid, id: t.id })); } catch { /* ignore */ }
+  try { t.addEventListener("unmute", () => pushAgoraDebug("track-unmuted", { label, uid, id: t.id })); } catch { /* ignore */ }
+}
 
 /** Why the remote peer left the channel. */
 export type RemoteLeaveReason = "quit" | "timeout" | "audience" | "unknown";
