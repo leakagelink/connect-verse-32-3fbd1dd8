@@ -331,10 +331,7 @@ export function CallInviteDialog({
 
   return (
     <Dialog open={!!pendingCall} onOpenChange={(open) => {
-      if (!open) {
-        if (invite?.id && invite.status === "pending") cancelMut.mutate(invite.id);
-        else onClose();
-      }
+      if (!open) stopAttempt();
     }}>
       <DialogContent className="max-w-sm text-center">
         {endState ? (
@@ -353,6 +350,13 @@ export function CallInviteDialog({
                 onClick={() => {
                   setInvite(null);
                   setEndState(null);
+                  setBusyState(null);
+                  busyRetriedRef.current = false;
+                  cancelledRef.current = false;
+                  if (busyRetryTimerRef.current) {
+                    clearTimeout(busyRetryTimerRef.current);
+                    busyRetryTimerRef.current = null;
+                  }
                   setDeliveryAttempt(1);
                   setMessage("Sending call request…");
                   if (pendingCall) {
