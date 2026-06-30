@@ -81,7 +81,7 @@ type Props = {
  * (follow) request, then returns to the live call view without ever
  * navigating away from the route.
  */
-export function InCallPeerProfileSheet({ userId, open, onOpenChange, inCall = false }: Props) {
+export function InCallPeerProfileSheet({ userId, open, onOpenChange, inCall = false, lastCall = null }: Props) {
   const fetchProfile = useServerFn(getPartnerProfile);
   const follow = useServerFn(sendFollowRequest);
   const unfollow = useServerFn(unfollowUser);
