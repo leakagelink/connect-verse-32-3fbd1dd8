@@ -163,8 +163,9 @@ function ConnectScreen() {
     // Mobile app users were getting an empty Connect screen when their saved
     // profile country/language did not match available creators. Keep filters
     // as priority, not a hard blocker: if strict filtering returns nothing,
-    // show all online creators so calls can still start.
-    const visibleCreators = filtered.length ? filtered : all;
+    // show all online creators so calls can still start — UNLESS the user
+    // explicitly picked a language chip (then respect their choice).
+    const visibleCreators = filtered.length || langFilter ? filtered : all;
 
     return [...visibleCreators].sort((a, b) => {
       const d = score(b) - score(a);
