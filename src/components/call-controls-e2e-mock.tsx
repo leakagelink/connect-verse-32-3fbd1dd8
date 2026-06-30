@@ -12,19 +12,19 @@ import { useCallPointerSafeguard } from "@/hooks/use-call-pointer-safeguard";
 // Playwright specs:
 //   * tests/e2e/call-controls-clickable.spec.ts
 //   * tests/e2e/call-controls-overlay-guard.spec.ts
+//   * tests/e2e/call-controls-actions.spec.ts
 //
-// Contract:
-//   1. After the call surface mounts, every control (End / Gift / Mic /
-//      Speaker / Mystery) is reachable by a real pointer click.
-//   2. If any blocking overlay (Vite error overlay, route error screen,
-//      generic full-viewport scrim) mounts above the surface, the runtime
-//      safeguard MUST neutralise its pointer events so the controls stay
-//      tappable. The overlay itself stays visible for debugging — only its
-//      pointer-events are killed.
+// Each control mirrors the real call-screen contract:
+//   * Mic     → toggles `data-muted` between "0" and "1"
+//   * Speaker → toggles `data-speaker` between "off" and "on"
+//   * Gift    → opens the Gift modal (Dialog with data-testid="panel-gift")
+//   * Mystery → opens the Mystery modal (Dialog with data-testid="panel-mystery")
+//   * End     → ends the call: sets `data-ended="1"` and hides the controls
 //
-// `injectOverlays` enables the second contract: it mounts representative
-// fake versions of the overlays we have actually seen swallow taps in
-// production / dev, so the spec can prove the safeguard handles them.
+// The mock also exposes per-button click counters (`data-clicks-*`) so the
+// clickability spec can assert clicks reach the handler. Real-action state
+// is observable via the `data-muted`, `data-speaker`, and `data-ended`
+// attributes.
 export function CallControlsClickableE2EMock({
   injectOverlays = false,
 }: {
@@ -38,9 +38,12 @@ export function CallControlsClickableE2EMock({
     mystery: 0,
   });
   const [openPanel, setOpenPanel] = useState<null | "gift" | "mystery">(null);
+  const [muted, setMuted] = useState(false);
+  const [speakerOn, setSpeakerOn] = useState(false);
+  const [ended, setEnded] = useState(false);
 
   // Activate the same runtime safeguard the real call surface uses.
-  useCallPointerSafeguard(true);
+  useCallPointerSafeguard(!ended);
 
   // For the overlay-guard spec, mount the fakes after first paint so the
   // MutationObserver inside the safeguard sees them and neutralises them.
@@ -66,7 +69,6 @@ export function CallControlsClickableE2EMock({
     for (const f of fakes) {
       const el = document.createElement(f.tag);
       Object.entries(f.attrs).forEach(([k, v]) => el.setAttribute(k, v));
-      // Match the real overlays' geometry: fixed, full viewport, above z-60.
       el.style.position = "fixed";
       el.style.inset = "0";
       el.style.zIndex = "9999";
@@ -88,6 +90,18 @@ export function CallControlsClickableE2EMock({
   const bump = (k: keyof typeof clicks) =>
     setClicks((c) => ({ ...c, [k]: c[k] + 1 }));
 
+  if (ended) {
+    return (
+      <div
+        data-testid="call-ended-screen"
+        data-call-ended="1"
+        className="fixed inset-0 z-[60] bg-black flex flex-col items-center justify-center text-white"
+      >
+        Call ended
+      </div>
+    );
+  }
+
   return (
     <div
       data-testid="call-controls-surface"
@@ -98,6 +112,9 @@ export function CallControlsClickableE2EMock({
       data-clicks-mic={clicks.mic}
       data-clicks-speaker={clicks.speaker}
       data-clicks-mystery={clicks.mystery}
+      data-muted={muted ? "1" : "0"}
+      data-speaker={speakerOn ? "on" : "off"}
+      data-ended={ended ? "1" : "0"}
       className="fixed inset-0 z-[60] bg-black flex flex-col items-center justify-end gap-4 p-6 safe-top safe-bottom"
     >
       <div className="flex-1 w-full flex items-center justify-center text-white/70 text-sm">
@@ -106,17 +123,25 @@ export function CallControlsClickableE2EMock({
       <div className="flex flex-wrap justify-center gap-3">
         <Button
           data-testid="ctrl-mic"
+          aria-pressed={muted}
           variant="secondary"
-          onClick={() => bump("mic")}
+          onClick={() => {
+            bump("mic");
+            setMuted((v) => !v);
+          }}
         >
-          Mic
+          {muted ? "Unmute" : "Mute"}
         </Button>
         <Button
           data-testid="ctrl-speaker"
+          aria-pressed={speakerOn}
           variant="secondary"
-          onClick={() => bump("speaker")}
+          onClick={() => {
+            bump("speaker");
+            setSpeakerOn((v) => !v);
+          }}
         >
-          Speaker
+          {speakerOn ? "Speaker on" : "Speaker off"}
         </Button>
         <Button
           data-testid="ctrl-gift"
@@ -141,7 +166,10 @@ export function CallControlsClickableE2EMock({
         <Button
           data-testid="ctrl-end"
           variant="destructive"
-          onClick={() => bump("end")}
+          onClick={() => {
+            bump("end");
+            setEnded(true);
+          }}
         >
           End
         </Button>
