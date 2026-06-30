@@ -106,8 +106,13 @@ export function NotificationPrefsCard() {
         {ROWS.map((row) => {
           const label = t(row.tKey);
           return (
-            <div key={row.key} className="flex items-center justify-between gap-3">
-              <span className="text-sm">{label === row.tKey ? row.fallback : label}</span>
+            <div key={row.key} className="flex items-start justify-between gap-3">
+              <div className="min-w-0 flex-1">
+                <p className="text-sm">{label === row.tKey ? row.fallback : label}</p>
+                {row.hint && (
+                  <p className="mt-0.5 text-[11px] text-muted-foreground">{row.hint}</p>
+                )}
+              </div>
               <Switch
                 checked={prefs[row.key]}
                 onCheckedChange={(v) => toggle(row.key, v)}
@@ -116,6 +121,7 @@ export function NotificationPrefsCard() {
             </div>
           );
         })}
+
       </div>
     </Card>
   );
