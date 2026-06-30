@@ -78,6 +78,24 @@ function NotificationsPage() {
           )}
         </div>
 
+        {/* Quick link to incoming friend requests */}
+        <Link
+          to="/requests"
+          className="block rounded-xl border border-primary/30 bg-primary/5 p-3 transition hover:bg-primary/10"
+        >
+          <div className="flex items-center gap-3">
+            <div className="flex size-9 items-center justify-center rounded-full bg-primary/15 text-primary">
+              <Bell className="size-4" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-semibold">Friend requests</p>
+              <p className="text-xs text-muted-foreground">See and accept people who want to connect with you.</p>
+            </div>
+            <span className="text-xs text-primary">Open →</span>
+          </div>
+        </Link>
+
+
         {isLoading ? (
           <Card className="p-6 text-center text-sm text-muted-foreground">{t("common.loading")}</Card>
         ) : (data?.items.length ?? 0) === 0 ? (
