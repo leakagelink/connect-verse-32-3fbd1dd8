@@ -49,6 +49,19 @@ function RecentsScreen() {
     queryFn: () => fn(),
   });
   const [profileUserId, setProfileUserId] = useState<string | null>(null);
+  // Latest call for the partner whose profile is open — drives the
+  // "call available nahi" notice inside the sheet. Always the most-recent
+  // row because `all` is already sorted DESC by started_at.
+  const lastCallForProfile = useMemo(() => {
+    if (!profileUserId) return null;
+    const row = all.find((c) => c.partner.id === profileUserId);
+    if (!row) return null;
+    return {
+      status: row.status,
+      missedReason: row.missed_reason ?? null,
+      kind: row.kind,
+    };
+  }, [profileUserId, all]);
   const [callInvite, setCallInvite] = useState<{ kind: "voice" | "video"; userId: string } | null>(null);
 
   const all = data ?? [];
