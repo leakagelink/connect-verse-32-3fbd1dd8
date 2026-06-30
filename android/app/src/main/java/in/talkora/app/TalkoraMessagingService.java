@@ -15,7 +15,6 @@ import android.util.Log;
 
 import androidx.core.app.NotificationCompat;
 import androidx.core.app.Person;
-import androidx.core.graphics.drawable.IconCompat;
 
 import com.capacitorjs.plugins.pushnotifications.MessagingService;
 import com.google.firebase.messaging.RemoteMessage;
