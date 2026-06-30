@@ -116,9 +116,13 @@ export function CallControlsClickableE2EMock({
       data-clicks-mic={clicks.mic}
       data-clicks-speaker={clicks.speaker}
       data-clicks-mystery={clicks.mystery}
+      data-clicks-sos={clicks.sos}
+      data-clicks-gift-send={clicks.giftSend}
       data-muted={muted ? "1" : "0"}
       data-speaker={speakerOn ? "on" : "off"}
       data-ended={ended ? "1" : "0"}
+      data-end-confirm-open={endConfirmOpen ? "1" : "0"}
+      data-gift-box-open={giftBoxOpen ? "1" : "0"}
       className="fixed inset-0 z-[60] bg-black flex flex-col items-center justify-end gap-4 p-6 safe-top safe-bottom"
     >
       <div className="flex-1 w-full flex items-center justify-center text-white/70 text-sm">
