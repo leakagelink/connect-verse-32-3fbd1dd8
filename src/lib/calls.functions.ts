@@ -251,6 +251,71 @@ export const heartbeatCall = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+/**
+ * Stamp `connected_at` on the call_log atomically the first time either
+ * peer signals "both connected & remote joined", and return the canonical
+ * server timestamps so caller AND callee can display an identical timer.
+ *
+ * Both peers call this when their local `connected && remoteJoined` flips
+ * true. The first call wins (UPDATE … WHERE connected_at IS NULL), the
+ * second call just reads the existing stamp. The client treats:
+ *   elapsed = (serverNow - connectedAt) + (Date.now() - clientReceivedAt)
+ * which makes both sides agree to within network jitter regardless of
+ * clock skew or which side accepted/joined first.
+ */
+export const markCallConnected = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((input: { callLogId: string }) => input)
+  .handler(async ({ data, context }) => {
+    const { userId } = context;
+    if (!data.callLogId) return { ok: false as const, reason: "missing-id" };
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    const { data: log } = await supabaseAdmin
+      .from("call_logs")
+      .select("id, caller_id, callee_id, ended_at, connected_at, started_at")
+      .eq("id", data.callLogId)
+      .maybeSingle();
+    if (!log) return { ok: false as const, reason: "no-log" };
+    if (log.caller_id !== userId && log.callee_id !== userId) {
+      return { ok: false as const, reason: "not-participant" };
+    }
+
+    let connectedAt = log.connected_at as string | null;
+    if (!connectedAt && !log.ended_at) {
+      const stamp = new Date().toISOString();
+      const { data: updated } = await supabaseAdmin
+        .from("call_logs")
+        .update({ connected_at: stamp })
+        .eq("id", data.callLogId)
+        .is("connected_at", null)
+        .select("connected_at")
+        .maybeSingle();
+      // If another concurrent call won, re-read.
+      if (updated?.connected_at) {
+        connectedAt = updated.connected_at as string;
+      } else {
+        const { data: reread } = await supabaseAdmin
+          .from("call_logs")
+          .select("connected_at")
+          .eq("id", data.callLogId)
+          .maybeSingle();
+        connectedAt = (reread?.connected_at as string | null) ?? stamp;
+      }
+      // Best-effort telemetry — same hook the heartbeat path uses.
+      await maybeLogConnected(supabaseAdmin as any, data.callLogId, userId);
+    }
+
+    return {
+      ok: true as const,
+      connectedAt,
+      serverNow: new Date().toISOString(),
+      endedAt: log.ended_at as string | null,
+    };
+  });
+
+
+
 
 
 
