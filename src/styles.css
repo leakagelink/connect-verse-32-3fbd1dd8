@@ -165,3 +165,38 @@
   left: auto;
   right: 1rem;
 }
+
+/* ============================================================
+   Call-screen pointer safeguard
+   ------------------------------------------------------------
+   Historical bug: a Vite / plugin error overlay (or any other
+   full-viewport scrim) mounted on top of the call surface and
+   silently swallowed every tap on End / Gift / Mic / Speaker /
+   Mystery, leaving the user trapped in a connected call with
+   no working controls.
+
+   While the call surface is mounted (body[data-call-active="1"])
+   we force all known dev/error overlays to ignore pointer events
+   so the controls below them stay tappable. The overlay still
+   renders so developers can see the error in DevTools, it just
+   cannot capture clicks anymore.
+   ============================================================ */
+body[data-call-active="1"] vite-error-overlay,
+body[data-call-active="1"] vite-plugin-checker-error-overlay,
+body[data-call-active="1"] #vite-plugin-checker-error-overlay,
+body[data-call-active="1"] [data-vite-dev-id],
+body[data-call-active="1"] #webpack-dev-server-client-overlay,
+body[data-call-active="1"] #webpack-dev-server-client-overlay-div,
+body[data-call-active="1"] #__next-build-watcher,
+body[data-call-active="1"] [data-nextjs-dialog-overlay],
+body[data-call-active="1"] [data-nextjs-toast] {
+  pointer-events: none !important;
+}
+/* Re-enable pointer events on links/buttons inside the overlay so
+   the developer can still dismiss it from outside the call surface,
+   but only when the call surface is NOT in the way. */
+body[data-call-active="1"] vite-error-overlay::part(close),
+body[data-call-active="1"] vite-error-overlay::part(backdrop) {
+  pointer-events: none !important;
+}
+
