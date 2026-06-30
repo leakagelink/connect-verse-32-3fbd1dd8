@@ -36,11 +36,15 @@ export function CallControlsClickableE2EMock({
     mic: 0,
     speaker: 0,
     mystery: 0,
+    sos: 0,
+    giftSend: 0,
   });
-  const [openPanel, setOpenPanel] = useState<null | "gift" | "mystery">(null);
+  const [openPanel, setOpenPanel] = useState<null | "gift" | "mystery" | "sos">(null);
   const [muted, setMuted] = useState(false);
   const [speakerOn, setSpeakerOn] = useState(false);
   const [ended, setEnded] = useState(false);
+  const [endConfirmOpen, setEndConfirmOpen] = useState(false);
+  const [giftBoxOpen, setGiftBoxOpen] = useState(false);
 
   // Activate the same runtime safeguard the real call surface uses.
   useCallPointerSafeguard(!ended);
