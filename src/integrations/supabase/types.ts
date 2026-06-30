@@ -282,6 +282,7 @@ export type Database = {
           id: string
           kind: string
           last_flushed_at: string | null
+          last_heartbeat_at: string | null
           missed_reason: string | null
           provider: string | null
           quality_avg: number | null
@@ -305,6 +306,7 @@ export type Database = {
           id?: string
           kind: string
           last_flushed_at?: string | null
+          last_heartbeat_at?: string | null
           missed_reason?: string | null
           provider?: string | null
           quality_avg?: number | null
@@ -328,6 +330,7 @@ export type Database = {
           id?: string
           kind?: string
           last_flushed_at?: string | null
+          last_heartbeat_at?: string | null
           missed_reason?: string | null
           provider?: string | null
           quality_avg?: number | null
