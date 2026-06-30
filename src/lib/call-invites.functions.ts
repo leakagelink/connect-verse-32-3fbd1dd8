@@ -621,6 +621,12 @@ export const acceptCallInvite = createServerFn({ method: "POST" })
     if (invite.status !== "pending") throw new Error("This call is no longer ringing.");
     await assertCallable(db, invite.caller_id, invite.callee_id);
 
+    // Pre-flight: close any orphan call_logs / ghost "accepted" rows from a
+    // prior killed-app session for either party so the partial-unique index
+    // ("one accepted per callee") can't reject this accept on stale state.
+    await refreshStaleBusy(db, invite.callee_id).catch(() => false);
+    await refreshStaleBusy(db, invite.caller_id).catch(() => false);
+
     // ---------- Payer-balance gate ----------
     // If the accepting user IS the payer (i.e., a creator initiated the call
     // to them), make sure they can afford at least one minute of talk time.
