@@ -69,13 +69,13 @@ function Onboarding() {
       await onboard({ data: { username, gender, dob, country, state: state || undefined, language, acceptGuidelines: true as const, asCreator: creator } });
       await queryClient.invalidateQueries({ queryKey: ["me"] });
       await queryClient.refetchQueries({ queryKey: ["me"] });
-      toast.success("Welcome to Talkora! You got 5 free minutes 🎉");
+      toast.success(t("onb.welcome"));
       navigate({ to: "/home", replace: true });
 
     } catch (e: any) { toast.error(e.message); } finally { setBusy(false); }
   }
 
-  if (isLoading) return <div className="p-8 text-center text-muted-foreground">Loading…</div>;
+  if (isLoading) return <div className="p-8 text-center text-muted-foreground">{t("common.loading")}</div>;
 
   return (
     <div className="min-h-screen grid place-items-center px-4 py-8">
