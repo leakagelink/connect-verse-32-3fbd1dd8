@@ -245,7 +245,15 @@ export function IncomingCallDialog({ disabled }: { disabled?: boolean }) {
                   {acceptMut.isPending ? <Loader2 className="size-6 animate-spin" /> : <Phone className="size-6" />}
                 </Button>
               </div>
-              <p className="text-[11px] text-muted-foreground">Call connects only after you answer.</p>
+              {acceptMut.isPending && retryInfo && retryInfo.attempt > 1 ? (
+                <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-200">
+                  <span className="font-semibold">Reconnecting…</span>{" "}
+                  Previous session ke ghost reservation ko clear kiya ja raha hai.
+                  Retry {retryInfo.attempt} of {retryInfo.maxAttempts}.
+                </div>
+              ) : (
+                <p className="text-[11px] text-muted-foreground">Call connects only after you answer.</p>
+              )}
             </div>
           )}
         </DialogContent>
