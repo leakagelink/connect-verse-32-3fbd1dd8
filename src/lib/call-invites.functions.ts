@@ -1326,3 +1326,280 @@ export const runConcurrentCallE2E = createServerFn({ method: "POST" })
         .eq("id", calleeId);
     }
   });
+
+// ============================================================================
+// E2E: Reconciler cleanup of stale invites + orphan call_logs
+// Admin-only. Seeds the exact failure modes a force-killed app leaves behind:
+//   • a pending invite past its expires_at
+//   • an orphan call_log (no ended_at, last heartbeat >60s ago)
+//   • an "accepted" invite linked to that orphan log
+//   • a standalone "accepted" invite with no call_log and an old accepted_at
+// Then runs refreshStaleBusy for both callee and caller and asserts every
+// row was fully cleared. Finally simulates the next accept by reserving a
+// fresh pending invite via the same atomic UPDATE acceptCallInvite uses —
+// if any stale row survived, the partial-unique index would reject this and
+// the test FAILs. All synthetic rows are deleted in finally.
+// ============================================================================
+export const runReconcilerCleanupE2E = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((d: unknown) =>
+    z.object({ calleeId: z.string().uuid().optional() }).parse(d ?? {}),
+  )
+  .handler(async ({ context, data }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const db = supabaseAdmin as any;
+    const { data: isAdmin } = await context.supabase.rpc("has_role", {
+      _user_id: context.userId,
+      _role: "admin",
+    });
+    if (!isAdmin) throw new Error("Forbidden");
+
+    const steps: Array<{ step: string; ok: boolean; detail?: any }> = [];
+    const log = (step: string, ok: boolean, detail?: any) =>
+      steps.push({ step, ok, detail });
+
+    // 1) Resolve callee (creator)
+    let calleeId = data.calleeId;
+    const admins = await hiddenAdminIds(db);
+    if (!calleeId) {
+      const { data: candidates } = await db
+        .from("profiles")
+        .select("id")
+        .eq("is_creator", true)
+        .eq("onboarded", true)
+        .eq("is_banned", false)
+        .is("deleted_at", null)
+        .limit(20);
+      const pick = (candidates ?? []).find((p: any) => !admins.has(p.id));
+      if (!pick) return { pass: false, reason: "No eligible creator.", steps };
+      calleeId = pick.id;
+    }
+    log("resolve_callee", true, { calleeId });
+
+    // 2) Pick two distinct fake callers
+    const { data: others } = await db
+      .from("profiles")
+      .select("id")
+      .neq("id", calleeId)
+      .eq("onboarded", true)
+      .eq("is_banned", false)
+      .is("deleted_at", null)
+      .limit(50);
+    const pool = (others ?? []).filter((p: any) => !admins.has(p.id));
+    if (pool.length < 2)
+      return { pass: false, reason: "Need 2 eligible callers.", steps };
+    const staleCaller = pool[0];
+    const newCaller = pool[1];
+    log("resolve_callers", true, {
+      staleCallerId: staleCaller.id,
+      newCallerId: newCaller.id,
+    });
+
+    const { data: profBefore } = await db
+      .from("profiles")
+      .select("availability")
+      .eq("id", calleeId)
+      .maybeSingle();
+    const originalAvailability = profBefore?.availability ?? "online";
+
+    const createdInviteIds: string[] = [];
+    const createdLogIds: string[] = [];
+
+    try {
+      const oldIso = new Date(Date.now() - 5 * 60_000).toISOString();
+      const pastIso = new Date(Date.now() - 60_000).toISOString();
+
+      // 3a) Stale pending invite (expired)
+      const { data: pendingInv, error: pErr } = await db
+        .from("call_invites")
+        .insert({
+          caller_id: staleCaller.id,
+          callee_id: calleeId,
+          kind: "voice",
+          status: "pending",
+          expires_at: pastIso,
+        })
+        .select("id")
+        .single();
+      if (pErr) throw pErr;
+      createdInviteIds.push(pendingInv.id);
+      log("seed_stale_pending_invite", true, { id: pendingInv.id });
+
+      // 3b) Orphan call_log (no ended_at, no heartbeat, started long ago)
+      const { data: orphanLog, error: oErr } = await db
+        .from("call_logs")
+        .insert({
+          caller_id: staleCaller.id,
+          callee_id: calleeId,
+          kind: "voice",
+          status: "in_progress",
+          started_at: oldIso,
+        })
+        .select("id")
+        .single();
+      if (oErr) throw oErr;
+      createdLogIds.push(orphanLog.id);
+      log("seed_orphan_call_log", true, { id: orphanLog.id });
+
+      // 3c) Accepted invite tied to that orphan log
+      const { data: acceptedInv, error: aErr } = await db
+        .from("call_invites")
+        .insert({
+          caller_id: staleCaller.id,
+          callee_id: calleeId,
+          kind: "voice",
+          status: "accepted",
+          accepted_at: oldIso,
+          call_log_id: orphanLog.id,
+          expires_at: new Date(Date.now() + 60_000).toISOString(),
+        })
+        .select("id")
+        .single();
+      if (aErr) throw aErr;
+      createdInviteIds.push(acceptedInv.id);
+      log("seed_accepted_with_orphan_log", true, { id: acceptedInv.id });
+
+      // 3d) Stick availability on in_call
+      await db
+        .from("profiles")
+        .update({ availability: "in_call" })
+        .eq("id", calleeId);
+      log("seed_busy_availability", true);
+
+      // 4) Run reconciler for both parties
+      const changedCallee = await refreshStaleBusy(db, calleeId!);
+      const changedCaller = await refreshStaleBusy(db, staleCaller.id);
+      log("refresh_stale_busy", changedCallee === true, {
+        changedCallee,
+        changedCaller,
+      });
+
+      // 5) Assertions on cleared rows
+      const { data: pendingAfter } = await db
+        .from("call_invites")
+        .select("status, cancelled_at")
+        .eq("id", pendingInv.id)
+        .maybeSingle();
+      const pendingExpired = pendingAfter?.status === "expired";
+      log("pending_invite_expired", pendingExpired, pendingAfter);
+
+      const { data: acceptedAfter } = await db
+        .from("call_invites")
+        .select("status, cancelled_at")
+        .eq("id", acceptedInv.id)
+        .maybeSingle();
+      const acceptedCancelled =
+        acceptedAfter?.status === "cancelled" && !!acceptedAfter?.cancelled_at;
+      log("accepted_invite_cancelled", acceptedCancelled, acceptedAfter);
+
+      const { data: logAfter } = await db
+        .from("call_logs")
+        .select("ended_at, end_reason")
+        .eq("id", orphanLog.id)
+        .maybeSingle();
+      const orphanClosed = !!logAfter?.ended_at;
+      log("orphan_call_log_closed", orphanClosed, logAfter);
+
+      const { data: profAfter } = await db
+        .from("profiles")
+        .select("availability")
+        .eq("id", calleeId)
+        .maybeSingle();
+      const availabilityReset = profAfter?.availability === "online";
+      log("availability_reset", availabilityReset, profAfter);
+
+      // 6) Verify busy detector clear
+      const { data: liveRows } = await db
+        .from("call_invites")
+        .select(
+          "id, status, expires_at, call_log_id, call_logs:call_log_id(ended_at)",
+        )
+        .eq("callee_id", calleeId)
+        .in("status", ["pending", "accepted"]);
+      const stillBusy = (liveRows ?? []).some((r: any) => {
+        if (r.status === "accepted")
+          return r.call_log_id == null || !r.call_logs?.ended_at;
+        if (r.status === "pending")
+          return (
+            r.expires_at && new Date(r.expires_at).getTime() > Date.now()
+          );
+        return false;
+      });
+      log("busy_detector_clear", !stillBusy, {
+        liveRowCount: (liveRows ?? []).length,
+      });
+
+      // 7) Simulate the next accept: insert a fresh pending invite from a
+      // different caller and run the same atomic reserve UPDATE that
+      // acceptCallInvite uses. If any stale "accepted" row survived, the
+      // partial-unique index would reject this reserve.
+      const { data: freshInv, error: fErr } = await db
+        .from("call_invites")
+        .insert({
+          caller_id: newCaller.id,
+          callee_id: calleeId,
+          kind: "voice",
+          status: "pending",
+          expires_at: new Date(Date.now() + 60_000).toISOString(),
+        })
+        .select("id")
+        .single();
+      if (fErr) throw fErr;
+      createdInviteIds.push(freshInv.id);
+
+      const { data: reserved, error: rErr } = await db
+        .from("call_invites")
+        .update({
+          status: "accepted",
+          accepted_at: new Date().toISOString(),
+        })
+        .eq("id", freshInv.id)
+        .eq("status", "pending")
+        .select("id, status")
+        .maybeSingle();
+      const reserveOk =
+        !rErr && !!reserved && reserved.status === "accepted";
+      log("new_accept_reserved", reserveOk, {
+        error: rErr?.message ?? null,
+        reserved,
+      });
+
+      const pass =
+        pendingExpired &&
+        acceptedCancelled &&
+        orphanClosed &&
+        availabilityReset &&
+        !stillBusy &&
+        reserveOk;
+
+      return {
+        pass,
+        calleeId,
+        staleCallerId: staleCaller.id,
+        newCallerId: newCaller.id,
+        steps,
+        summary: {
+          pendingExpired,
+          acceptedCancelled,
+          orphanClosed,
+          availabilityReset,
+          busyDetectorClear: !stillBusy,
+          newAcceptReserved: reserveOk,
+        },
+      };
+    } finally {
+      if (createdInviteIds.length) {
+        await db
+          .from("call_invites")
+          .delete()
+          .in("id", createdInviteIds);
+      }
+      if (createdLogIds.length) {
+        await db.from("call_logs").delete().in("id", createdLogIds);
+      }
+      await db
+        .from("profiles")
+        .update({ availability: originalAvailability })
+        .eq("id", calleeId);
+    }
+  });

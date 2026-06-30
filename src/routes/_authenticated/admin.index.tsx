@@ -30,6 +30,7 @@ import { Users, Flag, Ban, IndianRupee, Radio, ShieldAlert, Settings as Settings
 import { PerformanceTab } from "@/components/admin/PerformanceTab";
 import { CallAuditTab } from "@/components/admin/CallAuditTab";
 import { BusyResetE2E } from "@/components/admin/BusyResetE2E";
+import { ReconcilerCleanupE2E } from "@/components/admin/ReconcilerCleanupE2E";
 import { CallEndE2E } from "@/components/admin/CallEndE2E";
 import { ConcurrentCallE2E } from "@/components/admin/ConcurrentCallE2E";
 import { CreatorInitiatedCallE2E } from "@/components/admin/CreatorInitiatedCallE2E";
@@ -121,6 +122,7 @@ function AdminPanel() {
         </TabsContent>
 
         <TabsContent value="call-audit" className="space-y-3">
+          <ReconcilerCleanupE2E />
           <BusyResetE2E />
           <CallEndE2E />
           <ConcurrentCallE2E />
