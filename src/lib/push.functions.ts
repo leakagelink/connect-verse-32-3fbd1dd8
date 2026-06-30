@@ -158,16 +158,24 @@ export async function notifyUser(opts: {
     .maybeSingle();
   const allow = (prefs as Record<NotifyKind, boolean> | null)?.[opts.kind] ?? PREF_DEFAULTS[opts.kind];
 
-  // 2) always create the in-app row (visible in the bell), even if push is muted
-  await supabaseAdmin.from("app_notifications").insert({
-    user_id: opts.userId,
-    kind: opts.kind,
-    title: opts.title,
-    body: opts.body ?? null,
-    deep_link: opts.deepLink ?? null,
-  });
+  // 2) Create the in-app row (visible in the bell), even if push is muted —
+  // EXCEPT for friend-request style "follows" alerts: those have a dedicated
+  // user-facing toggle ("Follows & friend requests"), and turning it OFF
+  // should silence both the bell AND the push so creators aren't pinged at
+  // all. Other kinds keep the bell row so the user can audit history.
+  const silenceBellToo = opts.kind === "follows" && !allow;
+  if (!silenceBellToo) {
+    await supabaseAdmin.from("app_notifications").insert({
+      user_id: opts.userId,
+      kind: opts.kind,
+      title: opts.title,
+      body: opts.body ?? null,
+      deep_link: opts.deepLink ?? null,
+    });
+  }
 
   if (!allow) return { pushed: 0 };
+
 
   // 3) FCM fanout
   const { data: tokens } = await supabaseAdmin
