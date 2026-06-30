@@ -2015,6 +2015,22 @@ function CallScreen() {
             error: ev.error,
           });
           setGiftEvents((prev) => [ev, ...prev].slice(0, 8));
+          recordCallUiEvent({
+            eventType: ev.ok ? "ui_gift_send_confirmed" : "ui_gift_send_blocked",
+            callLogId: callLogIdRef.current,
+            partnerUserId: userId,
+            kind,
+            ok: !!ev.ok,
+            reason: ev.ok ? null : (ev.error ?? "send_failed"),
+            durationMs: Math.max(0, Math.round((ev.uiRefreshedAt ?? 0) - (ev.requestedAt ?? 0))),
+            meta: {
+              giftId: (ev as any).giftId ?? null,
+              cost: ev.cost,
+              preBalance: ev.preBalance,
+              newBalance: ev.newBalance,
+              serverProcessedMs: ev.serverProcessedMs,
+            },
+          });
         }}
       />
 
