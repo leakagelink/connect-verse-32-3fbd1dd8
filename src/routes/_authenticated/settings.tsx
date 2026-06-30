@@ -16,6 +16,7 @@ import { APP_LANGUAGES } from "@/lib/constants";
 import { CreatorSafetyCard } from "@/components/creator-safety-card";
 import { SpokenLanguagesCard } from "@/components/spoken-languages-card";
 import { NotificationPrefsCard } from "@/components/notification-prefs-card";
+import { CallSoundReadinessCard } from "@/components/call-sound-readiness-card";
 import { PermissionDebugPanel } from "@/components/permission-debug-panel";
 import { AvatarUploadCard } from "@/components/avatar-upload-card";
 import { AiAvatarPicker } from "@/components/ai-avatar-picker";
@@ -171,6 +172,9 @@ function Settings() {
 
       {/* Notification preferences */}
       <NotificationPrefsCard />
+
+      {/* Ringtone volume / DND / channel-bypass readiness */}
+      <CallSoundReadinessCard />
 
       {/* Creator safety: availability + country/state blocks (only renders if is_creator) */}
       <CreatorSafetyCard />
