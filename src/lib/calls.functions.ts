@@ -197,6 +197,46 @@ export const endCallLog = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+/**
+ * Lightweight liveness ping from an active call screen.
+ *
+ * Both the caller and the callee call this every ~15s while a call is
+ * connected. It stamps `call_logs.last_heartbeat_at` so the busy-state
+ * reconciler (refreshStaleBusy in call-invites.functions.ts) can tell a
+ * genuinely live call apart from a ghost "accepted" invite whose call_log
+ * never got an `ended_at` (app killed, OS reaped tab, lost network mid-call).
+ *
+ * Stale heartbeats (> 60s old with no ended_at) are treated as ended by the
+ * next caller's accept flow, which prevents the "this creator just picked up
+ * another call" false-positive.
+ */
+export const heartbeatCall = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((input: { callLogId: string }) => input)
+  .handler(async ({ data, context }) => {
+    const { userId } = context;
+    if (!data.callLogId) return { ok: false, reason: "missing-id" };
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: log } = await supabaseAdmin
+      .from("call_logs")
+      .select("id, caller_id, callee_id, ended_at")
+      .eq("id", data.callLogId)
+      .maybeSingle();
+    if (!log) return { ok: false, reason: "no-log" };
+    if (log.caller_id !== userId && log.callee_id !== userId) {
+      return { ok: false, reason: "not-participant" };
+    }
+    if (log.ended_at) return { ok: false, reason: "ended" };
+    await supabaseAdmin
+      .from("call_logs")
+      .update({ last_heartbeat_at: new Date().toISOString() })
+      .eq("id", data.callLogId);
+    return { ok: true };
+  });
+
+
+
+
 
 
 // Periodic heartbeat from the active call screen: persist the seconds-of-free-time
