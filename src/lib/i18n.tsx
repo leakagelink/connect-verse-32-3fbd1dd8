@@ -20,6 +20,13 @@ export type Locale =
 
 const STORAGE_KEY = "talkora.lang";
 
+/** Locales that render right-to-left. Add new RTL locales here. */
+const RTL_LOCALES = new Set<Locale>(["ar", "ur", "he" as Locale]);
+
+export function isRtlLocale(l: string | null | undefined): boolean {
+  return !!l && RTL_LOCALES.has(l as Locale);
+}
+
 type Dict = Record<string, string>;
 
 const en: Dict = {
