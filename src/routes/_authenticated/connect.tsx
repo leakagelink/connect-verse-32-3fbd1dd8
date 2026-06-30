@@ -51,6 +51,7 @@ type Creator = {
   country: string | null;
   state: string | null;
   language: string | null;
+  languages: string[] | null;
   avatar_url: string | null;
   is_creator: boolean;
   last_seen_at: string | null;
