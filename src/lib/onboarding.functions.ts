@@ -17,6 +17,7 @@ const OnboardingInput = z.object({
   language: z.string().min(2).max(40),
   acceptGuidelines: z.literal(true),
   asCreator: z.boolean().optional(),
+  aiAvatarStyle: z.enum(AI_STYLE_IDS).optional(),
 });
 
 export const completeOnboarding = createServerFn({ method: "POST" })
