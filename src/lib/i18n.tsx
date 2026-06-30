@@ -322,6 +322,9 @@ const mr: Dict = {
 
 const dictionaries: Partial<Record<Locale, Dict>> = { en, hi, ta, te, bn, mr };
 
+/** Dev-only memo so we don't spam the console with the same missing key. */
+const __warnedKeys = new Set<string>();
+
 function format(template: string, vars?: Record<string, string | number>): string {
   if (!vars) return template;
   return template.replace(/\{(\w+)\}/g, (_, k) => String(vars[k] ?? `{${k}}`));
