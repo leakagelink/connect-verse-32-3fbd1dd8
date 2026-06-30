@@ -123,7 +123,7 @@ export type FcmPayload = {
    * (incoming_calls | missed_calls | messages | general). Falls back to
    * "general" when omitted so we never ship a payload without a channel.
    */
-  channelId?: "incoming_calls" | "missed_calls" | "messages" | "general";
+  channelId?: "incoming_calls" | "incoming_calls_v2" | "missed_calls" | "messages" | "general";
 };
 
 /**
@@ -145,7 +145,13 @@ export async function sendFcmToTokens(
   const endpoint = `https://fcm.googleapis.com/v1/projects/${sa.project_id}/messages:send`;
   const data: Record<string, string> = { ...(payload.data || {}) };
   if (payload.deepLink) data.deep_link = payload.deepLink;
-  const channelId = payload.channelId ?? "general";
+  // Migrate legacy "incoming_calls" channel id to the v2 channel that has
+  // IMPORTANCE_MAX + ringtone (legacy channel is deleted on app launch).
+  const channelId =
+    payload.channelId === "incoming_calls"
+      ? "incoming_calls_v2"
+      : (payload.channelId ?? "general");
+  const isCallChannel = channelId === "incoming_calls_v2";
 
   // FCM v1 has no batch endpoint for multicast; fan out in parallel.
   await Promise.all(tokens.map(async (token) => {
@@ -163,12 +169,25 @@ export async function sendFcmToTokens(
             data,
             android: {
               priority: "HIGH",
+              ...(isCallChannel ? { ttl: "60s" } : {}),
               notification: {
                 channel_id: channelId,
-                // Heads-up category for call-related channels.
+                // Heads-up + ringtone for call invites; high for other call channels.
                 notification_priority: channelId === "general"
                   ? "PRIORITY_DEFAULT"
-                  : "PRIORITY_HIGH",
+                  : isCallChannel ? "PRIORITY_MAX" : "PRIORITY_HIGH",
+                ...(isCallChannel
+                  ? {
+                      // CATEGORY_CALL tells the OS this is a ringing call so
+                      // it's allowed to bypass DND and trigger fullScreenIntent.
+                      notification_count: 1,
+                      default_sound: true,
+                      default_vibrate_timings: true,
+                      default_light_settings: true,
+                      visibility: "PUBLIC",
+                      sticky: true,
+                    }
+                  : {}),
               },
             },
           },

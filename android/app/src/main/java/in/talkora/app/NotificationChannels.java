@@ -23,7 +23,9 @@ import android.os.Build;
  *   general        → IMPORTANCE_DEFAULT (system / marketing / misc)
  */
 public final class NotificationChannels {
-    public static final String INCOMING_CALLS = "incoming_calls";
+    // v2: bumped so importance/sound changes apply to already-installed devices
+    // (Android caches channel settings under the original id forever).
+    public static final String INCOMING_CALLS = "incoming_calls_v2";
     public static final String MISSED_CALLS   = "missed_calls";
     public static final String MESSAGES       = "messages";
     public static final String GENERAL        = "general";
@@ -35,23 +37,29 @@ public final class NotificationChannels {
         NotificationManager nm = (NotificationManager) ctx.getSystemService(Context.NOTIFICATION_SERVICE);
         if (nm == null) return;
 
-        // 1) Incoming calls — ringing channel
+        // 1) Incoming calls — ringing channel (MAX importance so the OS
+        //    honours fullScreenIntent + plays the ringtone heads-up).
         if (nm.getNotificationChannel(INCOMING_CALLS) == null) {
             NotificationChannel ch = new NotificationChannel(
-                INCOMING_CALLS, "Incoming calls", NotificationManager.IMPORTANCE_HIGH);
+                INCOMING_CALLS, "Incoming calls", NotificationManager.IMPORTANCE_MAX);
             ch.setDescription("Ringing for incoming Talkora voice and video calls");
             ch.enableLights(true);
             ch.enableVibration(true);
+            ch.setVibrationPattern(new long[] { 0, 800, 600, 800, 600, 800, 600 });
             ch.setBypassDnd(true);
             ch.setLockscreenVisibility(android.app.Notification.VISIBILITY_PUBLIC);
             ch.setShowBadge(false);
             AudioAttributes ring = new AudioAttributes.Builder()
                 .setUsage(AudioAttributes.USAGE_NOTIFICATION_RINGTONE)
                 .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                .setLegacyStreamType(android.media.AudioManager.STREAM_RING)
                 .build();
             ch.setSound(RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE), ring);
             nm.createNotificationChannel(ch);
         }
+        // Clean up the legacy v1 channel so users don't see two "Incoming calls"
+        // entries in system settings after the v2 upgrade.
+        try { nm.deleteNotificationChannel("incoming_calls"); } catch (Exception ignored) {}
 
         // 2) Missed calls — heads-up, regular notification sound
         if (nm.getNotificationChannel(MISSED_CALLS) == null) {
