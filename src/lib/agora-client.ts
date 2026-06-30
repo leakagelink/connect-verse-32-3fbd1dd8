@@ -67,6 +67,10 @@ export class AgoraSession {
   /** All currently subscribed remote audio tracks (for volume / speaker routing). */
   private remoteAudio: Array<{ setVolume: (v: number) => void }> = [];
   private speakerOn = false;
+  /** Container the UI wants remote video painted into. Updated via setRemoteVideoElement. */
+  private remoteVideoEl: HTMLElement | null = null;
+  /** Last remote user that published video — used to reattach when the peer toggles cam back on. */
+  private lastRemoteVideoUser: IAgoraRTCRemoteUser | null = null;
 
   async join(opts: {
     appId: string;
@@ -106,7 +110,23 @@ export class AgoraSession {
           this.events.onAudioBlocked?.();
         }
       }
+      if (mediaType === "video" && user.videoTrack) {
+        // Peer (re-)published video. Their previous videoTrack instance is now
+        // stale: re-binding to the SAME container without clearing leaves an
+        // orphan <video> element rendering a black/last-frame canvas. Clean
+        // the container, then play the FRESH track into it.
+        this.lastRemoteVideoUser = user;
+        this.paintRemoteVideo(user);
+      }
       this.events.onRemoteUser?.(user, mediaType);
+    });
+    this.client.on("user-unpublished", (user, mediaType) => {
+      if (mediaType !== "video") return;
+      // Peer turned cam off. Drop the painted <video> so we don't keep a
+      // frozen last frame on screen until they republish.
+      if (this.lastRemoteVideoUser?.uid === user.uid) {
+        this.clearRemoteVideoEl();
+      }
     });
     this.client.on("user-left", (user, reason) =>
       this.events.onRemoteLeft?.(user, mapLeaveReason(reason)),
@@ -176,7 +196,38 @@ export class AgoraSession {
   }
 
   attachRemoteVideo(user: IAgoraRTCRemoteUser, el: HTMLElement) {
-    user.videoTrack?.play(el);
+    // Remember the container so subsequent peer cam toggles repaint here.
+    this.remoteVideoEl = el;
+    this.lastRemoteVideoUser = user;
+    this.paintRemoteVideo(user);
+  }
+
+  /** Update the destination element for remote video without needing a track to be live yet. */
+  setRemoteVideoElement(el: HTMLElement | null) {
+    this.remoteVideoEl = el;
+    if (el && this.lastRemoteVideoUser?.videoTrack) {
+      this.paintRemoteVideo(this.lastRemoteVideoUser);
+    }
+  }
+
+  private paintRemoteVideo(user: IAgoraRTCRemoteUser) {
+    const el = this.remoteVideoEl;
+    if (!el || !user.videoTrack) return;
+    // Stop any prior playback bound to this track and wipe stale <video>
+    // children before re-binding. Agora appends a child element on play();
+    // a second play() without cleanup leaves the old one rendering stale data.
+    try { user.videoTrack.stop(); } catch { /* not playing */ }
+    while (el.firstChild) el.removeChild(el.firstChild);
+    try { user.videoTrack.play(el, { fit: "cover" }); } catch (err) {
+      // eslint-disable-next-line no-console
+      console.warn("[agora] remote video play failed", err);
+    }
+  }
+
+  private clearRemoteVideoEl() {
+    const el = this.remoteVideoEl;
+    if (!el) return;
+    while (el.firstChild) el.removeChild(el.firstChild);
   }
 
   async setMicEnabled(on: boolean) {
