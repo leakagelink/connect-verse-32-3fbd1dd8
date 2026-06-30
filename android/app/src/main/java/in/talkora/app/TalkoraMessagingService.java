@@ -78,6 +78,21 @@ public class TalkoraMessagingService extends MessagingService {
         String kind       = nullSafe(data.get("call_kind"));
         if (kind.isEmpty()) kind = "voice";
 
+        // ── 1. Wake the screen so the full-screen intent is actually visible
+        //       (on locked / dozing devices the notification posts but no UI
+        //       comes up until something wakes the display).
+        try {
+            PowerManager pm = (PowerManager) getSystemService(Context.POWER_SERVICE);
+            if (pm != null) {
+                PowerManager.WakeLock wl = pm.newWakeLock(
+                    PowerManager.FULL_WAKE_LOCK
+                        | PowerManager.ACQUIRE_CAUSES_WAKEUP
+                        | PowerManager.ON_AFTER_RELEASE,
+                    "talkora:incoming_call_wake");
+                wl.acquire(10_000L);
+            }
+        } catch (Exception ignored) {}
+
         Intent full = new Intent(this, IncomingCallActivity.class);
         full.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
         full.putExtra(IncomingCallActivity.EXTRA_INVITE_ID, inviteId);
@@ -92,31 +107,64 @@ public class TalkoraMessagingService extends MessagingService {
         }
         PendingIntent fullPi = PendingIntent.getActivity(this, 1001, full, piFlags);
 
-        // On Android 10+ background activity starts are restricted; try a
-        // direct launch first, then fall back to a heads-up notification with
-        // the full-screen intent attached (the OS will honour it from any
-        // app that holds USE_FULL_SCREEN_INTENT).
-        try {
-            startActivity(full);
-        } catch (Exception ignored) {
-            // OEM blocked the background start — full-screen intent below handles it.
+        // Decline → broadcast to JS via talkora:// deep link (handled by MainActivity).
+        Intent decline = new Intent(Intent.ACTION_VIEW,
+            Uri.parse("talkora://call-reject?inviteId=" + Uri.encode(inviteId)));
+        decline.setPackage(getPackageName());
+        decline.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        PendingIntent declinePi = PendingIntent.getActivity(this, 1002, decline, piFlags);
+
+        // Direct foreground launch only works when device is locked or app
+        // already had recent activity — best-effort, the full-screen intent
+        // below is the guaranteed path.
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
+            try { startActivity(full); } catch (Exception ignored) {}
+        } else {
+            // Q+: only attempt direct start while keyguard is locked (allowed by BAL).
+            try {
+                KeyguardManager km = (KeyguardManager) getSystemService(Context.KEYGUARD_SERVICE);
+                if (km != null && km.isKeyguardLocked()) startActivity(full);
+            } catch (Exception ignored) {}
         }
 
         Uri ringtone = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE);
         String title = "Incoming " + ("video".equals(kind) ? "video" : "voice") + " call";
         String body  = (callerName.isEmpty() ? "Someone" : callerName) + " is calling…";
 
-        NotificationCompat.Builder b = new NotificationCompat.Builder(this, CALL_CHANNEL_ID)
-            .setSmallIcon(R.mipmap.ic_launcher)
-            .setContentTitle(title)
-            .setContentText(body)
-            .setCategory(NotificationCompat.CATEGORY_CALL)
-            .setPriority(NotificationCompat.PRIORITY_MAX)
-            .setOngoing(true)
-            .setAutoCancel(false)
-            .setSound(ringtone)
-            .setContentIntent(fullPi)
-            .setFullScreenIntent(fullPi, true);
+        NotificationCompat.Builder b;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            // Android 12+ : CallStyle is the official "ringing call" notification.
+            // Android 14+ : full-screen intent is GUARANTEED for CallStyle.forIncomingCall
+            // without the USE_FULL_SCREEN_INTENT user opt-in dialog.
+            Person caller = new Person.Builder()
+                .setName(callerName.isEmpty() ? "Incoming call" : callerName)
+                .setImportant(true)
+                .build();
+            b = new NotificationCompat.Builder(this, CALL_CHANNEL_ID)
+                .setSmallIcon(R.mipmap.ic_launcher)
+                .setStyle(NotificationCompat.CallStyle.forIncomingCall(caller, declinePi, fullPi))
+                .setCategory(NotificationCompat.CATEGORY_CALL)
+                .setPriority(NotificationCompat.PRIORITY_MAX)
+                .setOngoing(true)
+                .setAutoCancel(false)
+                .setSound(ringtone, android.media.AudioManager.STREAM_RING)
+                .setVibrate(new long[] { 0, 800, 600, 800, 600 })
+                .setContentIntent(fullPi)
+                .setFullScreenIntent(fullPi, true);
+        } else {
+            b = new NotificationCompat.Builder(this, CALL_CHANNEL_ID)
+                .setSmallIcon(R.mipmap.ic_launcher)
+                .setContentTitle(title)
+                .setContentText(body)
+                .setCategory(NotificationCompat.CATEGORY_CALL)
+                .setPriority(NotificationCompat.PRIORITY_MAX)
+                .setOngoing(true)
+                .setAutoCancel(false)
+                .setSound(ringtone, android.media.AudioManager.STREAM_RING)
+                .setVibrate(new long[] { 0, 800, 600, 800, 600 })
+                .setContentIntent(fullPi)
+                .setFullScreenIntent(fullPi, true);
+        }
 
         NotificationManager nm = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
         if (nm != null) nm.notify(CALL_NOTIFICATION_ID, b.build());
