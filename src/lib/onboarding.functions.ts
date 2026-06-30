@@ -45,6 +45,7 @@ export const completeOnboarding = createServerFn({ method: "POST" })
         language: data.language,
         is_creator: !!data.asCreator,
         onboarded: true,
+        ...(data.aiAvatarStyle ? { ai_avatar_style: data.aiAvatarStyle } : {}),
       })
       .eq("id", userId);
     if (error) throw new Error(error.message);
