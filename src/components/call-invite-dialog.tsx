@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Loader2, Phone, PhoneOff, Video } from "lucide-react";
+import { Loader2, Phone, PhoneOff, Video, RefreshCw, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -38,6 +38,10 @@ export function CallInviteDialog({
   const [invite, setInvite] = useState<InviteStatus | null>(null);
   const [message, setMessage] = useState("Sending call request…");
   const [deliveryAttempt, setDeliveryAttempt] = useState(1);
+  // "stale-busy" → reconciler is clearing a prior stuck session and we'll
+  // auto-retry once. "blocked" → genuine busy after retry. null otherwise.
+  const [busyState, setBusyState] = useState<null | "clearing" | "blocked">(null);
+  const [busyRetriedRef] = useState(() => ({ current: false }));
 
   const DELIVERY_TIMEOUT_MS = 8000;
   const MAX_DELIVERY_ATTEMPTS = 3;
@@ -51,10 +55,14 @@ export function CallInviteDialog({
     (globalThis.crypto?.randomUUID?.() ?? `att_${Date.now()}_${Math.random().toString(36).slice(2)}`),
   );
 
+  const newAttemptId = () =>
+    globalThis.crypto?.randomUUID?.() ?? `att_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+
   const createMut = useMutation({
     mutationFn: (p: NonNullable<PendingCall> & { attemptId: string }) =>
       createInviteFn({ data: { calleeId: p.userId, kind: p.kind, attemptId: p.attemptId } }),
     onSuccess: (res) => {
+      setBusyState(null);
       setInvite(res as InviteStatus);
       setMessage(deliveryAttempt > 1
         ? `Retrying delivery… (attempt ${deliveryAttempt}/${MAX_DELIVERY_ATTEMPTS})`
@@ -63,7 +71,23 @@ export function CallInviteDialog({
     },
     onError: (e: any) => {
       const msg = String(e?.message ?? "Could not send call request");
+      if (msg.startsWith("BUSY:") && pendingCall && !busyRetriedRef.current) {
+        // First BUSY — most often a stuck "accepted" row from a prior
+        // force-killed session. Show a "clearing previous session" banner,
+        // give the reconciler a beat, then retry once with a fresh attemptId.
+        busyRetriedRef.current = true;
+        setBusyState("clearing");
+        setMessage("Pichli call ka session clear ho raha hai…");
+        setTimeout(() => {
+          if (!pendingCall) return;
+          const id = newAttemptId();
+          setAttemptId(id);
+          createMut.mutate({ ...pendingCall, attemptId: id });
+        }, 2500);
+        return;
+      }
       if (msg.startsWith("BUSY:")) {
+        setBusyState("blocked");
         setEndState({
           tone: "busy",
           title: "Creator is busy",
@@ -81,12 +105,12 @@ export function CallInviteDialog({
     onSettled: () => onClose(),
   });
 
-  const newAttemptId = () =>
-    globalThis.crypto?.randomUUID?.() ?? `att_${Date.now()}_${Math.random().toString(36).slice(2)}`;
 
   useEffect(() => {
     setInvite(null);
     setEndState(null);
+    setBusyState(null);
+    busyRetriedRef.current = false;
     setDeliveryAttempt(1);
     setMessage("Sending call request…");
     if (pendingCall) {
@@ -294,6 +318,39 @@ export function CallInviteDialog({
                 {message}. Call will connect only after the creator accepts.
               </DialogDescription>
             </DialogHeader>
+            {busyState === "clearing" && (
+              <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-left text-xs text-amber-700 dark:text-amber-300">
+                <div className="flex items-center gap-2 font-semibold">
+                  <RefreshCw className="size-4 animate-spin" />
+                  Clearing previous call session…
+                </div>
+                <p className="mt-1 text-amber-700/80 dark:text-amber-300/80">
+                  Creator ki pichli call ka stuck session saaf kar rahe hain. Thodi der mein dobara try karenge — aap wait kijiye.
+                </p>
+              </div>
+            )}
+            {deliveryAttempt > 1 && busyState !== "clearing" && (
+              <div className="rounded-xl border border-sky-500/30 bg-sky-500/10 p-3 text-left text-xs text-sky-700 dark:text-sky-300">
+                <div className="flex items-center gap-2 font-semibold">
+                  <RefreshCw className="size-4 animate-spin" />
+                  Reconnecting delivery… (attempt {deliveryAttempt}/{MAX_DELIVERY_ATTEMPTS})
+                </div>
+                <p className="mt-1 text-sky-700/80 dark:text-sky-300/80">
+                  Creator ke device ne pehli ring acknowledge nahi ki. Network ya app sleep ho sakti hai — dobara bhej rahe hain.
+                </p>
+              </div>
+            )}
+            {invite?.status === "pending" && deliveryAttempt === MAX_DELIVERY_ATTEMPTS && !invite?.deliveredAt && (
+              <div className="rounded-xl border border-rose-500/30 bg-rose-500/10 p-3 text-left text-xs text-rose-700 dark:text-rose-300">
+                <div className="flex items-center gap-2 font-semibold">
+                  <AlertCircle className="size-4" />
+                  Last attempt
+                </div>
+                <p className="mt-1 text-rose-700/80 dark:text-rose-300/80">
+                  Agar is baar bhi creator ka device respond nahi karta, hum call cancel kar denge.
+                </p>
+              </div>
+            )}
             <div className="rounded-xl border bg-muted/40 p-3 text-sm">
               <div className="flex items-center justify-center gap-2 font-medium">
                 {createMut.isPending ? <Loader2 className="size-4 animate-spin" /> : <span className="size-2 rounded-full bg-emerald-500 animate-pulse" />}
