@@ -23,15 +23,42 @@ export function useCallPointerSafeguard(active: boolean) {
 
     const NEUTRALISED = "data-call-pointer-neutralised";
 
+    // Selectors that mark an element (or any descendant) as a real,
+    // interactive overlay belonging to our UX — Radix dialogs/sheets/
+    // popovers, sonner toasts, and any container that hosts focusable
+    // controls. We must NEVER neutralise these or the gift sheet,
+    // end-call confirm, low-balance dialog, etc. become dead pixels.
+    const INTERACTIVE_MARKERS = [
+      "[data-call-surface='1']",
+      "[data-sonner-toaster]",
+      "[data-radix-portal]",
+      "[data-radix-popper-content-wrapper]",
+      "[role='dialog']",
+      "[role='alertdialog']",
+      "[role='menu']",
+      "[role='listbox']",
+      "[role='tooltip']",
+      "[data-state='open']",
+      "button",
+      "a[href]",
+      "input",
+      "textarea",
+      "select",
+      "[tabindex]:not([tabindex='-1'])",
+    ].join(",");
+
     const isCoveringOverlay = (el: Element): boolean => {
       if (!(el instanceof HTMLElement)) return false;
       if (el.hasAttribute("data-call-surface")) return false;
       if (el.closest("[data-call-surface='1']")) return false;
-      // Skip well-known interactive layers we own (toasts, dialogs,
-      // sheets) — they are part of the call UX, not blocking overlays.
-      if (el.closest("[data-sonner-toaster]")) return false;
-      if (el.closest("[data-radix-portal]")) return false;
       if (el.getAttribute(NEUTRALISED) === "1") return false;
+
+      // If this subtree contains ANY real interactive content, it's part of
+      // the live UX (a Radix dialog/sheet/popover, a toast, a menu, …) —
+      // leave it alone. We only want to kill blind, fully opaque dev/error
+      // scrims that ship no controls of their own.
+      if (el.matches(INTERACTIVE_MARKERS)) return false;
+      if (el.querySelector(INTERACTIVE_MARKERS)) return false;
 
       const cs = window.getComputedStyle(el);
       if (cs.pointerEvents === "none") return false;
