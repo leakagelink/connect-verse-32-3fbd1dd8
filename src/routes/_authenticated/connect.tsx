@@ -547,6 +547,54 @@ function CreatorMarquee({
   );
 }
 
+function LanguageChips({
+  codes,
+  matchCodes,
+  max = 4,
+}: {
+  codes: string[];
+  matchCodes: Set<string>;
+  max?: number;
+}) {
+  // Put matches first so they're always visible when truncated.
+  const ordered = useMemo(() => {
+    const matches = codes.filter((c) => matchCodes.has(c));
+    const rest = codes.filter((c) => !matchCodes.has(c));
+    return [...matches, ...rest];
+  }, [codes, matchCodes]);
+  const shown = ordered.slice(0, max);
+  const extra = ordered.length - shown.length;
+  const label = (code: string) =>
+    APP_LANGUAGES.find((l) => l.code === code)?.name ?? code;
+
+  return (
+    <div className="mt-1 flex flex-wrap items-center gap-1">
+      <Languages className="size-3 text-muted-foreground" />
+      {shown.map((c) => {
+        const matched = matchCodes.has(c);
+        return (
+          <span
+            key={c}
+            className={
+              "inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-medium leading-none border " +
+              (matched
+                ? "bg-primary/15 text-primary border-primary/40 ring-1 ring-primary/30"
+                : "bg-muted/40 text-muted-foreground border-border/60")
+            }
+          >
+            {label(c)}
+            {matched && <span className="ml-1 text-primary">✓</span>}
+          </span>
+        );
+      })}
+      {extra > 0 && (
+        <span className="text-[10px] text-muted-foreground">+{extra}</span>
+      )}
+    </div>
+  );
+}
+
+
 function LanguageChipBar({
   all,
   value,
