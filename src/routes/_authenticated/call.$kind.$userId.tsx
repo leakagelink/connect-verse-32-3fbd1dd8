@@ -37,6 +37,7 @@ import { Signal, SignalHigh, SignalLow, SignalMedium, SignalZero } from "lucide-
 import { getCallInviteStatus, acceptCallInvite } from "@/lib/call-invites.functions";
 import { acceptInviteWithRetry } from "@/lib/accept-call-retry";
 import { useCallPointerSafeguard } from "@/hooks/use-call-pointer-safeguard";
+import { recordCallUiEvent } from "@/lib/call-ui-telemetry";
 
 
 
@@ -979,13 +980,23 @@ function CallScreen() {
     if (t) t.enabled = !next ? true : false;
     // Some SDKs publish their own track; also notify the session if available.
     const sess: any = sessionRef.current?.session;
+    let sdkError: string | null = null;
     try {
       if (typeof sess?.setMicrophoneMuted === "function") await sess.setMicrophoneMuted(next);
       else if (typeof sess?.muteAudio === "function") await sess.muteAudio(next);
       else if (typeof sess?.setMuted === "function") await sess.setMuted(next);
-    } catch { /* ignore */ }
+    } catch (e: any) { sdkError = e?.message || String(e); }
     setMuted(next);
     toast.message(next ? "Microphone muted" : "Microphone unmuted");
+    recordCallUiEvent({
+      eventType: sdkError ? "ui_mute_blocked" : "ui_mute_toggled",
+      callLogId: callLogIdRef.current,
+      partnerUserId: userId,
+      kind,
+      ok: !sdkError,
+      reason: sdkError ?? null,
+      meta: { muted: next, hasTrack: !!t },
+    });
   }
   function toggleCam() {
     const t = streamRef.current?.getVideoTracks()[0];
@@ -995,9 +1006,19 @@ function CallScreen() {
     const next = !speakerOn;
     setSpeakerOn(next);
     const sess: any = sessionRef.current?.session;
+    let sdkError: string | null = null;
     try {
       await sess?.setSpeakerMode?.(next);
-    } catch { /* ignore */ }
+    } catch (e: any) { sdkError = e?.message || String(e); }
+    recordCallUiEvent({
+      eventType: sdkError ? "ui_speaker_blocked" : "ui_speaker_toggled",
+      callLogId: callLogIdRef.current,
+      partnerUserId: userId,
+      kind,
+      ok: !sdkError,
+      reason: sdkError ?? null,
+      meta: { speakerOn: next },
+    });
   }
   function confirmEndCall() {
     if (endedRef.current) return;
@@ -1808,7 +1829,17 @@ function CallScreen() {
           <Button
             size="icon"
             variant="secondary"
-            onClick={() => setGiftOpen(true)}
+            onClick={() => {
+              setGiftOpen(true);
+              recordCallUiEvent({
+                eventType: "ui_gift_open",
+                callLogId: callLogIdRef.current,
+                partnerUserId: userId,
+                kind,
+                ok: true,
+                meta: { connected, criticalTime },
+              });
+            }}
             disabled={!connected || criticalTime}
             aria-label="Send gift"
             title={criticalTime ? "Disabled — last 60 seconds" : undefined}
@@ -1816,7 +1847,22 @@ function CallScreen() {
           >
             <Gift className="size-5 text-pink-500" />
           </Button>
-          <Button data-testid="end-call-btn" size="icon" variant="destructive" onClick={() => setConfirmEnd(true)}>
+          <Button
+            data-testid="end-call-btn"
+            size="icon"
+            variant="destructive"
+            onClick={() => {
+              setConfirmEnd(true);
+              recordCallUiEvent({
+                eventType: "ui_end_call_clicked",
+                callLogId: callLogIdRef.current,
+                partnerUserId: userId,
+                kind,
+                ok: true,
+                meta: { source: "controls-bar" },
+              });
+            }}
+          >
             <PhoneOff className="size-5" />
           </Button>
         </div>
@@ -1854,6 +1900,33 @@ function CallScreen() {
             partnerUserId={userId}
             callLogId={callLogIdRef.current}
             onEndCall={confirmEndCall}
+            onTelemetry={(ev) => {
+              const base = {
+                callLogId: callLogIdRef.current,
+                partnerUserId: userId,
+                kind,
+              } as const;
+              if (ev.type === "opened") {
+                recordCallUiEvent({ ...base, eventType: "ui_sos_opened", ok: true });
+              } else if (ev.type === "confirmed") {
+                recordCallUiEvent({
+                  ...base,
+                  eventType: "ui_sos_confirmed",
+                  ok: true,
+                  reason: ev.reason,
+                  durationMs: ev.durationMs,
+                });
+              } else {
+                recordCallUiEvent({
+                  ...base,
+                  eventType: "ui_sos_blocked",
+                  ok: false,
+                  reason: ev.reason,
+                  durationMs: ev.durationMs,
+                  meta: { error: ev.error },
+                });
+              }
+            }}
           />
         </div>
 
@@ -1969,6 +2042,22 @@ function CallScreen() {
             error: ev.error,
           });
           setGiftEvents((prev) => [ev, ...prev].slice(0, 8));
+          recordCallUiEvent({
+            eventType: ev.ok ? "ui_gift_send_confirmed" : "ui_gift_send_blocked",
+            callLogId: callLogIdRef.current,
+            partnerUserId: userId,
+            kind,
+            ok: !!ev.ok,
+            reason: ev.ok ? null : (ev.error ?? "send_failed"),
+            durationMs: Math.max(0, Math.round((ev.uiRefreshedAt ?? 0) - (ev.requestedAt ?? 0))),
+            meta: {
+              giftId: (ev as any).giftId ?? null,
+              cost: ev.cost,
+              preBalance: ev.preBalance,
+              newBalance: ev.newBalance,
+              serverProcessedMs: ev.serverProcessedMs,
+            },
+          });
         }}
       />
 
