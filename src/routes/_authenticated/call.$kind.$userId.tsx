@@ -1001,9 +1001,12 @@ function CallScreen() {
     });
   }
   async function toggleCam() {
-    const t = streamRef.current?.getVideoTracks()[0];
     const nextOff = !camOff;
     const nextEnabled = !nextOff;
+    // Flip UI immediately inside the user gesture so React doesn't lose the
+    // click context while we await the SDK.
+    setCamOff(nextOff);
+    const t = streamRef.current?.getVideoTracks()[0];
     if (t) t.enabled = nextEnabled;
     const sess: any = sessionRef.current?.session;
     try {
@@ -1011,7 +1014,44 @@ function CallScreen() {
       else if (typeof sess?.setCameraMuted === "function") await sess.setCameraMuted(nextOff);
       else if (typeof sess?.muteVideo === "function") await sess.muteVideo(nextOff);
     } catch { /* keep the UI responsive even if the SDK rejects */ }
-    setCamOff(nextOff);
+
+    // Re-bind the local preview. Agora's setEnabled(true) can swap the
+    // underlying MediaStreamTrack, so the original stream we attached at join
+    // ends up holding an ended/stale track → blank preview. Rebuild srcObject
+    // from the *current* cam track and replay synchronously.
+    if (nextEnabled && kind === "video" && videoRef.current) {
+      try {
+        let liveTrack: MediaStreamTrack | null = null;
+        // Agora: pull the fresh MediaStreamTrack out of the SDK's cam track.
+        const camAny: any = (sess as any)?.cam;
+        if (camAny?.getMediaStreamTrack) {
+          try { liveTrack = camAny.getMediaStreamTrack() as MediaStreamTrack; } catch { /* ignore */ }
+        }
+        // 100ms: SDK manages its own <video> attach.
+        if (sessionRef.current?.provider === "100ms" && (sessionRef.current as any).attachLocal) {
+          (sessionRef.current as any).attachLocal(videoRef.current);
+        } else {
+          const fresh = new MediaStream();
+          if (liveTrack && liveTrack.readyState === "live") {
+            fresh.addTrack(liveTrack);
+          } else if (streamRef.current) {
+            // Fallback: reuse whatever live video track is on the existing stream.
+            const vt = streamRef.current.getVideoTracks().find((x) => x.readyState === "live");
+            if (vt) fresh.addTrack(vt);
+          }
+          // Keep the audio track on the preview stream for parity (muted=true on element anyway).
+          const at = streamRef.current?.getAudioTracks()[0];
+          if (at) fresh.addTrack(at);
+          if (fresh.getTracks().length > 0) {
+            streamRef.current = fresh;
+            videoRef.current.srcObject = fresh;
+            videoRef.current.muted = true;
+            videoRef.current.playsInline = true;
+            await videoRef.current.play().catch(() => {});
+          }
+        }
+      } catch { /* preview re-bind best-effort */ }
+    }
   }
   async function toggleSpeaker() {
     const next = !speakerOn;

@@ -183,7 +183,19 @@ export class AgoraSession {
     await this.mic?.setEnabled(on);
   }
   async setCamEnabled(on: boolean) {
-    await this.cam?.setEnabled(on);
+    if (!this.cam || !this.client) return;
+    if (on) {
+      // Re-enable capture, then re-publish so the remote sees `user-published`
+      // again and our own preview gets a fresh, live MediaStreamTrack. Calling
+      // setEnabled(true) alone can leave the track ended → blank local preview.
+      try { await this.cam.setEnabled(true); } catch { /* ignore */ }
+      try { await this.client.publish(this.cam); } catch { /* already published */ }
+    } else {
+      // Unpublish first so the remote peer hides the tile immediately, then
+      // stop capture. Republish happens on the next `on` toggle.
+      try { await this.client.unpublish(this.cam); } catch { /* not published */ }
+      try { await this.cam.setEnabled(false); } catch { /* ignore */ }
+    }
   }
 
   /** Retry remote audio playback after a user gesture (autoplay unlock). */
