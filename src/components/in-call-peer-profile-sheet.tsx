@@ -10,6 +10,7 @@ import {
   sendFollowRequest,
   unfollowUser,
 } from "@/lib/follows.functions";
+import { isCallRoutePath, shouldShowInCallChrome } from "@/lib/call-banner-visibility";
 import {
   Sheet,
   SheetContent,
