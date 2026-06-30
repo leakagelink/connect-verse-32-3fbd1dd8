@@ -23,10 +23,13 @@ export const AI_AVATAR_STYLES: ReadonlyArray<{ id: string; label: string }> = [
 
 const STYLE_IDS = new Set(AI_AVATAR_STYLES.map((s) => s.id));
 
+// Cute, beautiful, soft-illustrated defaults for every new account.
+// Lorelei + Adventurer + Micah all render warm portrait-style avatars
+// that feel premium out of the box (no robot/pixel fallbacks).
 const DEFAULT_STYLE_BY_GENDER: Record<string, string> = {
   female: "lorelei",
-  male: "avataaars",
-  other: "personas",
+  male: "adventurer",
+  other: "micah",
 };
 
 // Polished, portrait-leaning styles reserved for creators so their cards
@@ -64,7 +67,8 @@ export function pickDefaultStyle(
     return "lorelei";
   }
   if (gender && DEFAULT_STYLE_BY_GENDER[gender]) return DEFAULT_STYLE_BY_GENDER[gender];
-  return "avataaars";
+  // Cute illustrated default for new accounts that haven't picked a gender yet.
+  return "lorelei";
 }
 
 function seedHash(seed: string): number {
@@ -102,15 +106,13 @@ function computeAvatarUrl(
   const safeStyle = style && STYLE_IDS.has(style) ? style : pickDefaultStyle(gender, isCreator);
   const safeSeed = encodeURIComponent(seed || "talkora");
   const params = new URLSearchParams({ seed: safeSeed, radius: "50" });
-  if (isCreator) {
-    const [a, b] = gradientFor(seed);
-    params.set("backgroundType", "gradientLinear");
-    params.set("backgroundColor", `${a},${b}`);
-    params.set("backgroundRotation", "0,360");
-    params.set("scale", "110");
-  } else {
-    params.set("backgroundType", "gradientLinear");
-  }
+  // Apply a soft pastel gradient backdrop for everyone — keeps default
+  // avatars looking cute and premium even before users customize.
+  const [a, b] = gradientFor(seed);
+  params.set("backgroundType", "gradientLinear");
+  params.set("backgroundColor", `${a},${b}`);
+  params.set("backgroundRotation", "0,360");
+  if (isCreator) params.set("scale", "110");
   return `${DICEBEAR_BASE}/${safeStyle}/svg?${params.toString()}`;
 }
 
