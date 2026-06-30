@@ -379,8 +379,12 @@ function ConnectScreen() {
       ) : (
         <div className="grid gap-3 sm:grid-cols-2">
           {sorted.map((u) => {
+            const creatorLangs = new Set<string>([
+              ...(u.language ? [u.language] : []),
+              ...((u.languages ?? []) as string[]),
+            ]);
             const priority =
-              (me.language && u.language === me.language) ||
+              (me.language && creatorLangs.has(me.language)) ||
               (me.country && u.country === me.country);
             return (
               <Card
