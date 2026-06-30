@@ -47,7 +47,10 @@ type Props = {
   userId: string | null;
   open: boolean;
   onOpenChange: (v: boolean) => void;
+  /** True only when this sheet is opened from inside the live call screen. */
+  inCall?: boolean;
 };
+
 
 /**
  * In-call peer profile sheet.
@@ -57,7 +60,7 @@ type Props = {
  * (follow) request, then returns to the live call view without ever
  * navigating away from the route.
  */
-export function InCallPeerProfileSheet({ userId, open, onOpenChange }: Props) {
+export function InCallPeerProfileSheet({ userId, open, onOpenChange, inCall = false }: Props) {
   const fetchProfile = useServerFn(getPartnerProfile);
   const follow = useServerFn(sendFollowRequest);
   const unfollow = useServerFn(unfollowUser);
@@ -132,11 +135,15 @@ export function InCallPeerProfileSheet({ userId, open, onOpenChange }: Props) {
       <SheetContent side="bottom" className="max-h-[85vh] overflow-y-auto">
         <SheetHeader className="text-left">
           <SheetTitle>Profile</SheetTitle>
-          <SheetDescription>
-            Apka call abhi bhi chal raha hai. Wapis call screen pe jaane ke
-            liye “Back to call” dabayein.
-          </SheetDescription>
+          {inCall ? (
+            <SheetDescription>
+              Apka call abhi bhi chal raha hai. Wapis call screen pe jaane ke
+              liye “Back to call” dabayein.
+            </SheetDescription>
+          ) : null}
         </SheetHeader>
+
+
 
         {isLoading || !p ? (
           <div className="py-10 text-center text-sm text-muted-foreground flex items-center justify-center gap-2">
@@ -260,7 +267,7 @@ export function InCallPeerProfileSheet({ userId, open, onOpenChange }: Props) {
             className="w-full"
             onClick={() => onOpenChange(false)}
           >
-            <ArrowLeft className="size-4 mr-2" /> Back to call
+            <ArrowLeft className="size-4 mr-2" /> {inCall ? "Back to call" : "Close"}
           </Button>
         </SheetFooter>
 

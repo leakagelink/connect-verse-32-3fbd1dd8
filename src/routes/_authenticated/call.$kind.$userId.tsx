@@ -1974,7 +1974,9 @@ function CallScreen() {
         userId={userId}
         open={peerProfileOpen}
         onOpenChange={setPeerProfileOpen}
+        inCall
       />
+
 
       <AlertDialog
         open={confirmEnd}
