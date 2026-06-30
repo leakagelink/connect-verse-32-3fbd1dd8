@@ -42,6 +42,7 @@ import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/
 import { Route as AuthenticatedAccountDeleteRouteImport } from './routes/_authenticated/account-delete'
 import { Route as _e2ePeerSheetBannerRouteImport } from './routes/__e2e.peer-sheet-banner'
 import { Route as _e2eCallFullscreenRouteImport } from './routes/__e2e.call-fullscreen'
+import { Route as _e2eCallControlsRouteImport } from './routes/__e2e.call-controls'
 import { Route as AuthenticatedChatIndexRouteImport } from './routes/_authenticated/chat.index'
 import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authenticated/admin.index'
 import { Route as Call_e2ePeerSheetBannerRouteImport } from './routes/call.__e2e.peer-sheet-banner'
@@ -226,6 +227,11 @@ const _e2eCallFullscreenRoute = _e2eCallFullscreenRouteImport.update({
   path: '/call-fullscreen',
   getParentRoute: () => rootRouteImport,
 } as any)
+const _e2eCallControlsRoute = _e2eCallControlsRouteImport.update({
+  id: '/__e2e/call-controls',
+  path: '/call-controls',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthenticatedChatIndexRoute = AuthenticatedChatIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -311,6 +317,7 @@ export interface FileRoutesByFullPath {
   '/refund-policy': typeof RefundPolicyRoute
   '/safety': typeof SafetyRoute
   '/terms': typeof TermsRoute
+  '/call-controls': typeof _e2eCallControlsRoute
   '/call-fullscreen': typeof _e2eCallFullscreenRoute
   '/peer-sheet-banner': typeof _e2ePeerSheetBannerRoute
   '/account-delete': typeof AuthenticatedAccountDeleteRoute
@@ -358,6 +365,7 @@ export interface FileRoutesByTo {
   '/refund-policy': typeof RefundPolicyRoute
   '/safety': typeof SafetyRoute
   '/terms': typeof TermsRoute
+  '/call-controls': typeof _e2eCallControlsRoute
   '/call-fullscreen': typeof _e2eCallFullscreenRoute
   '/peer-sheet-banner': typeof _e2ePeerSheetBannerRoute
   '/account-delete': typeof AuthenticatedAccountDeleteRoute
@@ -405,6 +413,7 @@ export interface FileRoutesById {
   '/refund-policy': typeof RefundPolicyRoute
   '/safety': typeof SafetyRoute
   '/terms': typeof TermsRoute
+  '/__e2e/call-controls': typeof _e2eCallControlsRoute
   '/__e2e/call-fullscreen': typeof _e2eCallFullscreenRoute
   '/__e2e/peer-sheet-banner': typeof _e2ePeerSheetBannerRoute
   '/_authenticated/account-delete': typeof AuthenticatedAccountDeleteRoute
@@ -454,6 +463,7 @@ export interface FileRouteTypes {
     | '/refund-policy'
     | '/safety'
     | '/terms'
+    | '/call-controls'
     | '/call-fullscreen'
     | '/peer-sheet-banner'
     | '/account-delete'
@@ -501,6 +511,7 @@ export interface FileRouteTypes {
     | '/refund-policy'
     | '/safety'
     | '/terms'
+    | '/call-controls'
     | '/call-fullscreen'
     | '/peer-sheet-banner'
     | '/account-delete'
@@ -547,6 +558,7 @@ export interface FileRouteTypes {
     | '/refund-policy'
     | '/safety'
     | '/terms'
+    | '/__e2e/call-controls'
     | '/__e2e/call-fullscreen'
     | '/__e2e/peer-sheet-banner'
     | '/_authenticated/account-delete'
@@ -596,6 +608,7 @@ export interface RootRouteChildren {
   RefundPolicyRoute: typeof RefundPolicyRoute
   SafetyRoute: typeof SafetyRoute
   TermsRoute: typeof TermsRoute
+  _e2eCallControlsRoute: typeof _e2eCallControlsRoute
   _e2eCallFullscreenRoute: typeof _e2eCallFullscreenRoute
   _e2ePeerSheetBannerRoute: typeof _e2ePeerSheetBannerRoute
   ApiPublicRazorpayWebhookRoute: typeof ApiPublicRazorpayWebhookRoute
@@ -837,6 +850,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof _e2eCallFullscreenRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/__e2e/call-controls': {
+      id: '/__e2e/call-controls'
+      path: '/call-controls'
+      fullPath: '/call-controls'
+      preLoaderRoute: typeof _e2eCallControlsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_authenticated/chat/': {
       id: '/_authenticated/chat/'
       path: '/'
@@ -1029,6 +1049,7 @@ const rootRouteChildren: RootRouteChildren = {
   RefundPolicyRoute: RefundPolicyRoute,
   SafetyRoute: SafetyRoute,
   TermsRoute: TermsRoute,
+  _e2eCallControlsRoute: _e2eCallControlsRoute,
   _e2eCallFullscreenRoute: _e2eCallFullscreenRoute,
   _e2ePeerSheetBannerRoute: _e2ePeerSheetBannerRoute,
   ApiPublicRazorpayWebhookRoute: ApiPublicRazorpayWebhookRoute,
