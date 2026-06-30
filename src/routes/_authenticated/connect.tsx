@@ -424,20 +424,25 @@ function ConnectScreen() {
                       <Star className="size-3 text-primary fill-primary shrink-0" />
                     )}
                   </div>
-                  <p className="text-[11px] text-muted-foreground flex items-center gap-2 truncate">
-                    {u.language && (
-                      <span className="inline-flex items-center gap-0.5">
-                        <Languages className="size-3" />
-                        {u.language}
-                      </span>
-                    )}
-                    {u.country && (
-                      <span className="inline-flex items-center gap-0.5">
-                        <MapPin className="size-3" />
-                        {u.state ? `${u.state}, ${u.country}` : u.country}
-                      </span>
-                    )}
-                  </p>
+                  {u.country && (
+                    <p className="text-[11px] text-muted-foreground flex items-center gap-1 truncate">
+                      <MapPin className="size-3" />
+                      {u.state ? `${u.state}, ${u.country}` : u.country}
+                    </p>
+                  )}
+                  {creatorLangs.size > 0 && (
+                    <LanguageChips
+                      codes={Array.from(creatorLangs)}
+                      matchCodes={
+                        new Set<string>(
+                          [
+                            language !== "any" && language !== "auto" ? language : null,
+                            me.language,
+                          ].filter(Boolean) as string[],
+                        )
+                      }
+                    />
+                  )}
                 </div>
                 <div className="flex flex-col gap-1.5">
                   <Button size="sm" variant="secondary" className="h-7 px-2" onClick={() => void startCall("voice", u.id)}>
@@ -541,6 +546,54 @@ function CreatorMarquee({
     </div>
   );
 }
+
+function LanguageChips({
+  codes,
+  matchCodes,
+  max = 4,
+}: {
+  codes: string[];
+  matchCodes: Set<string>;
+  max?: number;
+}) {
+  // Put matches first so they're always visible when truncated.
+  const ordered = useMemo(() => {
+    const matches = codes.filter((c) => matchCodes.has(c));
+    const rest = codes.filter((c) => !matchCodes.has(c));
+    return [...matches, ...rest];
+  }, [codes, matchCodes]);
+  const shown = ordered.slice(0, max);
+  const extra = ordered.length - shown.length;
+  const label = (code: string) =>
+    APP_LANGUAGES.find((l) => l.code === code)?.name ?? code;
+
+  return (
+    <div className="mt-1 flex flex-wrap items-center gap-1">
+      <Languages className="size-3 text-muted-foreground" />
+      {shown.map((c) => {
+        const matched = matchCodes.has(c);
+        return (
+          <span
+            key={c}
+            className={
+              "inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-medium leading-none border " +
+              (matched
+                ? "bg-primary/15 text-primary border-primary/40 ring-1 ring-primary/30"
+                : "bg-muted/40 text-muted-foreground border-border/60")
+            }
+          >
+            {label(c)}
+            {matched && <span className="ml-1 text-primary">✓</span>}
+          </span>
+        );
+      })}
+      {extra > 0 && (
+        <span className="text-[10px] text-muted-foreground">+{extra}</span>
+      )}
+    </div>
+  );
+}
+
 
 function LanguageChipBar({
   all,
