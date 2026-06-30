@@ -779,25 +779,31 @@ export type Database = {
       follows: {
         Row: {
           created_at: string
+          expires_at: string
           follower_id: string
           following_id: string
           id: string
+          seen_at: string | null
           status: Database["public"]["Enums"]["follow_status"]
           updated_at: string
         }
         Insert: {
           created_at?: string
+          expires_at?: string
           follower_id: string
           following_id: string
           id?: string
+          seen_at?: string | null
           status?: Database["public"]["Enums"]["follow_status"]
           updated_at?: string
         }
         Update: {
           created_at?: string
+          expires_at?: string
           follower_id?: string
           following_id?: string
           id?: string
+          seen_at?: string | null
           status?: Database["public"]["Enums"]["follow_status"]
           updated_at?: string
         }
