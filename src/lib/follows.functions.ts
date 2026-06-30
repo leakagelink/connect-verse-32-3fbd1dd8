@@ -126,11 +126,13 @@ export const listFollowRequests = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const { supabase, userId } = context;
+    const nowIso = new Date().toISOString();
     const { data: reqs } = await supabase
       .from("follows")
-      .select("follower_id, created_at")
+      .select("follower_id, created_at, seen_at, expires_at")
       .eq("following_id", userId)
       .eq("status", "pending")
+      .gt("expires_at", nowIso)
       .order("created_at", { ascending: false })
       .limit(100);
     if (!reqs?.length) return [];
@@ -145,6 +147,21 @@ export const listFollowRequests = createServerFn({ method: "GET" })
       .is("deleted_at", null);
     const map = new Map(withAiAvatars(profiles ?? []).map((p) => [p.id, p]));
     return reqs.map((r) => ({ ...r, profile: map.get(r.follower_id) }));
+  });
+
+/** Mark all currently visible pending requests as read by the recipient. */
+export const markFollowRequestsSeen = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabase, userId } = context;
+    const { error } = await supabase
+      .from("follows")
+      .update({ seen_at: new Date().toISOString() })
+      .eq("following_id", userId)
+      .eq("status", "pending")
+      .is("seen_at", null);
+    if (error) throw new Error(error.message);
+    return { ok: true };
   });
 
 /** Return follow status for a batch of users (me -> them).
