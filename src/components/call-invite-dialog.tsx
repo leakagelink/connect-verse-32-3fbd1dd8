@@ -109,6 +109,8 @@ export function CallInviteDialog({
   useEffect(() => {
     setInvite(null);
     setEndState(null);
+    setBusyState(null);
+    busyRetriedRef.current = false;
     setDeliveryAttempt(1);
     setMessage("Sending call request…");
     if (pendingCall) {
