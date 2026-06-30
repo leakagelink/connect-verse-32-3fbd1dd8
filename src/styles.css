@@ -206,7 +206,10 @@ body[data-call-active="1"] vite-error-overlay::part(backdrop) {
    While a call is active, lift only open Radix portals above the call surface. */
 body[data-call-active="1"] > [data-state="open"].fixed,
 body[data-call-active="1"] > [data-state="open"][role="dialog"],
-body[data-call-active="1"] > [data-state="open"][role="alertdialog"] {
+body[data-call-active="1"] > [data-state="open"][role="alertdialog"],
+body[data-call-active="1"] [data-radix-portal] > [data-state="open"].fixed,
+body[data-call-active="1"] [data-radix-portal] > [data-state="open"][role="dialog"],
+body[data-call-active="1"] [data-radix-portal] > [data-state="open"][role="alertdialog"] {
   z-index: 80 !important;
 }
 
