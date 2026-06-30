@@ -44,6 +44,7 @@ function RequestsPage() {
   const qc = useQueryClient();
   const listFn = useServerFn(listFollowRequests);
   const respondFn = useServerFn(respondFollowRequest);
+  const markSeenFn = useServerFn(markFollowRequestsSeen);
 
   const { data: reqs = [], isLoading } = useQuery({
     queryKey: ["follow-requests"],
@@ -52,6 +53,14 @@ function RequestsPage() {
     // Realtime drives instant updates; keep a slow safety-net poll only.
     refetchInterval: 120_000,
   });
+
+  const unreadCount = reqs.filter((r: { seen_at: string | null }) => !r.seen_at).length;
+
+  // Auto-mark all pending requests as read once the recipient lands on the page.
+  useEffect(() => {
+    if (!reqs.length || unreadCount === 0) return;
+    markSeenFn().catch(() => {});
+  }, [reqs.length, unreadCount, markSeenFn]);
 
   // Subscribe to incoming follow rows targeted at the signed-in user so the
   // list refreshes the instant someone sends, cancels, or updates a request —
