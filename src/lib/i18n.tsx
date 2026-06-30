@@ -372,6 +372,8 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
       }
     }
 
+    let cleanup: (() => void) | null = null;
+
     (async () => {
       const { supabase } = await import("@/integrations/supabase/client");
       const { data } = await supabase.auth.getSession();
@@ -383,11 +385,9 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
           if (session?.user?.id) hydrateFromProfile(session.user.id);
         }
       });
-      // Stash unsubscribe on cleanup
       cleanup = () => sub.subscription.unsubscribe();
     })();
 
-    let cleanup: (() => void) | null = null;
     return () => {
       cancelled = true;
       cleanup?.();
