@@ -60,8 +60,27 @@ export const sendFollowRequest = createServerFn({ method: "POST" })
       .from("follows")
       .insert({ follower_id: userId, following_id: data.userId, status: "pending" });
     if (error && !/duplicate/i.test(error.message)) throw new Error(error.message);
+
+    // Notify recipient (in-app bell + push). Best-effort — never fail the request.
+    if (!error) {
+      try {
+        const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+        const { data: me } = await supabaseAdmin
+          .from("profiles").select("username").eq("id", userId).maybeSingle();
+        const name = (me as { username?: string | null } | null)?.username ?? "Someone";
+        const { notifyUser } = await import("./push.functions");
+        await notifyUser({
+          userId: data.userId,
+          kind: "follows",
+          title: "New friend request",
+          body: `${name} wants to connect with you on Talkora.`,
+          deepLink: "/requests",
+        });
+      } catch { /* notification is best-effort */ }
+    }
     return { ok: true };
   });
+
 
 export const respondFollowRequest = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
