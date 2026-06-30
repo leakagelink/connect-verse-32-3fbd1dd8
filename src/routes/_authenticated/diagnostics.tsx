@@ -38,6 +38,7 @@ import {
   type PermState,
 } from "@/lib/native";
 import { listRecentCalls, type RecentCall } from "@/lib/calls.functions";
+import { CallSoundReadinessCard } from "@/components/call-sound-readiness-card";
 
 export const Route = createFileRoute("/_authenticated/diagnostics")({
   component: DiagnosticsPage,
@@ -435,6 +436,9 @@ function DiagnosticsPage() {
             {bg ? <> · Vendor: <strong>{bg.vendor}</strong></> : null}
           </div>
         </Card>
+
+        {/* Ringer mode + volume + DND + channel-bypass readiness */}
+        <CallSoundReadinessCard />
 
         {/* Recent incoming-call failures */}
         <Card className="glass p-4">
