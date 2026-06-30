@@ -56,13 +56,35 @@ export const sendFollowRequest = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
     if (data.userId === userId) throw new Error("Cannot follow yourself");
+    const nowMs = Date.now();
+    const freshExpiry = new Date(nowMs + 14 * 24 * 60 * 60 * 1000).toISOString();
     const { error } = await supabase
       .from("follows")
-      .insert({ follower_id: userId, following_id: data.userId, status: "pending" });
-    if (error && !/duplicate/i.test(error.message)) throw new Error(error.message);
+      .insert({
+        follower_id: userId,
+        following_id: data.userId,
+        status: "pending",
+        expires_at: freshExpiry,
+      });
+    let inserted = !error;
+    if (error && /duplicate/i.test(error.message)) {
+      // Existing row — if it's a stale pending one, revive it with a fresh expiry
+      // and clear the recipient's "seen" flag so it surfaces as unread again.
+      const { data: revived } = await supabase
+        .from("follows")
+        .update({ expires_at: freshExpiry, seen_at: null })
+        .eq("follower_id", userId)
+        .eq("following_id", data.userId)
+        .eq("status", "pending")
+        .select("id")
+        .maybeSingle();
+      inserted = !!revived;
+    } else if (error) {
+      throw new Error(error.message);
+    }
 
     // Notify recipient (in-app bell + push). Best-effort — never fail the request.
-    if (!error) {
+    if (inserted) {
       try {
         const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
         const { data: me } = await supabaseAdmin
@@ -126,11 +148,13 @@ export const listFollowRequests = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const { supabase, userId } = context;
+    const nowIso = new Date().toISOString();
     const { data: reqs } = await supabase
       .from("follows")
-      .select("follower_id, created_at")
+      .select("follower_id, created_at, seen_at, expires_at")
       .eq("following_id", userId)
       .eq("status", "pending")
+      .gt("expires_at", nowIso)
       .order("created_at", { ascending: false })
       .limit(100);
     if (!reqs?.length) return [];
@@ -145,6 +169,21 @@ export const listFollowRequests = createServerFn({ method: "GET" })
       .is("deleted_at", null);
     const map = new Map(withAiAvatars(profiles ?? []).map((p) => [p.id, p]));
     return reqs.map((r) => ({ ...r, profile: map.get(r.follower_id) }));
+  });
+
+/** Mark all currently visible pending requests as read by the recipient. */
+export const markFollowRequestsSeen = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabase, userId } = context;
+    const { error } = await supabase
+      .from("follows")
+      .update({ seen_at: new Date().toISOString() })
+      .eq("following_id", userId)
+      .eq("status", "pending")
+      .is("seen_at", null);
+    if (error) throw new Error(error.message);
+    return { ok: true };
   });
 
 /** Return follow status for a batch of users (me -> them).

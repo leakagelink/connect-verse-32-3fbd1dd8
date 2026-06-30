@@ -11,6 +11,7 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { supabase } from "@/integrations/supabase/client";
 import {
   listFollowRequests,
+  markFollowRequestsSeen,
   respondFollowRequest,
 } from "@/lib/follows.functions";
 
@@ -28,10 +29,22 @@ function timeAgo(iso: string): string {
   return `${Math.floor(h / 24)}d ago`;
 }
 
+function expiresIn(iso: string): { label: string; urgent: boolean } | null {
+  const ms = new Date(iso).getTime() - Date.now();
+  if (ms <= 0) return { label: "Expired", urgent: true };
+  const mins = Math.floor(ms / 60_000);
+  const hours = Math.floor(mins / 60);
+  const days = Math.floor(hours / 24);
+  if (days >= 2) return { label: `Expires in ${days}d`, urgent: false };
+  if (hours >= 1) return { label: `Expires in ${hours}h`, urgent: hours < 12 };
+  return { label: `Expires in ${Math.max(1, mins)}m`, urgent: true };
+}
+
 function RequestsPage() {
   const qc = useQueryClient();
   const listFn = useServerFn(listFollowRequests);
   const respondFn = useServerFn(respondFollowRequest);
+  const markSeenFn = useServerFn(markFollowRequestsSeen);
 
   const { data: reqs = [], isLoading } = useQuery({
     queryKey: ["follow-requests"],
@@ -40,6 +53,14 @@ function RequestsPage() {
     // Realtime drives instant updates; keep a slow safety-net poll only.
     refetchInterval: 120_000,
   });
+
+  const unreadCount = reqs.filter((r: { seen_at: string | null }) => !r.seen_at).length;
+
+  // Auto-mark all pending requests as read once the recipient lands on the page.
+  useEffect(() => {
+    if (!reqs.length || unreadCount === 0) return;
+    markSeenFn().catch(() => {});
+  }, [reqs.length, unreadCount, markSeenFn]);
 
   // Subscribe to incoming follow rows targeted at the signed-in user so the
   // list refreshes the instant someone sends, cancels, or updates a request —
@@ -107,6 +128,11 @@ function RequestsPage() {
           <div className="flex items-center gap-2">
             <UserPlus className="size-5 text-primary" />
             <h1 className="text-base font-semibold">Friend requests</h1>
+            {unreadCount > 0 ? (
+              <span className="rounded-full bg-primary px-2 py-0.5 text-[10px] font-semibold text-primary-foreground">
+                {unreadCount} new
+              </span>
+            ) : null}
             <span className="ml-auto text-xs text-muted-foreground">
               {reqs.length} pending
             </span>
@@ -128,21 +154,45 @@ function RequestsPage() {
                 | undefined;
               if (!p) return null;
               const isBusy = respond.isPending && respond.variables?.userId === p.id;
+              const isUnread = !r.seen_at;
+              const exp = r.expires_at ? expiresIn(r.expires_at) : null;
               return (
-                <Card key={p.id} className="glass flex items-center gap-3 p-3">
+                <Card
+                  key={p.id}
+                  className={`glass flex items-center gap-3 p-3 ${
+                    isUnread ? "ring-1 ring-primary/40 bg-primary/5" : ""
+                  }`}
+                >
                   <div className="flex items-center gap-3 min-w-0 flex-1">
-                    <Avatar className="size-11 shrink-0">
-                      {p.avatar_url ? <AvatarImage src={p.avatar_url} /> : null}
-                      <AvatarFallback>
-                        {(p.username ?? "?").slice(0, 1).toUpperCase()}
-                      </AvatarFallback>
-                    </Avatar>
+                    <div className="relative shrink-0">
+                      <Avatar className="size-11">
+                        {p.avatar_url ? <AvatarImage src={p.avatar_url} /> : null}
+                        <AvatarFallback>
+                          {(p.username ?? "?").slice(0, 1).toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
+                      {isUnread ? (
+                        <span className="absolute -right-0.5 -top-0.5 size-3 rounded-full bg-primary ring-2 ring-background" />
+                      ) : null}
+                    </div>
                     <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-semibold">
-                        {p.username ?? "User"}
-                      </p>
+                      <div className="flex items-center gap-1.5">
+                        <p className="truncate text-sm font-semibold">
+                          {p.username ?? "User"}
+                        </p>
+                        {isUnread ? (
+                          <span className="rounded-sm bg-primary px-1 py-px text-[9px] font-bold uppercase tracking-wide text-primary-foreground">
+                            New
+                          </span>
+                        ) : null}
+                      </div>
                       <p className="text-[11px] text-muted-foreground">
                         Wants to connect · {timeAgo(r.created_at)}
+                        {exp ? (
+                          <span className={exp.urgent ? "ml-1 text-destructive font-medium" : "ml-1"}>
+                            · {exp.label}
+                          </span>
+                        ) : null}
                       </p>
                     </div>
                   </div>
