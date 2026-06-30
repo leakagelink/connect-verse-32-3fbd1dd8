@@ -370,6 +370,73 @@ export async function openBatterySettings(): Promise<boolean> {
 }
 
 
+/* ---------------- Ringer / DND / channel readiness ----------------
+ * Reads system ringer mode, ring-stream volume, Do-Not-Disturb filter, and
+ * per-channel state for the incoming-calls notification channel — so the UI
+ * can tell the user EXACTLY why a call might not ring (silent mode, low
+ * volume, DND active, channel muted) and deep-link them to the right fix.
+ * Bridged via RingerStatusPlugin.java (Android only).
+ */
+
+export type RingerMode = 'silent' | 'vibrate' | 'normal';
+export type DndFilter = 'all' | 'priority' | 'alarms' | 'none' | 'unknown';
+
+export interface RingerStatus {
+  ringerMode: RingerMode;
+  ringVolume: number;
+  ringVolumeMax: number;
+  dndActive: boolean;
+  dndFilter: DndFilter;
+  /** NotificationChannel.IMPORTANCE_* (0 = NONE/blocked, 4 = HIGH, 5 = MAX). -1 if unknown. */
+  channelImportance: number;
+  channelSoundSet: boolean;
+  channelBypassDnd: boolean;
+  channelBlocked: boolean;
+}
+
+interface RingerStatusBridge {
+  status(): Promise<RingerStatus>;
+  openChannelSettings(): Promise<void>;
+  openDndSettings(): Promise<void>;
+  openVolumeSettings(): Promise<void>;
+}
+
+let ringerStatusPlugin: RingerStatusBridge | null = null;
+function ringerPlugin(): RingerStatusBridge | null {
+  if (!isNative() || platform() !== 'android') return null;
+  if (!ringerStatusPlugin) {
+    try {
+      ringerStatusPlugin = registerPlugin<RingerStatusBridge>('RingerStatus');
+    } catch { return null; }
+  }
+  return ringerStatusPlugin;
+}
+
+export async function getRingerStatus(): Promise<RingerStatus | null> {
+  const p = ringerPlugin();
+  if (!p) return null;
+  try { return await p.status(); } catch { return null; }
+}
+
+export async function openIncomingCallChannelSettings(): Promise<void> {
+  const p = ringerPlugin();
+  if (!p) return;
+  try { await p.openChannelSettings(); } catch { /* ignore */ }
+}
+
+export async function openDndSettings(): Promise<void> {
+  const p = ringerPlugin();
+  if (!p) return;
+  try { await p.openDndSettings(); } catch { /* ignore */ }
+}
+
+export async function openVolumeSettings(): Promise<void> {
+  const p = ringerPlugin();
+  if (!p) return;
+  try { await p.openVolumeSettings(); } catch { /* ignore */ }
+}
+
+
 /* ---------------- Call permissions (mic / camera) ---------------- */
 
 /**
