@@ -17,6 +17,7 @@ const OnboardingInput = z.object({
   language: z.string().min(2).max(40),
   acceptGuidelines: z.literal(true),
   asCreator: z.boolean().optional(),
+  aiAvatarStyle: z.enum(AI_STYLE_IDS).optional(),
 });
 
 export const completeOnboarding = createServerFn({ method: "POST" })
@@ -44,6 +45,7 @@ export const completeOnboarding = createServerFn({ method: "POST" })
         language: data.language,
         is_creator: !!data.asCreator,
         onboarded: true,
+        ...(data.aiAvatarStyle ? { ai_avatar_style: data.aiAvatarStyle } : {}),
       })
       .eq("id", userId);
     if (error) throw new Error(error.message);

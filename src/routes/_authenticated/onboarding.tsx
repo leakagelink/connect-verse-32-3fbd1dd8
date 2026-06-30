@@ -1,5 +1,5 @@
 import { createFileRoute, isRedirect, redirect, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { useServerFn } from "@tanstack/react-start";
@@ -15,6 +15,8 @@ import { toast } from "sonner";
 import { COUNTRIES, STATES_BY_COUNTRY } from "@/lib/locations";
 import { APP_LANGUAGES } from "@/lib/constants";
 import { useT } from "@/lib/i18n";
+import { AI_AVATAR_STYLES, aiAvatarUrl, pickDefaultStyle } from "@/lib/ai-avatar";
+import { Check, Shuffle, Lock } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/onboarding")({
   beforeLoad: async ({ context }) => {
@@ -56,17 +58,37 @@ function Onboarding() {
   const [accept, setA] = useState(false);
   const [creator, setCr] = useState(false);
   const [busy, setBusy] = useState(false);
+  // Cute AI avatar — seed lets user "shuffle" the look without changing style.
+  const [avatarStyle, setAvatarStyle] = useState<string>("lorelei");
+  const [avatarSeedSalt, setAvatarSeedSalt] = useState(0);
+  const [avatarLocked, setAvatarLocked] = useState(false);
 
   useEffect(() => {
     if (data?.profile?.is_banned) navigate({ to: "/banned", replace: true });
     if (data?.profile?.onboarded) navigate({ to: "/home", replace: true });
   }, [data, navigate]);
 
+  // When gender flips, suggest the matching cute default — but never overwrite
+  // a style the user has already explicitly locked.
+  useEffect(() => {
+    if (avatarLocked) return;
+    setAvatarStyle(pickDefaultStyle(gender || null, creator));
+  }, [gender, creator, avatarLocked]);
+
+  const avatarSeed = useMemo(
+    () => `${data?.profile?.id ?? "preview"}|${avatarSeedSalt}`,
+    [data?.profile?.id, avatarSeedSalt],
+  );
+  const previewUrl = useMemo(
+    () => aiAvatarUrl(avatarSeed, avatarStyle, gender || null, creator),
+    [avatarSeed, avatarStyle, gender, creator],
+  );
+
   async function submit() {
     if (!gender || !dob) return toast.error("Fill all fields");
     setBusy(true);
     try {
-      await onboard({ data: { username, gender, dob, country, state: state || undefined, language, acceptGuidelines: true as const, asCreator: creator } });
+      await onboard({ data: { username, gender, dob, country, state: state || undefined, language, acceptGuidelines: true as const, asCreator: creator, aiAvatarStyle: avatarStyle as any } });
       await queryClient.invalidateQueries({ queryKey: ["me"] });
       await queryClient.refetchQueries({ queryKey: ["me"] });
       toast.success(t("onb.welcome"));
@@ -84,6 +106,65 @@ function Onboarding() {
           <h1 className="text-2xl font-bold">{t("onb.title")}</h1>
           <p className="text-sm text-muted-foreground">{t("onb.subtitle")}</p>
         </div>
+
+        {/* Cute AI avatar — instant preview + style chips + lock-in */}
+        <div className="rounded-xl border border-border/50 bg-card/40 p-4 space-y-3">
+          <div className="flex items-center gap-4">
+            <div className="relative">
+              <div className="h-20 w-20 rounded-full overflow-hidden ring-2 ring-primary/40 bg-muted">
+                <img key={previewUrl} src={previewUrl} alt="Your AI avatar" className="h-full w-full object-cover" />
+              </div>
+              {avatarLocked && (
+                <span className="absolute -bottom-1 -right-1 grid place-items-center h-6 w-6 rounded-full bg-primary text-primary-foreground shadow">
+                  <Check className="h-3.5 w-3.5" />
+                </span>
+              )}
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium">Your cute AI avatar</p>
+              <p className="text-xs text-muted-foreground">Pick a style or shuffle the look. You can change it later in Settings.</p>
+              <div className="mt-2 flex gap-2">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  className="h-8 px-2"
+                  onClick={() => { setAvatarSeedSalt((n) => n + 1); setAvatarLocked(false); }}
+                >
+                  <Shuffle className="h-3.5 w-3.5 mr-1" /> Shuffle
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={avatarLocked ? "secondary" : "default"}
+                  className="h-8 px-3"
+                  onClick={() => { setAvatarLocked(true); toast.success("Avatar locked in ✨"); }}
+                >
+                  {avatarLocked ? (<><Check className="h-3.5 w-3.5 mr-1" /> Locked</>) : (<><Lock className="h-3.5 w-3.5 mr-1" /> Confirm</>)}
+                </Button>
+              </div>
+            </div>
+          </div>
+          <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
+            {AI_AVATAR_STYLES.map((s) => {
+              const selected = s.id === avatarStyle;
+              const thumb = aiAvatarUrl(avatarSeed, s.id, gender || null, creator);
+              return (
+                <button
+                  key={s.id}
+                  type="button"
+                  onClick={() => { setAvatarStyle(s.id); setAvatarLocked(false); }}
+                  className={`flex-shrink-0 flex flex-col items-center gap-1 rounded-lg p-1 transition ${selected ? "ring-2 ring-primary bg-primary/10" : "hover:bg-muted/60"}`}
+                  aria-label={`Use ${s.label} avatar style`}
+                >
+                  <img src={thumb} alt="" className="h-10 w-10 rounded-full object-cover bg-muted" />
+                  <span className="text-[10px] leading-none text-muted-foreground">{s.label}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
         <div><Label>{t("onb.username")}</Label><Input value={username} onChange={(e) => setU(e.target.value)} placeholder={t("onb.usernamePh")} /></div>
         <div className="grid grid-cols-2 gap-3">
           <div>
