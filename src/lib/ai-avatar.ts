@@ -67,7 +67,8 @@ export function pickDefaultStyle(
     return "lorelei";
   }
   if (gender && DEFAULT_STYLE_BY_GENDER[gender]) return DEFAULT_STYLE_BY_GENDER[gender];
-  return "avataaars";
+  // Cute illustrated default for new accounts that haven't picked a gender yet.
+  return "lorelei";
 }
 
 function seedHash(seed: string): number {
