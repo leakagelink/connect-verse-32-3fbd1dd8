@@ -113,7 +113,7 @@ export const adminDiagnoseFollowPush = createServerFn({ method: "POST" })
     // Resolve recipient (UUID or username)
     const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(data.target.trim());
     const handle = data.target.trim().replace(/^@/, "");
-    let profileQuery = supabaseAdmin.from("profiles").select("id, username, full_name, is_banned");
+    let profileQuery = supabaseAdmin.from("profiles").select("id, username, is_banned");
     profileQuery = isUuid ? profileQuery.eq("id", handle) : profileQuery.eq("username", handle);
     const { data: profile } = await profileQuery.maybeSingle();
     if (!profile) throw new Error("Recipient not found");
@@ -205,7 +205,7 @@ export const adminDiagnoseFollowPush = createServerFn({ method: "POST" })
       recipient: {
         id: profile.id,
         username: profile.username,
-        displayName: profile.full_name,
+        displayName: profile.username,
         isBanned: !!profile.is_banned,
       },
       prefs: {
