@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { withAiAvatars } from "./ai-avatar";
+import { logCallEvent, maybeLogConnected } from "./call-telemetry.server";
 
 // If `resumeId` is supplied AND it matches an in-progress call between the
 // same two users that was last touched within RESUME_WINDOW_SECONDS, we
@@ -194,6 +195,19 @@ export const endCallLog = createServerFn({ method: "POST" })
       .eq("call_log_id", data.id)
       .in("status", ["accepted", "pending"]);
 
+    await logCallEvent(supabaseAdmin as any, {
+      eventType: "call_ended",
+      callLogId: data.id,
+      callerId: log.caller_id,
+      calleeId: log.callee_id,
+      actorId: userId,
+      status: patch.status,
+      reason: patch.end_reason ?? log.end_reason ?? data.endReason ?? null,
+      durationMs: Math.max(0, (data.durationSeconds ?? 0) * 1000),
+      ok: true,
+      meta: { coinsSpent: data.coinsSpent ?? 0 },
+    });
+
     return { ok: true };
   });
 
@@ -231,6 +245,9 @@ export const heartbeatCall = createServerFn({ method: "POST" })
       .from("call_logs")
       .update({ last_heartbeat_at: new Date().toISOString() })
       .eq("id", data.callLogId);
+    // First heartbeat from either side implies WebRTC media is up — log
+    // a one-time call_connected telemetry row (no-op on subsequent beats).
+    await maybeLogConnected(supabaseAdmin as any, data.callLogId, userId);
     return { ok: true };
   });
 

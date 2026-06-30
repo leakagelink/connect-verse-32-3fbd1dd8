@@ -149,6 +149,57 @@ export type Database = {
         }
         Relationships: []
       }
+      call_events: {
+        Row: {
+          actor_id: string | null
+          call_log_id: string | null
+          callee_id: string | null
+          caller_id: string | null
+          created_at: string
+          duration_ms: number | null
+          event_type: string
+          id: number
+          invite_id: string | null
+          kind: string | null
+          meta: Json | null
+          ok: boolean | null
+          reason: string | null
+          status: string | null
+        }
+        Insert: {
+          actor_id?: string | null
+          call_log_id?: string | null
+          callee_id?: string | null
+          caller_id?: string | null
+          created_at?: string
+          duration_ms?: number | null
+          event_type: string
+          id?: number
+          invite_id?: string | null
+          kind?: string | null
+          meta?: Json | null
+          ok?: boolean | null
+          reason?: string | null
+          status?: string | null
+        }
+        Update: {
+          actor_id?: string | null
+          call_log_id?: string | null
+          callee_id?: string | null
+          caller_id?: string | null
+          created_at?: string
+          duration_ms?: number | null
+          event_type?: string
+          id?: number
+          invite_id?: string | null
+          kind?: string | null
+          meta?: Json | null
+          ok?: boolean | null
+          reason?: string | null
+          status?: string | null
+        }
+        Relationships: []
+      }
       call_invites: {
         Row: {
           accepted_at: string | null
@@ -2001,6 +2052,7 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      purge_old_call_events: { Args: never; Returns: number }
       purge_old_perf_events: { Args: never; Returns: number }
       report_credential_failure: {
         Args: { _error: string; _id: string }
