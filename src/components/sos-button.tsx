@@ -79,7 +79,10 @@ export function SosButton({
       <Button
         size="sm"
         variant="destructive"
-        onClick={() => setOpen(true)}
+        onClick={() => {
+          setOpen(true);
+          try { onTelemetry?.({ type: "opened" }); } catch {}
+        }}
         aria-label="SOS — emergency end call"
         className="gap-1.5 font-bold animate-pulse"
       >
