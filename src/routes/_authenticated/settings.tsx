@@ -134,26 +134,26 @@ function Settings() {
 
       {/* Profile details */}
       <Card className="glass mt-4 p-4 space-y-3 text-sm">
-        <p className="text-xs text-muted-foreground uppercase tracking-wide">Profile details</p>
-        <Row icon={<UserCircle className="size-4" />} label="Username" value={p?.username ?? "—"} />
-        <Row icon={<Globe className="size-4" />} label="Country" value={p?.country ?? "—"} />
-        <Row icon={<MapPin className="size-4" />} label="State" value={p?.state ?? "—"} />
-        <Row icon={<Languages className="size-4" />} label="Language" value={labelForLang(p?.language)} />
+        <p className="text-xs text-muted-foreground uppercase tracking-wide">{t("settings.profileDetails")}</p>
+        <Row icon={<UserCircle className="size-4" />} label={t("onb.username")} value={p?.username ?? "—"} />
+        <Row icon={<Globe className="size-4" />} label={t("onb.country")} value={p?.country ?? "—"} />
+        <Row icon={<MapPin className="size-4" />} label={t("onb.state")} value={p?.state ?? "—"} />
+        <Row icon={<Languages className="size-4" />} label={t("settings.languageRow")} value={labelForLang(p?.language)} />
       </Card>
 
       {/* App language */}
       <Card className="glass mt-4 p-4">
         <div className="flex items-center gap-2 mb-2">
           <Languages className="size-4 text-primary" />
-          <p className="text-sm font-semibold">App language</p>
+          <p className="text-sm font-semibold">{t("settings.appLang")}</p>
         </div>
-        <p className="text-xs text-muted-foreground mb-3">Choose the language you want to see across the app.</p>
+        <p className="text-xs text-muted-foreground mb-3">{t("settings.appLangHint")}</p>
         <Select
           value={p?.language ?? "en"}
           onValueChange={(v) => langMut.mutate(v)}
           disabled={langMut.isPending}
         >
-          <SelectTrigger><SelectValue placeholder="Select language" /></SelectTrigger>
+          <SelectTrigger><SelectValue placeholder={t("settings.selectLang")} /></SelectTrigger>
           <SelectContent>
             {APP_LANGUAGES.map((l) => (
               <SelectItem key={l.code} value={l.code}>{l.name}</SelectItem>
