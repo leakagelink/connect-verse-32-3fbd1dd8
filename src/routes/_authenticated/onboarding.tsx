@@ -50,7 +50,7 @@ function Onboarding() {
   const [dob, setD] = useState("");
   const [country, setC] = useState("India");
   const [state, setSt] = useState("");
-  const [language, setL] = useState("English");
+  const [language, setL] = useState("hi");
   const [accept, setA] = useState(false);
   const [creator, setCr] = useState(false);
   const [busy, setBusy] = useState(false);
