@@ -131,8 +131,17 @@ function ConnectScreen() {
     const useActiveOnly = filtersVisible && activeOnly;
     const activeCutoff = Date.now() - 30_000; // last 30s = "active now"
 
+    // Build effective language set per creator: primary + any additional
+    // languages they marked they can speak.
+    const langsOf = (u: Creator) => {
+      const set = new Set<string>();
+      if (u.language) set.add(u.language);
+      for (const l of u.languages ?? []) if (l) set.add(l);
+      return set;
+    };
+
     const filtered = all.filter((u) => {
-      if (langFilter && u.language !== langFilter) return false;
+      if (langFilter && !langsOf(u).has(langFilter)) return false;
       if (countryFilter && u.country !== countryFilter) return false;
       if (stateFilter && u.state !== stateFilter) return false;
       if (useActiveOnly) {
@@ -145,7 +154,7 @@ function ConnectScreen() {
     // priority score: language match (4) + state match (2) + country match (1)
     const score = (u: Creator) => {
       let s = 0;
-      if (me.language && u.language === me.language) s += 4;
+      if (me.language && langsOf(u).has(me.language)) s += 4;
       if (me.state && u.state === me.state) s += 2;
       if (me.country && u.country === me.country) s += 1;
       return s;
