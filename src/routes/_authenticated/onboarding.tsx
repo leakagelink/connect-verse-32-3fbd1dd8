@@ -13,6 +13,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { COUNTRIES, STATES_BY_COUNTRY } from "@/lib/locations";
+import { APP_LANGUAGES } from "@/lib/constants";
 
 export const Route = createFileRoute("/_authenticated/onboarding")({
   beforeLoad: async ({ context }) => {
