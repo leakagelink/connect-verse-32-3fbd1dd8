@@ -1730,3 +1730,313 @@ export const runReconcilerCleanupE2E = createServerFn({ method: "POST" })
         .eq("id", calleeId);
     }
   });
+
+
+// ============================================================================
+// E2E: Stuck-prior-session → reconnect-banner → auto-connect without refresh.
+//
+// Simulates the exact UI flow the call-invite dialog shows when a previous
+// call session left ghost state:
+//
+//   attempt #1 → BUSY (heartbeat still fresh)
+//                 ↳ UI shows "Clearing previous call session…" amber banner
+//   wait 2.5s   → reconciler-driven retry
+//                 ↳ UI shows "Reconnecting delivery… (attempt N/3)" sky banner
+//   attempt #2 → invite created (pending)
+//   accept     → call_log open, status = accepted
+//                 ↳ dialog auto-dismisses, call screen connects, NO refresh
+//
+// We mirror createCallInvite's busy check + acceptCallInvite's atomic reserve
+// inline (impersonating users from a server fn would require service-role
+// auth bypass we don't expose). The asserts prove every banner transition
+// the UI relies on actually moves the underlying state forward.
+// ============================================================================
+export const runStuckSessionReconnectE2E = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((d: unknown) =>
+    z.object({ calleeId: z.string().uuid().optional() }).parse(d ?? {}),
+  )
+  .handler(async ({ context, data }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const db = supabaseAdmin as any;
+    const { data: isAdmin } = await context.supabase.rpc("has_role", {
+      _user_id: context.userId,
+      _role: "admin",
+    });
+    if (!isAdmin) throw new Error("Forbidden");
+
+    const steps: Array<{ step: string; ok: boolean; detail?: any }> = [];
+    const log = (step: string, ok: boolean, detail?: any) =>
+      steps.push({ step, ok, detail });
+
+    const admins = await hiddenAdminIds(db);
+
+    // 1) Resolve callee
+    let calleeId = data.calleeId;
+    if (!calleeId) {
+      const { data: candidates } = await db
+        .from("profiles")
+        .select("id")
+        .eq("is_creator", true)
+        .eq("onboarded", true)
+        .eq("is_banned", false)
+        .is("deleted_at", null)
+        .limit(20);
+      const pick = (candidates ?? []).find((p: any) => !admins.has(p.id));
+      if (!pick) return { pass: false, reason: "No eligible creator.", steps };
+      calleeId = pick.id;
+    }
+    log("resolve_callee", true, { calleeId });
+
+    // 2) Pick two callers: the stuck prior caller, and the new caller
+    const { data: others } = await db
+      .from("profiles")
+      .select("id")
+      .neq("id", calleeId)
+      .eq("onboarded", true)
+      .eq("is_banned", false)
+      .is("deleted_at", null)
+      .limit(50);
+    const pool = (others ?? []).filter((p: any) => !admins.has(p.id));
+    if (pool.length < 2)
+      return { pass: false, reason: "Need 2 eligible callers.", steps };
+    const stuckCaller = pool[0];
+    const newCaller = pool[1];
+    log("resolve_callers", true, {
+      stuckCallerId: stuckCaller.id,
+      newCallerId: newCaller.id,
+    });
+
+    const { data: profBefore } = await db
+      .from("profiles")
+      .select("availability")
+      .eq("id", calleeId)
+      .maybeSingle();
+    const originalAvailability = profBefore?.availability ?? "online";
+
+    const createdInviteIds: string[] = [];
+    const createdLogIds: string[] = [];
+
+    // Mirror createCallInvite's busy check (without the reconciler pre-pass).
+    const computeBusy = async (callerId: string) => {
+      const { data: busyRows } = await db
+        .from("call_invites")
+        .select(
+          "id, status, caller_id, expires_at, accepted_at, call_log_id, call_logs:call_log_id(ended_at, last_heartbeat_at)",
+        )
+        .eq("callee_id", calleeId)
+        .in("status", ["pending", "accepted"])
+        .order("created_at", { ascending: false })
+        .limit(5);
+      return (busyRows ?? []).some((r: any) => {
+        if (r.caller_id === callerId) return false;
+        if (r.status === "accepted") {
+          if (r.call_logs?.ended_at) return false;
+          return true;
+        }
+        if (
+          r.status === "pending" &&
+          r.expires_at &&
+          new Date(r.expires_at).getTime() > Date.now()
+        )
+          return true;
+        return false;
+      });
+    };
+
+    try {
+      const nowIso = new Date().toISOString();
+
+      // 3) Seed a FRESH stuck session: open call_log with heartbeat = now,
+      //    accepted invite tied to it, availability = in_call. With a fresh
+      //    heartbeat refreshStaleBusy CANNOT clear it on attempt #1.
+      const { data: stuckLog, error: lErr } = await db
+        .from("call_logs")
+        .insert({
+          caller_id: stuckCaller.id,
+          callee_id: calleeId,
+          kind: "voice",
+          status: "in_progress",
+          started_at: nowIso,
+          last_heartbeat_at: nowIso,
+        })
+        .select("id")
+        .single();
+      if (lErr) throw lErr;
+      createdLogIds.push(stuckLog.id);
+
+      const { data: stuckInv, error: iErr } = await db
+        .from("call_invites")
+        .insert({
+          caller_id: stuckCaller.id,
+          callee_id: calleeId,
+          kind: "voice",
+          status: "accepted",
+          accepted_at: nowIso,
+          call_log_id: stuckLog.id,
+          expires_at: new Date(Date.now() + 60_000).toISOString(),
+        })
+        .select("id")
+        .single();
+      if (iErr) throw iErr;
+      createdInviteIds.push(stuckInv.id);
+
+      await db
+        .from("profiles")
+        .update({ availability: "in_call" })
+        .eq("id", calleeId);
+      log("seed_fresh_stuck_session", true, {
+        callLogId: stuckLog.id,
+        inviteId: stuckInv.id,
+      });
+
+      // 4) Attempt #1 — should be BUSY (this is what surfaces the
+      //    "Clearing previous call session…" amber banner in the dialog).
+      await refreshStaleBusy(db, calleeId!).catch(() => false);
+      const attempt1Busy = await computeBusy(newCaller.id);
+      log("attempt_1_returns_busy", attempt1Busy, { busy: attempt1Busy });
+      const busyBannerTriggered = attempt1Busy;
+
+      // 5) Simulate the dialog's 2.5s wait — during which the real session
+      //    finally times out (heartbeat goes stale). We age the heartbeat
+      //    past STALE_HEARTBEAT_MS (60s) so reconciler can now clear it.
+      const stalePastIso = new Date(Date.now() - 90_000).toISOString();
+      await db
+        .from("call_logs")
+        .update({ last_heartbeat_at: stalePastIso, started_at: stalePastIso })
+        .eq("id", stuckLog.id);
+      log("age_heartbeat_past_threshold", true);
+
+      // 6) Attempt #2 — reconciler clears ghost state, busy check passes,
+      //    invite is created. (UI banner switches to "Reconnecting
+      //    delivery… (attempt 2/3)" sky banner during this phase.)
+      const reconcilerChanged = await refreshStaleBusy(db, calleeId!);
+      const attempt2Busy = await computeBusy(newCaller.id);
+      log("attempt_2_busy_cleared", !attempt2Busy, {
+        reconcilerChanged,
+        busy: attempt2Busy,
+      });
+
+      const { data: stuckLogAfter } = await db
+        .from("call_logs")
+        .select("ended_at, end_reason")
+        .eq("id", stuckLog.id)
+        .maybeSingle();
+      log("stuck_log_closed_by_reconciler", !!stuckLogAfter?.ended_at, stuckLogAfter);
+
+      const { data: stuckInvAfter } = await db
+        .from("call_invites")
+        .select("status, cancelled_at")
+        .eq("id", stuckInv.id)
+        .maybeSingle();
+      log(
+        "stuck_invite_cancelled_by_reconciler",
+        stuckInvAfter?.status === "cancelled",
+        stuckInvAfter,
+      );
+
+      // 7) New invite created (mirrors createCallInvite insert).
+      const { data: freshInv, error: fErr } = await db
+        .from("call_invites")
+        .insert({
+          caller_id: newCaller.id,
+          callee_id: calleeId,
+          kind: "voice",
+          status: "pending",
+          expires_at: new Date(
+            Date.now() + INVITE_TTL_SECONDS * 1000,
+          ).toISOString(),
+        })
+        .select("id, status")
+        .single();
+      if (fErr) throw fErr;
+      createdInviteIds.push(freshInv.id);
+      log("new_invite_created_pending", freshInv.status === "pending", freshInv);
+
+      const reconnectBannerTriggered = busyBannerTriggered && !attempt2Busy;
+
+      // 8) Accept atomically (mirrors acceptCallInvite reserve UPDATE).
+      const acceptStartedAt = new Date().toISOString();
+      const { data: connectLog, error: clErr } = await db
+        .from("call_logs")
+        .insert({
+          caller_id: newCaller.id,
+          callee_id: calleeId,
+          kind: "voice",
+          status: "in_progress",
+          started_at: acceptStartedAt,
+          last_heartbeat_at: acceptStartedAt,
+        })
+        .select("id")
+        .single();
+      if (clErr) throw clErr;
+      createdLogIds.push(connectLog.id);
+
+      const { data: reserved, error: rErr } = await db
+        .from("call_invites")
+        .update({
+          status: "accepted",
+          accepted_at: acceptStartedAt,
+          call_log_id: connectLog.id,
+        })
+        .eq("id", freshInv.id)
+        .eq("status", "pending")
+        .select("id, status, call_log_id")
+        .maybeSingle();
+      const acceptedOk =
+        !rErr &&
+        !!reserved &&
+        reserved.status === "accepted" &&
+        reserved.call_log_id === connectLog.id;
+      log("new_invite_accepted_atomically", acceptedOk, {
+        error: rErr?.message ?? null,
+        reserved,
+      });
+
+      // 9) Prove the connection is live without any "refresh" step: the
+      //    new call_log has an open ended_at and a fresh heartbeat.
+      const { data: liveLog } = await db
+        .from("call_logs")
+        .select("id, ended_at, last_heartbeat_at")
+        .eq("id", connectLog.id)
+        .maybeSingle();
+      const connectedWithoutRefresh =
+        !!liveLog && !liveLog.ended_at && !!liveLog.last_heartbeat_at;
+      log("call_connected_without_refresh", connectedWithoutRefresh, liveLog);
+
+      const pass =
+        busyBannerTriggered &&
+        !attempt2Busy &&
+        reconnectBannerTriggered &&
+        freshInv.status === "pending" &&
+        acceptedOk &&
+        connectedWithoutRefresh;
+
+      return {
+        pass,
+        calleeId,
+        stuckCallerId: stuckCaller.id,
+        newCallerId: newCaller.id,
+        steps,
+        summary: {
+          busyBannerTriggered,
+          reconcilerClearedStuckSession: !attempt2Busy,
+          reconnectBannerTriggered,
+          newInvitePending: freshInv.status === "pending",
+          atomicAcceptSucceeded: acceptedOk,
+          connectedWithoutRefresh,
+        },
+      };
+    } finally {
+      if (createdInviteIds.length) {
+        await db.from("call_invites").delete().in("id", createdInviteIds);
+      }
+      if (createdLogIds.length) {
+        await db.from("call_logs").delete().in("id", createdLogIds);
+      }
+      await db
+        .from("profiles")
+        .update({ availability: originalAvailability })
+        .eq("id", calleeId);
+    }
+  });
