@@ -67,6 +67,10 @@ export class AgoraSession {
   /** All currently subscribed remote audio tracks (for volume / speaker routing). */
   private remoteAudio: Array<{ setVolume: (v: number) => void }> = [];
   private speakerOn = false;
+  /** Container the UI wants remote video painted into. Updated via setRemoteVideoElement. */
+  private remoteVideoEl: HTMLElement | null = null;
+  /** Last remote user that published video — used to reattach when the peer toggles cam back on. */
+  private lastRemoteVideoUser: IAgoraRTCRemoteUser | null = null;
 
   async join(opts: {
     appId: string;
