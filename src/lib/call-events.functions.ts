@@ -25,7 +25,7 @@ export interface CallEventRow {
   reason: string | null;
   duration_ms: number | null;
   ok: boolean | null;
-  meta: unknown;
+  meta: string | null;
 }
 
 export const listCallEvents = createServerFn({ method: "POST" })
