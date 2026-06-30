@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -6,18 +6,30 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { useCallPointerSafeguard } from "@/hooks/use-call-pointer-safeguard";
 
-// Standalone dry-run mock for the in-call control bar, used exclusively by
-// `tests/e2e/call-controls-clickable.spec.ts`. The contract this mock
-// guarantees: after the call surface mounts, every control (End, Gift, Mic,
-// Speaker, Mystery) is reachable by a real pointer click — no transparent
-// overlay, error boundary, or modal scrim is allowed to intercept the click
-// while the call is connected.
+// Standalone dry-run mock for the in-call control bar, used by the CI
+// Playwright specs:
+//   * tests/e2e/call-controls-clickable.spec.ts
+//   * tests/e2e/call-controls-overlay-guard.spec.ts
 //
-// Each control increments a counter that is mirrored into a `data-clicks`
-// attribute on the surface, so the spec can assert the click reached the
-// handler instead of being swallowed by an overlay.
-export function CallControlsClickableE2EMock() {
+// Contract:
+//   1. After the call surface mounts, every control (End / Gift / Mic /
+//      Speaker / Mystery) is reachable by a real pointer click.
+//   2. If any blocking overlay (Vite error overlay, route error screen,
+//      generic full-viewport scrim) mounts above the surface, the runtime
+//      safeguard MUST neutralise its pointer events so the controls stay
+//      tappable. The overlay itself stays visible for debugging — only its
+//      pointer-events are killed.
+//
+// `injectOverlays` enables the second contract: it mounts representative
+// fake versions of the overlays we have actually seen swallow taps in
+// production / dev, so the spec can prove the safeguard handles them.
+export function CallControlsClickableE2EMock({
+  injectOverlays = false,
+}: {
+  injectOverlays?: boolean;
+} = {}) {
   const [clicks, setClicks] = useState({
     end: 0,
     gift: 0,
@@ -26,12 +38,60 @@ export function CallControlsClickableE2EMock() {
     mystery: 0,
   });
   const [openPanel, setOpenPanel] = useState<null | "gift" | "mystery">(null);
+
+  // Activate the same runtime safeguard the real call surface uses.
+  useCallPointerSafeguard(true);
+
+  // For the overlay-guard spec, mount the fakes after first paint so the
+  // MutationObserver inside the safeguard sees them and neutralises them.
+  useEffect(() => {
+    if (!injectOverlays || typeof document === "undefined") return;
+    const made: HTMLElement[] = [];
+
+    const fakes: Array<{ tag: string; attrs: Record<string, string>; label: string }> = [
+      { tag: "vite-error-overlay", attrs: {}, label: "vite error overlay" },
+      { tag: "div", attrs: { "data-vite-dev-id": "test" }, label: "vite dev id scrim" },
+      {
+        tag: "div",
+        attrs: { "data-testid": "fake-route-error-screen" },
+        label: "route error screen",
+      },
+      {
+        tag: "div",
+        attrs: { "data-testid": "fake-generic-scrim" },
+        label: "unknown full-viewport scrim",
+      },
+    ];
+
+    for (const f of fakes) {
+      const el = document.createElement(f.tag);
+      Object.entries(f.attrs).forEach(([k, v]) => el.setAttribute(k, v));
+      // Match the real overlays' geometry: fixed, full viewport, above z-60.
+      el.style.position = "fixed";
+      el.style.inset = "0";
+      el.style.zIndex = "9999";
+      el.style.background = "rgba(255,0,0,0.15)";
+      el.style.color = "white";
+      el.style.display = "flex";
+      el.style.alignItems = "center";
+      el.style.justifyContent = "center";
+      el.textContent = `Fake ${f.label} (should be neutralised)`;
+      document.body.appendChild(el);
+      made.push(el);
+    }
+
+    return () => {
+      made.forEach((el) => el.remove());
+    };
+  }, [injectOverlays]);
+
   const bump = (k: keyof typeof clicks) =>
     setClicks((c) => ({ ...c, [k]: c[k] + 1 }));
 
   return (
     <div
       data-testid="call-controls-surface"
+      data-call-surface="1"
       data-e2e-ready="1"
       data-clicks-end={clicks.end}
       data-clicks-gift={clicks.gift}
@@ -87,8 +147,6 @@ export function CallControlsClickableE2EMock() {
         </Button>
       </div>
 
-      {/* Panels open from Gift / Mystery taps — they must be dismissible so
-          the subsequent control click is not blocked by a lingering scrim. */}
       <Dialog
         open={openPanel !== null}
         onOpenChange={(v) => { if (!v) setOpenPanel(null); }}
