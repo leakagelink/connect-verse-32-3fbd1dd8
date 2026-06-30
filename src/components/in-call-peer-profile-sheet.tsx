@@ -40,7 +40,10 @@ import {
   Loader2,
   Send,
   Inbox,
+  PhoneOff,
+  PhoneMissed,
 } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 type ConfirmKind = null | "follow-request" | "unfollow";
 
