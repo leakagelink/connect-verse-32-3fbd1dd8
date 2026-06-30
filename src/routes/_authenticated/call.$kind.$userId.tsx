@@ -1737,6 +1737,16 @@ function CallScreen() {
                 ref={remoteContainerRef}
                 className={`absolute inset-0 size-full bg-black ${remoteJoined ? "block" : "hidden"} [&_video]:size-full [&_video]:object-contain [&>div]:size-full`}
               />
+              {remoteJoined && !remoteVideoLive && (
+                <div className="absolute inset-0 z-[5] flex flex-col items-center justify-center gap-3 bg-black/70 text-white pointer-events-none">
+                  <div className="h-10 w-10 rounded-full border-2 border-white/30 border-t-white animate-spin" />
+                  <div className="text-sm font-medium">Connecting video…</div>
+                  <div className="text-xs text-white/70">
+                    {remoteRetryCountRef.current > 2 ? "Retrying camera stream" : "Waiting for peer video"}
+                  </div>
+                </div>
+              )}
+
               <video
                 ref={videoRef}
                 className={
