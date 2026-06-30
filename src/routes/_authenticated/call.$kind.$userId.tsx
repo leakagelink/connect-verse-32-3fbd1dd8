@@ -1829,7 +1829,17 @@ function CallScreen() {
           <Button
             size="icon"
             variant="secondary"
-            onClick={() => setGiftOpen(true)}
+            onClick={() => {
+              setGiftOpen(true);
+              recordCallUiEvent({
+                eventType: "ui_gift_open",
+                callLogId: callLogIdRef.current,
+                partnerUserId: userId,
+                kind,
+                ok: true,
+                meta: { connected, criticalTime },
+              });
+            }}
             disabled={!connected || criticalTime}
             aria-label="Send gift"
             title={criticalTime ? "Disabled — last 60 seconds" : undefined}
@@ -1837,7 +1847,22 @@ function CallScreen() {
           >
             <Gift className="size-5 text-pink-500" />
           </Button>
-          <Button data-testid="end-call-btn" size="icon" variant="destructive" onClick={() => setConfirmEnd(true)}>
+          <Button
+            data-testid="end-call-btn"
+            size="icon"
+            variant="destructive"
+            onClick={() => {
+              setConfirmEnd(true);
+              recordCallUiEvent({
+                eventType: "ui_end_call_clicked",
+                callLogId: callLogIdRef.current,
+                partnerUserId: userId,
+                kind,
+                ok: true,
+                meta: { source: "controls-bar" },
+              });
+            }}
+          >
             <PhoneOff className="size-5" />
           </Button>
         </div>
