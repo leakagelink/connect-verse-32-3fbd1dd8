@@ -196,7 +196,38 @@ export class AgoraSession {
   }
 
   attachRemoteVideo(user: IAgoraRTCRemoteUser, el: HTMLElement) {
-    user.videoTrack?.play(el);
+    // Remember the container so subsequent peer cam toggles repaint here.
+    this.remoteVideoEl = el;
+    this.lastRemoteVideoUser = user;
+    this.paintRemoteVideo(user);
+  }
+
+  /** Update the destination element for remote video without needing a track to be live yet. */
+  setRemoteVideoElement(el: HTMLElement | null) {
+    this.remoteVideoEl = el;
+    if (el && this.lastRemoteVideoUser?.videoTrack) {
+      this.paintRemoteVideo(this.lastRemoteVideoUser);
+    }
+  }
+
+  private paintRemoteVideo(user: IAgoraRTCRemoteUser) {
+    const el = this.remoteVideoEl;
+    if (!el || !user.videoTrack) return;
+    // Stop any prior playback bound to this track and wipe stale <video>
+    // children before re-binding. Agora appends a child element on play();
+    // a second play() without cleanup leaves the old one rendering stale data.
+    try { user.videoTrack.stop(); } catch { /* not playing */ }
+    while (el.firstChild) el.removeChild(el.firstChild);
+    try { user.videoTrack.play(el, { fit: "cover" }); } catch (err) {
+      // eslint-disable-next-line no-console
+      console.warn("[agora] remote video play failed", err);
+    }
+  }
+
+  private clearRemoteVideoEl() {
+    const el = this.remoteVideoEl;
+    if (!el) return;
+    while (el.firstChild) el.removeChild(el.firstChild);
   }
 
   async setMicEnabled(on: boolean) {
