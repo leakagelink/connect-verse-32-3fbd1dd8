@@ -198,7 +198,7 @@ export function AppShell({ children, isAdmin }: { children: ReactNode; isAdmin?:
               pathname.startsWith("/admin") ? "text-accent" : "text-muted-foreground hover:text-foreground"
             )}>
               <Shield className="size-5 shrink-0" />
-              <span className="truncate max-w-full">Admin</span>
+              <span className="truncate max-w-full">{t("nav.admin")}</span>
             </Link>
           )}
         </div>
