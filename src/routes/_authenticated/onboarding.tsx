@@ -44,6 +44,7 @@ function Onboarding() {
   const onboard = useServerFn(completeOnboarding);
   const queryClient = useQueryClient();
   const { data, isLoading } = useQuery({ queryKey: ["me"], queryFn: () => getProfile() });
+  const { t } = useT();
 
 
   const [username, setU] = useState("");
