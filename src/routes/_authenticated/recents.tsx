@@ -111,7 +111,9 @@ function RecentsScreen() {
         userId={profileUserId}
         open={!!profileUserId}
         onOpenChange={(v) => { if (!v) setProfileUserId(null); }}
+        lastCall={lastCallForProfile}
       />
+
       <CallInviteDialog pendingCall={callInvite} onClose={() => setCallInvite(null)} />
     </AppShell>
   );
