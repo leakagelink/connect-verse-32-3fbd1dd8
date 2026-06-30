@@ -1,5 +1,5 @@
 import { createFileRoute, isRedirect, redirect, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { useServerFn } from "@tanstack/react-start";
@@ -15,6 +15,8 @@ import { toast } from "sonner";
 import { COUNTRIES, STATES_BY_COUNTRY } from "@/lib/locations";
 import { APP_LANGUAGES } from "@/lib/constants";
 import { useT } from "@/lib/i18n";
+import { AI_AVATAR_STYLES, aiAvatarUrl, pickDefaultStyle } from "@/lib/ai-avatar";
+import { Check, Shuffle, Lock } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/onboarding")({
   beforeLoad: async ({ context }) => {
