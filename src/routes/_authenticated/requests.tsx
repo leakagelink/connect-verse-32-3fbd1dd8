@@ -88,11 +88,7 @@ function RequestsPage() {
               const isBusy = respond.isPending && respond.variables?.userId === p.id;
               return (
                 <Card key={p.id} className="glass flex items-center gap-3 p-3">
-                  <Link
-                    to="/u/$userId"
-                    params={{ userId: p.id }}
-                    className="flex items-center gap-3 min-w-0 flex-1"
-                  >
+                  <div className="flex items-center gap-3 min-w-0 flex-1">
                     <Avatar className="size-11 shrink-0">
                       {p.avatar_url ? <AvatarImage src={p.avatar_url} /> : null}
                       <AvatarFallback>
@@ -107,7 +103,8 @@ function RequestsPage() {
                         Wants to connect · {timeAgo(r.created_at)}
                       </p>
                     </div>
-                  </Link>
+                  </div>
+
                   <div className="flex shrink-0 gap-1.5">
                     <Button
                       size="sm"
