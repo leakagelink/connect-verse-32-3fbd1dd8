@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { PrecallPermissionDialog } from "@/components/precall-permission-dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { acceptCallInvite, listIncomingCallInvites, markCallInviteDelivered, rejectCallInvite } from "@/lib/call-invites.functions";
+import { acceptInviteWithRetry, type AcceptRetryAttempt } from "@/lib/accept-call-retry";
 
 type IncomingInvite = {
   id: string;
@@ -36,6 +37,7 @@ export function IncomingCallDialog({ disabled }: { disabled?: boolean }) {
   const rejectFn = useServerFn(rejectCallInvite);
   const ackFn = useServerFn(markCallInviteDelivered);
   const [permissionFor, setPermissionFor] = useState<IncomingInvite | null>(null);
+  const [retryInfo, setRetryInfo] = useState<AcceptRetryAttempt | null>(null);
   const ackedRef = useRef<Set<string>>(new Set());
 
 
@@ -147,7 +149,11 @@ export function IncomingCallDialog({ disabled }: { disabled?: boolean }) {
   const invite = useMemo(() => (data ?? [])[0] as IncomingInvite | undefined, [data]);
 
   const acceptMut = useMutation({
-    mutationFn: (id: string) => acceptFn({ data: { inviteId: id } }),
+    mutationFn: (id: string) =>
+      acceptInviteWithRetry(acceptFn, id, {
+        onAttempt: (info) => setRetryInfo(info),
+      }),
+    onSettled: () => setRetryInfo(null),
     onSuccess: (res) => {
       qc.invalidateQueries({ queryKey: ["incoming-call-invites"] });
       navigate({
@@ -239,7 +245,15 @@ export function IncomingCallDialog({ disabled }: { disabled?: boolean }) {
                   {acceptMut.isPending ? <Loader2 className="size-6 animate-spin" /> : <Phone className="size-6" />}
                 </Button>
               </div>
-              <p className="text-[11px] text-muted-foreground">Call connects only after you answer.</p>
+              {acceptMut.isPending && retryInfo && retryInfo.attempt > 1 ? (
+                <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-200">
+                  <span className="font-semibold">Reconnecting…</span>{" "}
+                  Previous session ke ghost reservation ko clear kiya ja raha hai.
+                  Retry {retryInfo.attempt} of {retryInfo.maxAttempts}.
+                </div>
+              ) : (
+                <p className="text-[11px] text-muted-foreground">Call connects only after you answer.</p>
+              )}
             </div>
           )}
         </DialogContent>

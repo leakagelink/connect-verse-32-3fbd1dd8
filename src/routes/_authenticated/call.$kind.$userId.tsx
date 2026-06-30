@@ -35,6 +35,7 @@ import { recordCallMetrics } from "@/lib/calling.functions";
 import { connectCall, type AnySession } from "@/lib/call-session";
 import { Signal, SignalHigh, SignalLow, SignalMedium, SignalZero } from "lucide-react";
 import { getCallInviteStatus, acceptCallInvite } from "@/lib/call-invites.functions";
+import { acceptInviteWithRetry } from "@/lib/accept-call-retry";
 
 
 
@@ -84,6 +85,7 @@ function CallScreen() {
   } | null>(null);
   const [joinAttempt, setJoinAttempt] = useState(0);
   const [retrying, setRetrying] = useState(false);
+  const [acceptRetry, setAcceptRetry] = useState<{ attempt: number; max: number } | null>(null);
   
   
   const elapsedRef = useRef(0);
@@ -338,8 +340,16 @@ function CallScreen() {
         // the in-app UI, so do it here before joining.
         if (autoAccept && invite.status === "pending" && invite.role === "callee") {
           try {
-            invite = await acceptInviteFn({ data: { inviteId } });
+            invite = await acceptInviteWithRetry(acceptInviteFn, inviteId, {
+              onAttempt: (info) => {
+                if (info.attempt > 1) {
+                  setAcceptRetry({ attempt: info.attempt, max: info.maxAttempts });
+                }
+              },
+            });
+            setAcceptRetry(null);
           } catch (e: any) {
+            setAcceptRetry(null);
             throw new Error(e?.message || "Could not accept this call.");
           }
         }
@@ -1632,7 +1642,11 @@ function CallScreen() {
           )}
           <div className="absolute top-3 left-3 right-3 flex items-center justify-between text-white">
             <div className="px-2.5 py-1 rounded-full bg-black/50 text-xs flex items-center gap-1.5">
-              {connected && remoteJoined ? `Connected · ${mm}:${ss}` : (connected ? "Ringing…" : "Connecting…")}
+              {acceptRetry
+                ? `Reconnecting… (retry ${acceptRetry.attempt}/${acceptRetry.max})`
+                : connected && remoteJoined
+                  ? `Connected · ${mm}:${ss}`
+                  : (connected ? "Ringing…" : "Connecting…")}
               {provider === "agora" && networkQ > 0 && (
                 <NetworkBars q={networkQ} />
               )}
