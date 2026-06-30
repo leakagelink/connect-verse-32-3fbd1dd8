@@ -218,11 +218,12 @@ export function InCallPeerProfileSheet({ userId, open, onOpenChange, inCall = fa
         <SheetHeader className="text-left">
           <SheetTitle>Profile</SheetTitle>
           {showInCallChrome ? (
-            <SheetDescription>
+            <SheetDescription data-testid="in-call-banner">
               Apka call abhi bhi chal raha hai. Wapis call screen pe jaane ke
               liye “Back to call” dabayein.
             </SheetDescription>
           ) : null}
+
         </SheetHeader>
 
         {!showInCallChrome && lastCall ? (
