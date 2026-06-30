@@ -41,6 +41,7 @@ import { Route as AuthenticatedChatRouteImport } from './routes/_authenticated/c
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
 import { Route as AuthenticatedAccountDeleteRouteImport } from './routes/_authenticated/account-delete'
 import { Route as _e2ePeerSheetBannerRouteImport } from './routes/__e2e.peer-sheet-banner'
+import { Route as _e2eCallRecoveryRouteImport } from './routes/__e2e.call-recovery'
 import { Route as _e2eCallFullscreenRouteImport } from './routes/__e2e.call-fullscreen'
 import { Route as _e2eCallControlsRouteImport } from './routes/__e2e.call-controls'
 import { Route as AuthenticatedChatIndexRouteImport } from './routes/_authenticated/chat.index'
@@ -222,6 +223,11 @@ const _e2ePeerSheetBannerRoute = _e2ePeerSheetBannerRouteImport.update({
   path: '/peer-sheet-banner',
   getParentRoute: () => rootRouteImport,
 } as any)
+const _e2eCallRecoveryRoute = _e2eCallRecoveryRouteImport.update({
+  id: '/__e2e/call-recovery',
+  path: '/call-recovery',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const _e2eCallFullscreenRoute = _e2eCallFullscreenRouteImport.update({
   id: '/__e2e/call-fullscreen',
   path: '/call-fullscreen',
@@ -319,6 +325,7 @@ export interface FileRoutesByFullPath {
   '/terms': typeof TermsRoute
   '/call-controls': typeof _e2eCallControlsRoute
   '/call-fullscreen': typeof _e2eCallFullscreenRoute
+  '/call-recovery': typeof _e2eCallRecoveryRoute
   '/peer-sheet-banner': typeof _e2ePeerSheetBannerRoute
   '/account-delete': typeof AuthenticatedAccountDeleteRoute
   '/admin': typeof AuthenticatedAdminRouteWithChildren
@@ -367,6 +374,7 @@ export interface FileRoutesByTo {
   '/terms': typeof TermsRoute
   '/call-controls': typeof _e2eCallControlsRoute
   '/call-fullscreen': typeof _e2eCallFullscreenRoute
+  '/call-recovery': typeof _e2eCallRecoveryRoute
   '/peer-sheet-banner': typeof _e2ePeerSheetBannerRoute
   '/account-delete': typeof AuthenticatedAccountDeleteRoute
   '/connect': typeof AuthenticatedConnectRoute
@@ -415,6 +423,7 @@ export interface FileRoutesById {
   '/terms': typeof TermsRoute
   '/__e2e/call-controls': typeof _e2eCallControlsRoute
   '/__e2e/call-fullscreen': typeof _e2eCallFullscreenRoute
+  '/__e2e/call-recovery': typeof _e2eCallRecoveryRoute
   '/__e2e/peer-sheet-banner': typeof _e2ePeerSheetBannerRoute
   '/_authenticated/account-delete': typeof AuthenticatedAccountDeleteRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRouteWithChildren
@@ -465,6 +474,7 @@ export interface FileRouteTypes {
     | '/terms'
     | '/call-controls'
     | '/call-fullscreen'
+    | '/call-recovery'
     | '/peer-sheet-banner'
     | '/account-delete'
     | '/admin'
@@ -513,6 +523,7 @@ export interface FileRouteTypes {
     | '/terms'
     | '/call-controls'
     | '/call-fullscreen'
+    | '/call-recovery'
     | '/peer-sheet-banner'
     | '/account-delete'
     | '/connect'
@@ -560,6 +571,7 @@ export interface FileRouteTypes {
     | '/terms'
     | '/__e2e/call-controls'
     | '/__e2e/call-fullscreen'
+    | '/__e2e/call-recovery'
     | '/__e2e/peer-sheet-banner'
     | '/_authenticated/account-delete'
     | '/_authenticated/admin'
@@ -610,6 +622,7 @@ export interface RootRouteChildren {
   TermsRoute: typeof TermsRoute
   _e2eCallControlsRoute: typeof _e2eCallControlsRoute
   _e2eCallFullscreenRoute: typeof _e2eCallFullscreenRoute
+  _e2eCallRecoveryRoute: typeof _e2eCallRecoveryRoute
   _e2ePeerSheetBannerRoute: typeof _e2ePeerSheetBannerRoute
   ApiPublicRazorpayWebhookRoute: typeof ApiPublicRazorpayWebhookRoute
   Call_e2ePeerSheetBannerRoute: typeof Call_e2ePeerSheetBannerRoute
@@ -843,6 +856,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof _e2ePeerSheetBannerRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/__e2e/call-recovery': {
+      id: '/__e2e/call-recovery'
+      path: '/call-recovery'
+      fullPath: '/call-recovery'
+      preLoaderRoute: typeof _e2eCallRecoveryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/__e2e/call-fullscreen': {
       id: '/__e2e/call-fullscreen'
       path: '/call-fullscreen'
@@ -1051,6 +1071,7 @@ const rootRouteChildren: RootRouteChildren = {
   TermsRoute: TermsRoute,
   _e2eCallControlsRoute: _e2eCallControlsRoute,
   _e2eCallFullscreenRoute: _e2eCallFullscreenRoute,
+  _e2eCallRecoveryRoute: _e2eCallRecoveryRoute,
   _e2ePeerSheetBannerRoute: _e2ePeerSheetBannerRoute,
   ApiPublicRazorpayWebhookRoute: ApiPublicRazorpayWebhookRoute,
   Call_e2ePeerSheetBannerRoute: Call_e2ePeerSheetBannerRoute,
