@@ -2,11 +2,13 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { UserPlus, Check, X, ChevronLeft, Inbox } from "lucide-react";
+import { useEffect } from "react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/app-shell";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { supabase } from "@/integrations/supabase/client";
 import {
   listFollowRequests,
   respondFollowRequest,
@@ -35,8 +37,48 @@ function RequestsPage() {
     queryKey: ["follow-requests"],
     queryFn: () => listFn(),
     refetchOnWindowFocus: true,
-    refetchInterval: 30_000,
+    // Realtime drives instant updates; keep a slow safety-net poll only.
+    refetchInterval: 120_000,
   });
+
+  // Subscribe to incoming follow rows targeted at the signed-in user so the
+  // list refreshes the instant someone sends, cancels, or updates a request —
+  // no 30s polling lag.
+  useEffect(() => {
+    let cancelled = false;
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+
+    (async () => {
+      const { data } = await supabase.auth.getUser();
+      const uid = data.user?.id;
+      if (!uid || cancelled) return;
+
+      const invalidate = () => {
+        qc.invalidateQueries({ queryKey: ["follow-requests"] });
+      };
+
+      channel = supabase
+        .channel(`follow-requests:${uid}`)
+        .on(
+          "postgres_changes",
+          {
+            event: "*",
+            schema: "public",
+            table: "follows",
+            filter: `following_id=eq.${uid}`,
+          },
+          invalidate,
+        )
+        .subscribe();
+    })();
+
+    return () => {
+      cancelled = true;
+      if (channel) supabase.removeChannel(channel);
+    };
+  }, [qc]);
+
+
 
   const respond = useMutation({
     mutationFn: (vars: { userId: string; action: "accept" | "reject" }) =>
