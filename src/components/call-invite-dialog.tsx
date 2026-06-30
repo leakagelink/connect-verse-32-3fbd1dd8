@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -42,6 +42,12 @@ export function CallInviteDialog({
   // auto-retry once. "blocked" → genuine busy after retry. null otherwise.
   const [busyState, setBusyState] = useState<null | "clearing" | "blocked">(null);
   const [busyRetriedRef] = useState(() => ({ current: false }));
+  // Tracks an in-flight "BUSY → auto-retry" setTimeout so End/Cancel can abort it.
+  const busyRetryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Set when the user taps End/Cancel. Any later mutation success/error becomes a no-op
+  // for state updates and the freshly-created invite (if any) is immediately cancelled
+  // so the callee's ring is dismissed even if the cancel raced the create response.
+  const cancelledRef = useRef(false);
 
   const DELIVERY_TIMEOUT_MS = 8000;
   const MAX_DELIVERY_ATTEMPTS = 3;
@@ -62,14 +68,25 @@ export function CallInviteDialog({
     mutationFn: (p: NonNullable<PendingCall> & { attemptId: string }) =>
       createInviteFn({ data: { calleeId: p.userId, kind: p.kind, attemptId: p.attemptId } }),
     onSuccess: (res) => {
+      const inv = res as InviteStatus;
+      // User tapped End between create-send and create-response: don't surface
+      // a ringing UI, and proactively cancel the freshly-created invite so the
+      // callee's device dismisses any incoming ring.
+      if (cancelledRef.current) {
+        if (inv?.id) {
+          cancelFn({ data: { inviteId: inv.id } }).catch(() => {});
+        }
+        return;
+      }
       setBusyState(null);
-      setInvite(res as InviteStatus);
+      setInvite(inv);
       setMessage(deliveryAttempt > 1
         ? `Retrying delivery… (attempt ${deliveryAttempt}/${MAX_DELIVERY_ATTEMPTS})`
         : "Ringing… waiting for creator to answer");
       qc.invalidateQueries({ queryKey: ["notifications"] });
     },
     onError: (e: any) => {
+      if (cancelledRef.current) return;
       const msg = String(e?.message ?? "Could not send call request");
       if (msg.startsWith("BUSY:") && pendingCall && !busyRetriedRef.current) {
         // First BUSY — most often a stuck "accepted" row from a prior
@@ -78,16 +95,19 @@ export function CallInviteDialog({
         busyRetriedRef.current = true;
         setBusyState("clearing");
         setMessage("Pichli call ka session clear ho raha hai…");
-        setTimeout(() => {
-          if (!pendingCall) return;
+        if (busyRetryTimerRef.current) clearTimeout(busyRetryTimerRef.current);
+        busyRetryTimerRef.current = setTimeout(() => {
+          busyRetryTimerRef.current = null;
+          if (cancelledRef.current || !pendingCall) return;
           const id = newAttemptId();
           setAttemptId(id);
           createMut.mutate({ ...pendingCall, attemptId: id });
         }, 2500);
         return;
       }
+      // Clear stale "clearing" banner for any non-BUSY follow-up error after retry.
+      setBusyState(msg.startsWith("BUSY:") ? "blocked" : null);
       if (msg.startsWith("BUSY:")) {
-        setBusyState("blocked");
         setEndState({
           tone: "busy",
           title: "Creator is busy",
@@ -105,12 +125,39 @@ export function CallInviteDialog({
     onSettled: () => onClose(),
   });
 
+  // Single source of truth for "user wants to stop this call attempt right now".
+  // Aborts the pending BUSY auto-retry, marks the attempt cancelled so any
+  // in-flight create response becomes a no-op, then either cancels the live
+  // invite or just closes the dialog. Used by both the End button and the
+  // dialog's onOpenChange (e.g. swipe/escape) for consistent behaviour.
+  const stopAttempt = () => {
+    cancelledRef.current = true;
+    if (busyRetryTimerRef.current) {
+      clearTimeout(busyRetryTimerRef.current);
+      busyRetryTimerRef.current = null;
+    }
+    setBusyState(null);
+    setMessage("Call cancelled");
+    if (invite?.id && invite.status === "pending") {
+      cancelMut.mutate(invite.id);
+    } else {
+      onClose();
+    }
+  };
+
+
+
 
   useEffect(() => {
     setInvite(null);
     setEndState(null);
     setBusyState(null);
     busyRetriedRef.current = false;
+    cancelledRef.current = false;
+    if (busyRetryTimerRef.current) {
+      clearTimeout(busyRetryTimerRef.current);
+      busyRetryTimerRef.current = null;
+    }
     setDeliveryAttempt(1);
     setMessage("Sending call request…");
     if (pendingCall) {
@@ -120,6 +167,14 @@ export function CallInviteDialog({
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pendingCall?.kind, pendingCall?.userId]);
+
+  // Cleanup pending retry timer if the dialog unmounts mid-attempt.
+  useEffect(() => () => {
+    if (busyRetryTimerRef.current) {
+      clearTimeout(busyRetryTimerRef.current);
+      busyRetryTimerRef.current = null;
+    }
+  }, []);
 
   // Delivery-ack timeout: if creator's device doesn't ack within DELIVERY_TIMEOUT_MS,
   // silently cancel the current invite and re-initiate to the same creator with a
@@ -134,8 +189,11 @@ export function CallInviteDialog({
 
     const inviteId = invite.id;
     const t = setTimeout(async () => {
+      // User tapped End during the 8s wait — stop the retry chain.
+      if (cancelledRef.current) return;
       if (deliveryAttempt >= MAX_DELIVERY_ATTEMPTS) {
         try { await cancelFn({ data: { inviteId } }); } catch { /* ignore */ }
+        if (cancelledRef.current) return;
         setEndState({
           tone: "timeout",
           title: "Couldn't reach creator's device",
@@ -144,9 +202,13 @@ export function CallInviteDialog({
         return;
       }
       try { await cancelFn({ data: { inviteId } }); } catch { /* ignore */ }
+      if (cancelledRef.current) return;
       setInvite(null);
       const next = deliveryAttempt + 1;
       setDeliveryAttempt(next);
+      // Banner-consistency: clear any leftover "clearing" state so the user sees
+      // the retry banner, not a stale prior-attempt banner.
+      setBusyState(null);
       setMessage(`Retrying delivery… (attempt ${next}/${MAX_DELIVERY_ATTEMPTS})`);
       const id = newAttemptId();
       setAttemptId(id);
@@ -269,10 +331,7 @@ export function CallInviteDialog({
 
   return (
     <Dialog open={!!pendingCall} onOpenChange={(open) => {
-      if (!open) {
-        if (invite?.id && invite.status === "pending") cancelMut.mutate(invite.id);
-        else onClose();
-      }
+      if (!open) stopAttempt();
     }}>
       <DialogContent className="max-w-sm text-center">
         {endState ? (
@@ -291,6 +350,13 @@ export function CallInviteDialog({
                 onClick={() => {
                   setInvite(null);
                   setEndState(null);
+                  setBusyState(null);
+                  busyRetriedRef.current = false;
+                  cancelledRef.current = false;
+                  if (busyRetryTimerRef.current) {
+                    clearTimeout(busyRetryTimerRef.current);
+                    busyRetryTimerRef.current = null;
+                  }
                   setDeliveryAttempt(1);
                   setMessage("Sending call request…");
                   if (pendingCall) {
@@ -374,13 +440,15 @@ export function CallInviteDialog({
             <Button
               variant="destructive"
               className="w-full gap-2"
-              disabled={cancelMut.isPending}
-              onClick={() => {
-                if (invite?.id && invite.status === "pending") cancelMut.mutate(invite.id);
-                else onClose();
-              }}
+              disabled={cancelMut.isPending || cancelledRef.current}
+              onClick={stopAttempt}
             >
-              <PhoneOff className="size-4" /> Cancel call
+              <PhoneOff className="size-4" />
+              {busyState === "clearing"
+                ? "Stop & cancel"
+                : deliveryAttempt > 1
+                ? `Cancel (attempt ${deliveryAttempt}/${MAX_DELIVERY_ATTEMPTS})`
+                : "Cancel call"}
             </Button>
           </>
         )}
