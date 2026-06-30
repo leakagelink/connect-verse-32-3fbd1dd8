@@ -42,6 +42,12 @@ export function CallInviteDialog({
   // auto-retry once. "blocked" → genuine busy after retry. null otherwise.
   const [busyState, setBusyState] = useState<null | "clearing" | "blocked">(null);
   const [busyRetriedRef] = useState(() => ({ current: false }));
+  // Tracks an in-flight "BUSY → auto-retry" setTimeout so End/Cancel can abort it.
+  const busyRetryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Set when the user taps End/Cancel. Any later mutation success/error becomes a no-op
+  // for state updates and the freshly-created invite (if any) is immediately cancelled
+  // so the callee's ring is dismissed even if the cancel raced the create response.
+  const cancelledRef = useRef(false);
 
   const DELIVERY_TIMEOUT_MS = 8000;
   const MAX_DELIVERY_ATTEMPTS = 3;
