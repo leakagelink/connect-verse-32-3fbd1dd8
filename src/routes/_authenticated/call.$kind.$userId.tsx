@@ -569,7 +569,9 @@ function CallScreen() {
   // clock skew, accept latency, or who joined the channel first.
   const markConnectedFn = useServerFn(markCallConnected);
   const connectedAtMsRef = useRef<number | null>(null); // server connected_at, in client-clock ms
+  const [connectedAtMs, setConnectedAtMs] = useState<number | null>(null);
   const stampSentRef = useRef(false);
+
   useEffect(() => {
     if (!connected || !remoteJoined) return;
     if (stampSentRef.current) return;
