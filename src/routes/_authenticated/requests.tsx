@@ -154,21 +154,45 @@ function RequestsPage() {
                 | undefined;
               if (!p) return null;
               const isBusy = respond.isPending && respond.variables?.userId === p.id;
+              const isUnread = !r.seen_at;
+              const exp = r.expires_at ? expiresIn(r.expires_at) : null;
               return (
-                <Card key={p.id} className="glass flex items-center gap-3 p-3">
+                <Card
+                  key={p.id}
+                  className={`glass flex items-center gap-3 p-3 ${
+                    isUnread ? "ring-1 ring-primary/40 bg-primary/5" : ""
+                  }`}
+                >
                   <div className="flex items-center gap-3 min-w-0 flex-1">
-                    <Avatar className="size-11 shrink-0">
-                      {p.avatar_url ? <AvatarImage src={p.avatar_url} /> : null}
-                      <AvatarFallback>
-                        {(p.username ?? "?").slice(0, 1).toUpperCase()}
-                      </AvatarFallback>
-                    </Avatar>
+                    <div className="relative shrink-0">
+                      <Avatar className="size-11">
+                        {p.avatar_url ? <AvatarImage src={p.avatar_url} /> : null}
+                        <AvatarFallback>
+                          {(p.username ?? "?").slice(0, 1).toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
+                      {isUnread ? (
+                        <span className="absolute -right-0.5 -top-0.5 size-3 rounded-full bg-primary ring-2 ring-background" />
+                      ) : null}
+                    </div>
                     <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-semibold">
-                        {p.username ?? "User"}
-                      </p>
+                      <div className="flex items-center gap-1.5">
+                        <p className="truncate text-sm font-semibold">
+                          {p.username ?? "User"}
+                        </p>
+                        {isUnread ? (
+                          <span className="rounded-sm bg-primary px-1 py-px text-[9px] font-bold uppercase tracking-wide text-primary-foreground">
+                            New
+                          </span>
+                        ) : null}
+                      </div>
                       <p className="text-[11px] text-muted-foreground">
                         Wants to connect · {timeAgo(r.created_at)}
+                        {exp ? (
+                          <span className={exp.urgent ? "ml-1 text-destructive font-medium" : "ml-1"}>
+                            · {exp.label}
+                          </span>
+                        ) : null}
                       </p>
                     </div>
                   </div>
