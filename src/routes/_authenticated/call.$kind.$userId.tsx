@@ -2301,6 +2301,18 @@ function NetworkBars({ q }: { q: number }) {
 }
 
 /**
+ * Tiny child component that activates the call-pointer safeguard for as long
+ * as the call surface is mounted. Lives as a child so the hook only runs on
+ * the real call route (not on every CallScreen render of unrelated panels).
+ */
+function CallPointerSafeguardMount() {
+  useCallPointerSafeguard(true);
+  return null;
+}
+
+
+
+/**
  * Headless visual contract used by the Call Fullscreen E2E.
  *
  * Mounts the same fullscreen container + the real three-click end-call
