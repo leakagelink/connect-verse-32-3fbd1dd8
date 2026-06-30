@@ -34,6 +34,7 @@ import { CallEndE2E } from "@/components/admin/CallEndE2E";
 import { ConcurrentCallE2E } from "@/components/admin/ConcurrentCallE2E";
 import { CreatorInitiatedCallE2E } from "@/components/admin/CreatorInitiatedCallE2E";
 import { CallFullscreenE2E } from "@/components/admin/CallFullscreenE2E";
+import { FollowPushDiagnostics } from "@/components/admin/FollowPushDiagnostics";
 
 import { adminListKyc, adminReviewKyc, adminListWithdrawals, adminProcessWithdrawal, getKycDocUrl, adminListKycPurgeLog } from "@/lib/kyc.functions";
 import {
