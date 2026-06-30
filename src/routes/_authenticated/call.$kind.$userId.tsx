@@ -39,6 +39,8 @@ import { acceptInviteWithRetry } from "@/lib/accept-call-retry";
 import { useCallPointerSafeguard } from "@/hooks/use-call-pointer-safeguard";
 import { recordCallUiEvent } from "@/lib/call-ui-telemetry";
 import { AgoraDebugPanel } from "@/components/AgoraDebugPanel";
+import { TimerDebugOverlay } from "@/components/TimerDebugOverlay";
+
 
 
 
@@ -569,7 +571,9 @@ function CallScreen() {
   // clock skew, accept latency, or who joined the channel first.
   const markConnectedFn = useServerFn(markCallConnected);
   const connectedAtMsRef = useRef<number | null>(null); // server connected_at, in client-clock ms
+  const [connectedAtMs, setConnectedAtMs] = useState<number | null>(null);
   const stampSentRef = useRef(false);
+
   useEffect(() => {
     if (!connected || !remoteJoined) return;
     if (stampSentRef.current) return;
@@ -584,6 +588,8 @@ function CallScreen() {
         // Translate server timestamps to the local clock by removing skew.
         const skewMs = Date.now() - new Date(res.serverNow).getTime();
         connectedAtMsRef.current = new Date(res.connectedAt).getTime() + skewMs;
+        setConnectedAtMs(connectedAtMsRef.current);
+
         // The server anchor already covers every second since the call was
         // marked connected (including any prior, now-resumed session), so
         // any baseline duration carried in by acceptCallInvite would
@@ -2569,6 +2575,34 @@ function CallScreen() {
         } catch { /* ignore */ }
         return show ? <AgoraDebugPanel /> : null;
       })()}
+
+      {/* Timer correctness debug overlay — enable with ?timerDebug=1,
+          ?callDebug=1, or localStorage.timerDebug = "1". Shows the exact
+          wall-clock moment each timer-driving flag flipped true on this
+          client, plus the server anchor and live elapsed value. Open on
+          both peers to verify they agree on the anchor and elapsed time. */}
+      {(() => {
+        let show = false;
+        try {
+          show =
+            new URLSearchParams(window.location.search).get("timerDebug") === "1" ||
+            new URLSearchParams(window.location.search).get("callDebug") === "1" ||
+            localStorage.getItem("timerDebug") === "1";
+        } catch { /* ignore */ }
+        if (!show) return null;
+        return (
+          <TimerDebugOverlay
+            connected={connected}
+            remoteJoined={remoteJoined}
+            everConnected={everConnected}
+            elapsed={elapsed}
+            connectedAtMs={connectedAtMs}
+            myId={myId ?? ""}
+            peerId={userId ?? ""}
+          />
+        );
+      })()}
+
     </div>
 
 
