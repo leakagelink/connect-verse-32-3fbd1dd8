@@ -1547,8 +1547,10 @@ function CallScreen() {
     // cannot navigate to any other screen until they explicitly end the
     // call (or open the in-call peer profile sheet, which keeps the call
     // session mounted).
-    <div data-testid="call-fullscreen" className="fixed inset-0 z-[60] bg-black flex flex-col overflow-y-auto safe-top safe-bottom">
+    <div data-testid="call-fullscreen" data-call-surface="1" className="fixed inset-0 z-[60] bg-black flex flex-col overflow-y-auto safe-top safe-bottom">
+      <CallPointerSafeguardMount />
       <SafetyTipOverlay />
+
       <Card className="glass overflow-hidden p-0 flex-1 rounded-none border-0">
         {paused && (
           <div className="bg-amber-500/90 text-black text-xs font-semibold text-center px-3 py-2">
