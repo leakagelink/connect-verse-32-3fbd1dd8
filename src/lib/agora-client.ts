@@ -112,11 +112,13 @@ export class AgoraSession {
     this.client.on("user-published", async (user, mediaType) => {
       if (!this.client) return;
       if (mediaType !== "audio" && mediaType !== "video") return;
+      pushAgoraDebug("user-published", { uid: user.uid, mediaType });
       try {
         await this.client.subscribe(user, mediaType);
       } catch (err) {
         // eslint-disable-next-line no-console
         console.warn("[agora] subscribe failed", mediaType, err);
+        pushAgoraDebug("subscribe-failed", { uid: user.uid, mediaType, err: String(err) }, "error");
         return;
       }
       if (mediaType === "audio" && user.audioTrack) {
@@ -124,24 +126,37 @@ export class AgoraSession {
         try { (user.audioTrack as any).setVolume(this.speakerOn ? 400 : 100); } catch { /* ignore */ }
         try {
           user.audioTrack.play();
+          pushAgoraDebug("remote-audio-playing", { uid: user.uid });
         } catch (err) {
           // eslint-disable-next-line no-console
           console.warn("[agora] remote audio autoplay blocked", err);
           this.pendingAudio.push(user.audioTrack);
           this.events.onAudioBlocked?.();
+          pushAgoraDebug("remote-audio-blocked", { uid: user.uid }, "warn");
         }
       }
-      if (mediaType === "video" && user.videoTrack) {
-        // Peer (re-)published video. Their previous videoTrack instance is now
-        // stale: re-binding to the SAME container without clearing leaves an
-        // orphan <video> element rendering a black/last-frame canvas. Clean
-        // the container, then play the FRESH track into it.
-        this.lastRemoteVideoUser = user;
-        this.paintRemoteVideo(user);
+      if (mediaType === "video") {
+        const vt = user.videoTrack as any;
+        const raw: MediaStreamTrack | null = vt?.getMediaStreamTrack?.() ?? null;
+        pushAgoraDebug("remote-video-track", {
+          uid: user.uid,
+          hasTrack: !!user.videoTrack,
+          mst: describeTrack(raw),
+        });
+        if (user.videoTrack) {
+          watchTrackEnded(raw, `remote:${user.uid}`, user.uid as any);
+          // Peer (re-)published video. Their previous videoTrack instance is now
+          // stale: re-binding to the SAME container without clearing leaves an
+          // orphan <video> element rendering a black/last-frame canvas. Clean
+          // the container, then play the FRESH track into it.
+          this.lastRemoteVideoUser = user;
+          this.paintRemoteVideo(user);
+        }
       }
       this.events.onRemoteUser?.(user, mediaType);
     });
     this.client.on("user-unpublished", (user, mediaType) => {
+      pushAgoraDebug("user-unpublished", { uid: user.uid, mediaType });
       if (mediaType !== "video") return;
       // Peer turned cam off. Drop the painted <video> so we don't keep a
       // frozen last frame on screen until they republish.
@@ -149,10 +164,12 @@ export class AgoraSession {
         this.clearRemoteVideoEl();
       }
     });
-    this.client.on("user-left", (user, reason) =>
-      this.events.onRemoteLeft?.(user, mapLeaveReason(reason)),
-    );
+    this.client.on("user-left", (user, reason) => {
+      pushAgoraDebug("user-left", { uid: user.uid, reason: String(reason) });
+      this.events.onRemoteLeft?.(user, mapLeaveReason(reason));
+    });
     this.client.on("connection-state-change", (cur, prev, reason) => {
+      pushAgoraDebug("connection-state", { prev, cur, reason: String(reason ?? "") });
       if (prev === "CONNECTED" && cur !== "CONNECTED") {
         this.disconnects += 1;
         this.events.onDisconnected?.(mapDisconnectReason(reason));
