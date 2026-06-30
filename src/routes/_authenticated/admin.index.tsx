@@ -270,7 +270,9 @@ function AdminPanel() {
 
         <TabsContent value="fcm" className="space-y-3">
           <FcmTab />
+          <FollowPushDiagnostics />
         </TabsContent>
+
 
 
         <TabsContent value="settings" className="space-y-3">
