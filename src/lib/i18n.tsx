@@ -344,7 +344,13 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
 
   const applyLocale = useCallback((l: Locale) => {
     setLocaleState(l);
-    if (typeof document !== "undefined") document.documentElement.lang = l;
+    if (typeof document !== "undefined") {
+      const root = document.documentElement;
+      root.lang = l;
+      const dir = isRtlLocale(l) ? "rtl" : "ltr";
+      root.dir = dir;
+      root.setAttribute("data-dir", dir);
+    }
   }, []);
 
   // Hydrate from localStorage on mount (avoid SSR mismatch by reading after render).
