@@ -20,6 +20,13 @@ export type Locale =
 
 const STORAGE_KEY = "talkora.lang";
 
+/** Locales that render right-to-left. Add new RTL locales here. */
+const RTL_LOCALES = new Set<Locale>(["ar", "ur", "he" as Locale]);
+
+export function isRtlLocale(l: string | null | undefined): boolean {
+  return !!l && RTL_LOCALES.has(l as Locale);
+}
+
 type Dict = Record<string, string>;
 
 const en: Dict = {
@@ -337,7 +344,13 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
 
   const applyLocale = useCallback((l: Locale) => {
     setLocaleState(l);
-    if (typeof document !== "undefined") document.documentElement.lang = l;
+    if (typeof document !== "undefined") {
+      const root = document.documentElement;
+      root.lang = l;
+      const dir = isRtlLocale(l) ? "rtl" : "ltr";
+      root.dir = dir;
+      root.setAttribute("data-dir", dir);
+    }
   }, []);
 
   // Hydrate from localStorage on mount (avoid SSR mismatch by reading after render).

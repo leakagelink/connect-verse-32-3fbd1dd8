@@ -136,3 +136,32 @@
   -webkit-background-clip: text;
   color: transparent;
 }
+
+/* ===== RTL support =====
+ * When <html dir="rtl"> is set (Arabic/Urdu/Hebrew), mirror layout-affecting
+ * properties that don't auto-flip. Most flex/grid layouts mirror automatically
+ * because the writing direction changes; we just fix the icons, transforms,
+ * and toast/sheet anchors that use fixed left/right offsets.
+ */
+[dir="rtl"] .lucide-chevron-right,
+[dir="rtl"] .lucide-arrow-right,
+[dir="rtl"] .lucide-arrow-left,
+[dir="rtl"] .lucide-chevron-left {
+  transform: scaleX(-1);
+}
+
+/* Mirror local video preview in calls only if it isn't already mirrored
+   by the explicit -scale-x-100 class. */
+[dir="rtl"] .rtl-flip {
+  transform: scaleX(-1);
+}
+
+/* Toaster / sonner anchoring: keep notifications on the leading edge. */
+[dir="rtl"] [data-sonner-toaster][data-x-position="right"] {
+  right: auto;
+  left: 1rem;
+}
+[dir="rtl"] [data-sonner-toaster][data-x-position="left"] {
+  left: auto;
+  right: 1rem;
+}
