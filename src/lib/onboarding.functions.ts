@@ -113,6 +113,26 @@ export const updateMyLanguage = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+// Creators can list additional spoken languages so they're matched
+// to users who prefer those languages.
+export const updateMySpokenLanguages = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((d: unknown) =>
+    z.object({
+      languages: z.array(z.string().min(2).max(40)).max(10),
+    }).parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    // Dedupe + normalize
+    const langs = Array.from(new Set(data.languages.map((l) => l.trim()).filter(Boolean)));
+    const { error } = await context.supabase
+      .from("profiles")
+      .update({ languages: langs })
+      .eq("id", context.userId);
+    if (error) throw new Error(error.message);
+    return { ok: true, languages: langs };
+  });
+
 // Save uploaded avatar — generates a long-lived signed URL and persists it.
 // Old object is deleted to avoid orphan files.
 export const setMyAvatar = createServerFn({ method: "POST" })
