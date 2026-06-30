@@ -267,7 +267,7 @@ export function InCallPeerProfileSheet({ userId, open, onOpenChange, inCall = fa
             className="w-full"
             onClick={() => onOpenChange(false)}
           >
-            <ArrowLeft className="size-4 mr-2" /> Back to call
+            <ArrowLeft className="size-4 mr-2" /> {inCall ? "Back to call" : "Close"}
           </Button>
         </SheetFooter>
 
