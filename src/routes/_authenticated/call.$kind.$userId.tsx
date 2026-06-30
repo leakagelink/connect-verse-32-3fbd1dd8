@@ -809,6 +809,53 @@ function CallScreen() {
     }
   }, [bgState, remoteJoined, networkQ]);
 
+  // --- Remote video health monitor -----------------------------------------
+  // Detect when the remote container has no playing <video> child despite the
+  // peer being joined. Show a "Connecting video…" placeholder and proactively
+  // re-attach the container to the SDK so a fresh paint is triggered. This
+  // prevents permanent black screens after toggle/reconnect glitches.
+  const [remoteVideoLive, setRemoteVideoLive] = useState(false);
+  const remoteRetryCountRef = useRef(0);
+  useEffect(() => {
+    if (kind !== "video") return;
+    if (!remoteJoined) {
+      setRemoteVideoLive(false);
+      remoteRetryCountRef.current = 0;
+      return;
+    }
+    let stopped = false;
+    const tick = () => {
+      if (stopped) return;
+      const el = remoteContainerRef.current;
+      const v = el?.querySelector("video") as HTMLVideoElement | null;
+      const live = !!(v && !v.paused && v.readyState >= 2 && v.videoWidth > 0);
+      setRemoteVideoLive(live);
+      if (!live) {
+        remoteRetryCountRef.current += 1;
+        // Every ~1.5s of blank, ask the SDK to repaint into our container.
+        try {
+          const s: any = sessionRef.current;
+          if (s && el) {
+            s.attachRemote?.(el);
+            s.session?.setRemoteVideoElement?.(el);
+            // Best-effort: nudge the <video> to resume playback.
+            v?.play?.().catch(() => {});
+          }
+        } catch {}
+      } else {
+        remoteRetryCountRef.current = 0;
+      }
+    };
+    tick();
+    const id = window.setInterval(tick, 1500);
+    return () => {
+      stopped = true;
+      window.clearInterval(id);
+    };
+  }, [kind, remoteJoined]);
+
+
+
 
 
 
@@ -1690,6 +1737,16 @@ function CallScreen() {
                 ref={remoteContainerRef}
                 className={`absolute inset-0 size-full bg-black ${remoteJoined ? "block" : "hidden"} [&_video]:size-full [&_video]:object-contain [&>div]:size-full`}
               />
+              {remoteJoined && !remoteVideoLive && (
+                <div className="absolute inset-0 z-[5] flex flex-col items-center justify-center gap-3 bg-black/70 text-white pointer-events-none">
+                  <div className="h-10 w-10 rounded-full border-2 border-white/30 border-t-white animate-spin" />
+                  <div className="text-sm font-medium">Connecting video…</div>
+                  <div className="text-xs text-white/70">
+                    {remoteRetryCountRef.current > 2 ? "Retrying camera stream" : "Waiting for peer video"}
+                  </div>
+                </div>
+              )}
+
               <video
                 ref={videoRef}
                 className={
