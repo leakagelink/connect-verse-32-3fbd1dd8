@@ -603,8 +603,24 @@ function CallScreen() {
     return () => { cancelled = true; };
   }, [connected, remoteJoined, markConnectedFn]);
 
+  // Sticky "we have been connected at least once" flag. Once both peers
+  // have ever been in the channel together, the displayed timer must keep
+  // counting through transient remote unpublish/republish events (camera
+  // toggle, brief network drops, Agora SDK reconnects). The previous
+  // implementation gated the interval on `remoteJoined`, so any such blip
+  // froze the clock and made it visibly jump on resume. The server anchor
+  // already guarantees no rewind; this keeps the tick smooth as well.
+  const everConnectedRef = useRef(false);
+  const [everConnected, setEverConnected] = useState(false);
   useEffect(() => {
-    if (!connected || !remoteJoined) return;
+    if (connected && remoteJoined && !everConnectedRef.current) {
+      everConnectedRef.current = true;
+      setEverConnected(true);
+    }
+  }, [connected, remoteJoined]);
+
+  useEffect(() => {
+    if (!everConnected) return;
     const i = setInterval(() => {
       if (pausedRef.current) return;
       // Prefer the server-anchored value once we have it; otherwise tick
@@ -612,6 +628,9 @@ function CallScreen() {
       const anchor = connectedAtMsRef.current;
       if (anchor != null) {
         const next = Math.max(0, Math.floor((Date.now() - anchor) / 1000));
+        // Monotonic guarantee: never rewind, even if the system clock jumps
+        // backwards or a stale anchor recompute happens after a reconnect.
+        if (next < elapsedRef.current) return;
         elapsedRef.current = next;
         setElapsed(next);
       } else {
@@ -623,7 +642,9 @@ function CallScreen() {
       }
     }, 1000);
     return () => clearInterval(i);
-  }, [connected, remoteJoined]);
+
+  }, [everConnected]);
+
 
 
 
