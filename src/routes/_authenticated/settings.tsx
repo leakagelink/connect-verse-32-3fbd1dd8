@@ -69,7 +69,7 @@ function Settings() {
 
   return (
     <AppShell isAdmin={me?.isAdmin}>
-      <h1 className="text-2xl font-bold mb-4">Profile</h1>
+      <h1 className="text-2xl font-bold mb-4">{t("settings.heading")}</h1>
 
       <Card className="glass p-6">
         <div className="flex items-center gap-4">
