@@ -35,6 +35,7 @@ import { recordCallMetrics } from "@/lib/calling.functions";
 import { connectCall, type AnySession } from "@/lib/call-session";
 import { Signal, SignalHigh, SignalLow, SignalMedium, SignalZero } from "lucide-react";
 import { getCallInviteStatus, acceptCallInvite } from "@/lib/call-invites.functions";
+import { acceptInviteWithRetry } from "@/lib/accept-call-retry";
 
 
 
