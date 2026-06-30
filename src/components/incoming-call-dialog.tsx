@@ -149,7 +149,11 @@ export function IncomingCallDialog({ disabled }: { disabled?: boolean }) {
   const invite = useMemo(() => (data ?? [])[0] as IncomingInvite | undefined, [data]);
 
   const acceptMut = useMutation({
-    mutationFn: (id: string) => acceptFn({ data: { inviteId: id } }),
+    mutationFn: (id: string) =>
+      acceptInviteWithRetry(acceptFn, id, {
+        onAttempt: (info) => setRetryInfo(info),
+      }),
+    onSettled: () => setRetryInfo(null),
     onSuccess: (res) => {
       qc.invalidateQueries({ queryKey: ["incoming-call-invites"] });
       navigate({
