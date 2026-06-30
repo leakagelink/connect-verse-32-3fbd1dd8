@@ -109,6 +109,20 @@ export function CreatorPreviewDialog({ userId, kind, onOpenChange, onConfirm, on
     return () => clearInterval(id);
   }, [userId]);
 
+  // Realtime: refresh follower count instantly when anyone follows/unfollows this creator.
+  useEffect(() => {
+    if (!userId) return;
+    const channel = supabase
+      .channel(`creator-preview-follows:${userId}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "follows", filter: `following_id=eq.${userId}` },
+        () => { qc.invalidateQueries({ queryKey: ["partner-preview", userId] }); },
+      )
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [userId, qc]);
+
   const p = data?.profile;
   const liveOnline = presenceQuery.data?.online ?? null;
   const onlineRecent =
