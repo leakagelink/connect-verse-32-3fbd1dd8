@@ -41,9 +41,9 @@ import { acceptInviteWithRetry } from "@/lib/accept-call-retry";
 
 
 export const Route = createFileRoute("/_authenticated/call/$kind/$userId")({
-  validateSearch: (search) => ({
+  validateSearch: (search): { inviteId?: string; autoAccept?: boolean; e2e?: "ui" } => ({
     inviteId: typeof search.inviteId === "string" ? search.inviteId : undefined,
-    autoAccept: search.autoAccept === "1" || search.autoAccept === 1 || search.autoAccept === true,
+    autoAccept: search.autoAccept === "1" || search.autoAccept === 1 || search.autoAccept === true ? true : undefined,
     e2e: search.e2e === "ui" ? "ui" : undefined,
   }),
   component: CallScreenWithE2E,
