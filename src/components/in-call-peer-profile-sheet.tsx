@@ -382,9 +382,11 @@ export function InCallPeerProfileSheet({ userId, open, onOpenChange, inCall = fa
             variant="outline"
             className="w-full"
             onClick={() => onOpenChange(false)}
+            data-testid={showInCallChrome ? "back-to-call-cta" : "close-cta"}
           >
             <ArrowLeft className="size-4 mr-2" /> {showInCallChrome ? "Back to call" : "Close"}
           </Button>
+
         </SheetFooter>
 
         {/*
