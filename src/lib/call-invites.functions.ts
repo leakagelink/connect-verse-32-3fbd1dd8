@@ -4,6 +4,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { withAiAvatar, withAiAvatars } from "./ai-avatar";
 import { notifyUser, notifyIncomingCall, notifyCallEnded } from "./push.functions";
 import { VOICE_CALL_COINS_PER_MINUTE, VIDEO_CALL_COINS_PER_MINUTE } from "./constants";
+import { logCallEvent } from "./call-telemetry.server";
 
 const KindSchema = z.enum(["voice", "video"]);
 const InviteIdSchema = z.object({ inviteId: z.string().uuid() });
@@ -92,6 +93,15 @@ async function refreshStaleBusy(db: any, calleeId: string): Promise<boolean> {
     for (const inv of expired) {
       await recordMissedCallLog(db, inv, "expired").catch(() => {});
       await sendMissedCallNotification(db, inv).catch(() => {});
+      await logCallEvent(db, {
+        eventType: "stale_invite_expired",
+        inviteId: inv.id,
+        callerId: inv.caller_id,
+        calleeId: inv.callee_id,
+        kind: inv.kind,
+        reason: "ttl_exceeded",
+        ok: true,
+      });
     }
   }
 
@@ -132,6 +142,15 @@ async function refreshStaleBusy(db: any, calleeId: string): Promise<boolean> {
       .update({ status: "cancelled", cancelled_at: nowIso })
       .in("id", staleIds);
     changed = true;
+    for (const id of staleIds) {
+      await logCallEvent(db, {
+        eventType: "stale_accepted_cancelled",
+        inviteId: id,
+        calleeId,
+        reason: "stale_heartbeat_or_ended",
+        ok: true,
+      });
+    }
   }
 
   // 2b) Finalize orphan call_logs left open by app-kill / OS reap. A
@@ -160,6 +179,15 @@ async function refreshStaleBusy(db: any, calleeId: string): Promise<boolean> {
       .in("id", orphanIds)
       .is("ended_at", null);
     changed = true;
+    for (const id of orphanIds) {
+      await logCallEvent(db, {
+        eventType: "orphan_log_closed",
+        callLogId: id,
+        calleeId,
+        reason: "no_heartbeat",
+        ok: true,
+      });
+    }
   }
 
   // 3) Reset availability stuck on busy/in_call if nothing is actually live
@@ -191,6 +219,12 @@ async function refreshStaleBusy(db: any, calleeId: string): Promise<boolean> {
     if (prof?.availability && ["busy", "in_call"].includes(prof.availability)) {
       await db.from("profiles").update({ availability: "online" }).eq("id", calleeId);
       changed = true;
+      await logCallEvent(db, {
+        eventType: "stale_availability_reset",
+        calleeId,
+        reason: prof.availability,
+        ok: true,
+      });
     }
   }
 
@@ -436,7 +470,19 @@ export const createCallInvite = createServerFn({ method: "POST" })
       const changed = await refreshStaleBusy(db, data.calleeId);
       if (changed) isBusy = await computeBusy();
     }
-    if (isBusy) throw new Error("BUSY: This creator is on another call right now.");
+    if (isBusy) {
+      await logCallEvent(db, {
+        eventType: "invite_busy",
+        callerId,
+        calleeId: data.calleeId,
+        actorId: callerId,
+        kind: data.kind,
+        reason: "callee_in_call",
+        ok: false,
+        meta: { attemptId: data.attemptId ?? null },
+      });
+      throw new Error("BUSY: This creator is on another call right now.");
+    }
 
 
     await db
@@ -472,8 +518,30 @@ export const createCallInvite = createServerFn({ method: "POST" })
           .maybeSingle();
         if (existing) return statusDto(await expireIfNeeded(db, existing), callerId);
       }
+      await logCallEvent(db, {
+        eventType: "invite_failed",
+        callerId,
+        calleeId: data.calleeId,
+        actorId: callerId,
+        kind: data.kind,
+        reason: msg.slice(0, 200),
+        ok: false,
+        meta: { code: (error as any)?.code ?? null, attemptId: data.attemptId ?? null },
+      });
       throw new Error(msg || "Could not create call invite.");
     }
+
+    await logCallEvent(db, {
+      eventType: "invite_created",
+      inviteId: invite.id,
+      callerId,
+      calleeId: data.calleeId,
+      actorId: callerId,
+      kind: data.kind,
+      status: invite.status,
+      ok: true,
+      meta: { attemptId: data.attemptId ?? null, ttl: INVITE_TTL_SECONDS },
+    });
 
     // In-app notification + standard FCM banner (in case data push is throttled).
     await notifyUser({
@@ -699,8 +767,28 @@ export const acceptCallInvite = createServerFn({ method: "POST" })
           (r: any) => r.call_log_id == null || !r.call_logs?.ended_at,
         );
         if (reallyBusy) {
+          await logCallEvent(db, {
+            eventType: "accept_conflict",
+            inviteId: invite.id,
+            callerId: invite.caller_id,
+            calleeId: invite.callee_id,
+            actorId: context.userId,
+            kind: invite.kind,
+            reason: "really_busy_after_cleanup",
+            ok: false,
+          });
           throw new Error("This creator just picked up another call.");
         }
+        await logCallEvent(db, {
+          eventType: "accept_ghost_cleared",
+          inviteId: invite.id,
+          callerId: invite.caller_id,
+          calleeId: invite.callee_id,
+          actorId: context.userId,
+          kind: invite.kind,
+          reason: "ghost_accepted_cleared",
+          ok: false,
+        });
         throw new Error("This call is no longer ringing.");
       }
       throw new Error(msg);
@@ -746,6 +834,25 @@ export const acceptCallInvite = createServerFn({ method: "POST" })
       .select("*")
       .maybeSingle();
 
+
+    await logCallEvent(db, {
+      eventType: "invite_accepted",
+      inviteId: invite.id,
+      callLogId: log.id,
+      callerId: invite.caller_id,
+      calleeId: invite.callee_id,
+      actorId: context.userId,
+      kind: invite.kind,
+      ok: true,
+      meta: {
+        payerId: parties.payerId,
+        earnerId: parties.earnerId,
+        ringMs: invite.created_at
+          ? Math.max(0, Date.now() - new Date(invite.created_at).getTime())
+          : null,
+      },
+    });
+
     return statusDto(finalized ?? { ...reserved, call_log_id: log.id }, context.userId, log, parties);
   });
 
@@ -770,6 +877,16 @@ export const rejectCallInvite = createServerFn({ method: "POST" })
     if (rejected) {
       await recordMissedCallLog(db, rejected, "callee_rejected").catch(() => {});
     }
+    await logCallEvent(db, {
+      eventType: "accept_rejected",
+      inviteId: invite.id,
+      callerId: invite.caller_id,
+      calleeId: invite.callee_id,
+      actorId: context.userId,
+      kind: invite.kind,
+      reason: "callee_rejected",
+      ok: true,
+    });
     return { ok: true };
   });
 
@@ -795,6 +912,16 @@ export const cancelCallInvite = createServerFn({ method: "POST" })
       await recordMissedCallLog(db, cancelled, "caller_cancelled").catch(() => {});
       await sendMissedCallNotification(db, cancelled).catch(() => {});
     }
+    await logCallEvent(db, {
+      eventType: "invite_cancelled",
+      inviteId: invite.id,
+      callerId: invite.caller_id,
+      calleeId: invite.callee_id,
+      actorId: context.userId,
+      kind: invite.kind,
+      reason: invite.delivered_at ? "caller_cancelled_after_ring" : "caller_cancelled_pre_ring",
+      ok: true,
+    });
     return { ok: true };
   });
 
