@@ -44,13 +44,33 @@ import {
 
 type ConfirmKind = null | "follow-request" | "unfollow";
 
+export type LastCallContext = {
+  status: "completed" | "missed" | "cancelled";
+  /** call_logs.missed_reason — finer-grained reason when status !== completed. */
+  missedReason?:
+    | "no_answer"
+    | "declined"
+    | "cancelled"
+    | "busy"
+    | "expired"
+    | null;
+  kind: "voice" | "video";
+};
+
 type Props = {
   userId: string | null;
   open: boolean;
   onOpenChange: (v: boolean) => void;
   /** True only when this sheet is opened from inside the live call screen. */
   inCall?: boolean;
+  /**
+   * If the sheet is opened from a call-history surface (e.g. Recents),
+   * pass the latest call row so the sheet can show a clear
+   * "call available nahi" notice instead of the in-call banner.
+   */
+  lastCall?: LastCallContext | null;
 };
+
 
 
 /**
