@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -66,6 +67,27 @@ function Settings() {
     await supabase.auth.signOut();
     navigate({ to: "/auth", replace: true });
   }
+
+  // Realtime: refresh own follower/following counts instantly when someone
+  // follows me, or I follow/unfollow someone — no page reload needed.
+  const myId = me?.profile?.id as string | undefined;
+  useEffect(() => {
+    if (!myId) return;
+    const channel = supabase
+      .channel(`settings-follows:${myId}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "follows", filter: `following_id=eq.${myId}` },
+        () => { qc.invalidateQueries({ queryKey: ["me"] }); },
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "follows", filter: `follower_id=eq.${myId}` },
+        () => { qc.invalidateQueries({ queryKey: ["me"] }); },
+      )
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [myId, qc]);
 
   const p = me?.profile;
 

@@ -81,14 +81,18 @@ function ChatRoom() {
         { event: "*", schema: "public", table: "follows", filter: `follower_id=eq.${myId}` },
         (payload: any) => {
           const row = payload.new ?? payload.old;
-          if (row?.followee_id === otherUserId) qc.invalidateQueries({ queryKey: ["partner", otherUserId] });
+          if (row?.following_id === otherUserId) qc.invalidateQueries({ queryKey: ["partner", otherUserId] });
         })
       .on("postgres_changes",
-        { event: "*", schema: "public", table: "follows", filter: `followee_id=eq.${myId}` },
+        { event: "*", schema: "public", table: "follows", filter: `following_id=eq.${myId}` },
         (payload: any) => {
           const row = payload.new ?? payload.old;
           if (row?.follower_id === otherUserId) qc.invalidateQueries({ queryKey: ["partner", otherUserId] });
         })
+      // Also refresh when anyone follows/unfollows the partner (their public count).
+      .on("postgres_changes",
+        { event: "*", schema: "public", table: "follows", filter: `following_id=eq.${otherUserId}` },
+        () => { qc.invalidateQueries({ queryKey: ["partner", otherUserId] }); })
       .subscribe();
     return () => { supabase.removeChannel(ch); };
   }, [me?.profile?.id, otherUserId, qc]);

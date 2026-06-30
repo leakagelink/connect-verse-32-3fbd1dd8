@@ -4,6 +4,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { getPartnerProfile } from "@/lib/follows.functions";
 import { checkUserOnline } from "@/lib/presence.functions";
+import { supabase } from "@/integrations/supabase/client";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -107,6 +108,20 @@ export function CreatorPreviewDialog({ userId, kind, onOpenChange, onConfirm, on
     const id = setInterval(() => setTick((t) => t + 1), 10_000);
     return () => clearInterval(id);
   }, [userId]);
+
+  // Realtime: refresh follower count instantly when anyone follows/unfollows this creator.
+  useEffect(() => {
+    if (!userId) return;
+    const channel = supabase
+      .channel(`creator-preview-follows:${userId}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "follows", filter: `following_id=eq.${userId}` },
+        () => { qc.invalidateQueries({ queryKey: ["partner-preview", userId] }); },
+      )
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [userId, qc]);
 
   const p = data?.profile;
   const liveOnline = presenceQuery.data?.online ?? null;
