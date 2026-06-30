@@ -43,7 +43,7 @@ function Settings() {
   const langMut = useMutation({
     mutationFn: (language: string) => langFn({ data: { language } }),
     onSuccess: () => {
-      toast.success("Language updated");
+      toast.success(t("settings.langUpdated"));
       qc.invalidateQueries({ queryKey: ["me"] });
     },
     onError: (e: any) => toast.error(e.message),
