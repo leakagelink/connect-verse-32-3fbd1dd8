@@ -198,6 +198,24 @@ export const sendMessage = createServerFn({ method: "POST" })
       .update({ last_message_at: new Date().toISOString() })
       .eq("id", data.conversationId);
 
+    // Notify recipient (in-app bell + FCM push). Best-effort.
+    try {
+      const { data: sender } = await supabase
+        .from("profiles").select("username").eq("id", userId).maybeSingle();
+      const senderName = sender?.username || "Someone";
+      const preview = data.body.length > 80 ? data.body.slice(0, 77) + "…" : data.body;
+      const { notifyUser } = await import("./push.functions");
+      await notifyUser({
+        userId: otherUserId,
+        kind: "chat",
+        title: `New message from ${senderName}`,
+        body: preview,
+        deepLink: `/chat/${data.conversationId}`,
+      });
+    } catch (e) {
+      console.error("[sendMessage] notifyUser failed", e);
+    }
+
     return msg;
   });
 
