@@ -138,6 +138,23 @@ export const sendGift = createServerFn({ method: "POST" })
     const elapsedMs = Date.now() - t0;
     log("done", { elapsedMs, newSenderBal });
 
+    // Notify receiver (in-app bell + FCM push). Best-effort — never fail the send.
+    try {
+      const { data: sender } = await supabase
+        .from("profiles").select("username").eq("id", userId).maybeSingle();
+      const senderName = sender?.username || "Someone";
+      const { notifyUser } = await import("./push.functions");
+      await notifyUser({
+        userId: data.receiverId,
+        kind: "gifts",
+        title: `${gift.emoji ?? "🎁"} Gift from ${senderName}`,
+        body: `You received ${gift.name} (${cost} coins)`,
+        deepLink: "/wallet",
+      });
+    } catch (e) {
+      console.error("[gift-send] notifyUser failed", e);
+    }
+
     return {
       ok: true,
       sendId: sendRow.id,
