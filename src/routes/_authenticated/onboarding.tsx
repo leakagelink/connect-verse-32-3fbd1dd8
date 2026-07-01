@@ -100,18 +100,24 @@ function Onboarding() {
   if (isLoading) return <div className="p-8 text-center text-muted-foreground">{t("common.loading")}</div>;
 
   return (
-    <div className="min-h-screen grid place-items-center px-4 py-8">
-      <Card className="glass w-full max-w-lg p-6 space-y-4">
+    <div className="min-h-[100dvh] w-full bg-background sm:grid sm:place-items-center sm:px-4 sm:py-8">
+      <Card
+        className="glass w-full sm:max-w-lg rounded-none sm:rounded-2xl border-0 sm:border p-4 sm:p-6 space-y-4"
+        style={{
+          paddingTop: "max(1rem, env(safe-area-inset-top))",
+          paddingBottom: "max(6rem, calc(env(safe-area-inset-bottom) + 5.5rem))",
+        }}
+      >
         <div>
-          <h1 className="text-2xl font-bold">{t("onb.title")}</h1>
+          <h1 className="text-xl sm:text-2xl font-bold">{t("onb.title")}</h1>
           <p className="text-sm text-muted-foreground">{t("onb.subtitle")}</p>
         </div>
 
         {/* Cute AI avatar — instant preview + style chips + lock-in */}
-        <div className="rounded-xl border border-border/50 bg-card/40 p-4 space-y-3">
-          <div className="flex items-center gap-4">
-            <div className="relative">
-              <div className="h-20 w-20 rounded-full overflow-hidden ring-2 ring-primary/40 bg-muted">
+        <div className="rounded-xl border border-border/50 bg-card/40 p-3 sm:p-4 space-y-3">
+          <div className="flex items-center gap-3 sm:gap-4">
+            <div className="relative shrink-0">
+              <div className="h-16 w-16 sm:h-20 sm:w-20 rounded-full overflow-hidden ring-2 ring-primary/40 bg-muted">
                 <img key={previewUrl} src={previewUrl} alt="Your AI avatar" className="h-full w-full object-cover" />
               </div>
               {avatarLocked && (
@@ -122,13 +128,13 @@ function Onboarding() {
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium">Your cute AI avatar</p>
-              <p className="text-xs text-muted-foreground">Pick a style or shuffle the look. You can change it later in Settings.</p>
-              <div className="mt-2 flex gap-2">
+              <p className="text-xs text-muted-foreground">Pick a style or shuffle. Change later in Settings.</p>
+              <div className="mt-2 flex flex-wrap gap-2">
                 <Button
                   type="button"
                   size="sm"
                   variant="outline"
-                  className="h-8 px-2"
+                  className="h-9 px-3"
                   onClick={() => { setAvatarSeedSalt((n) => n + 1); setAvatarLocked(false); }}
                 >
                   <Shuffle className="h-3.5 w-3.5 mr-1" /> Shuffle
@@ -137,7 +143,7 @@ function Onboarding() {
                   type="button"
                   size="sm"
                   variant={avatarLocked ? "secondary" : "default"}
-                  className="h-8 px-3"
+                  className="h-9 px-3"
                   onClick={() => { setAvatarLocked(true); toast.success("Avatar locked in ✨"); }}
                 >
                   {avatarLocked ? (<><Check className="h-3.5 w-3.5 mr-1" /> Locked</>) : (<><Lock className="h-3.5 w-3.5 mr-1" /> Confirm</>)}
@@ -145,7 +151,7 @@ function Onboarding() {
               </div>
             </div>
           </div>
-          <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
+          <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1 snap-x snap-mandatory [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
             {AI_AVATAR_STYLES.map((s) => {
               const selected = s.id === avatarStyle;
               const thumb = aiAvatarUrl(avatarSeed, s.id, gender || null, creator);
@@ -154,10 +160,10 @@ function Onboarding() {
                   key={s.id}
                   type="button"
                   onClick={() => { setAvatarStyle(s.id); setAvatarLocked(false); }}
-                  className={`flex-shrink-0 flex flex-col items-center gap-1 rounded-lg p-1 transition ${selected ? "ring-2 ring-primary bg-primary/10" : "hover:bg-muted/60"}`}
+                  className={`flex-shrink-0 snap-start flex flex-col items-center gap-1 rounded-lg p-1.5 transition ${selected ? "ring-2 ring-primary bg-primary/10" : "hover:bg-muted/60 active:bg-muted"}`}
                   aria-label={`Use ${s.label} avatar style`}
                 >
-                  <img src={thumb} alt="" className="h-10 w-10 rounded-full object-cover bg-muted" />
+                  <img src={thumb} alt="" className="h-11 w-11 rounded-full object-cover bg-muted" />
                   <span className="text-[10px] leading-none text-muted-foreground">{s.label}</span>
                 </button>
               );
@@ -165,12 +171,15 @@ function Onboarding() {
           </div>
         </div>
 
-        <div><Label>{t("onb.username")}</Label><Input value={username} onChange={(e) => setU(e.target.value)} placeholder={t("onb.usernamePh")} /></div>
-        <div className="grid grid-cols-2 gap-3">
-          <div>
+        <div className="space-y-1.5">
+          <Label>{t("onb.username")}</Label>
+          <Input value={username} onChange={(e) => setU(e.target.value)} placeholder={t("onb.usernamePh")} className="h-11 text-base" autoComplete="username" />
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="space-y-1.5">
             <Label>{t("onb.gender")}</Label>
             <Select value={gender} onValueChange={(v) => setG(v as any)}>
-              <SelectTrigger><SelectValue placeholder={t("onb.selectPlaceholder")} /></SelectTrigger>
+              <SelectTrigger className="h-11"><SelectValue placeholder={t("onb.selectPlaceholder")} /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="female">{t("onb.female")}</SelectItem>
                 <SelectItem value="male">{t("onb.male")}</SelectItem>
@@ -178,36 +187,39 @@ function Onboarding() {
               </SelectContent>
             </Select>
           </div>
-          <div><Label>{t("onb.dob")}</Label><Input type="date" value={dob} onChange={(e) => setD(e.target.value)} max={new Date().toISOString().slice(0,10)} /></div>
+          <div className="space-y-1.5">
+            <Label>{t("onb.dob")}</Label>
+            <Input type="date" value={dob} onChange={(e) => setD(e.target.value)} max={new Date().toISOString().slice(0,10)} className="h-11 text-base" />
+          </div>
         </div>
-        <div className="grid grid-cols-2 gap-3">
-          <div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="space-y-1.5">
             <Label>{t("onb.country")}</Label>
             <Select value={country} onValueChange={(v) => { setC(v); setSt(""); }}>
-              <SelectTrigger><SelectValue placeholder={t("onb.selectCountry")} /></SelectTrigger>
+              <SelectTrigger className="h-11"><SelectValue placeholder={t("onb.selectCountry")} /></SelectTrigger>
               <SelectContent className="max-h-72">
                 {COUNTRIES.map((c) => (<SelectItem key={c} value={c}>{c}</SelectItem>))}
               </SelectContent>
             </Select>
           </div>
-          <div>
+          <div className="space-y-1.5">
             <Label>{t("onb.state")}</Label>
             {STATES_BY_COUNTRY[country]?.length ? (
               <Select value={state} onValueChange={setSt}>
-                <SelectTrigger><SelectValue placeholder={t("onb.selectState")} /></SelectTrigger>
+                <SelectTrigger className="h-11"><SelectValue placeholder={t("onb.selectState")} /></SelectTrigger>
                 <SelectContent className="max-h-72">
                   {STATES_BY_COUNTRY[country].map((s) => (<SelectItem key={s} value={s}>{s}</SelectItem>))}
                 </SelectContent>
               </Select>
             ) : (
-              <Input value={state} onChange={(e) => setSt(e.target.value)} placeholder={t("onb.statePh")} />
+              <Input value={state} onChange={(e) => setSt(e.target.value)} placeholder={t("onb.statePh")} className="h-11 text-base" />
             )}
           </div>
         </div>
-        <div>
+        <div className="space-y-1.5">
           <Label>{t("onb.language")}</Label>
           <Select value={language} onValueChange={setL}>
-            <SelectTrigger><SelectValue placeholder={t("settings.selectLang")} /></SelectTrigger>
+            <SelectTrigger className="h-11"><SelectValue placeholder={t("settings.selectLang")} /></SelectTrigger>
             <SelectContent className="max-h-72">
               {APP_LANGUAGES.map((l) => (
                 <SelectItem key={l.code} value={l.code}>{l.name}</SelectItem>
@@ -218,12 +230,12 @@ function Onboarding() {
         </div>
 
         {gender === "female" && (
-          <div className="flex items-center justify-between rounded-lg border border-accent/30 bg-accent/10 p-3">
-            <div>
+          <div className="flex items-center justify-between gap-3 rounded-lg border border-accent/30 bg-accent/10 p-3">
+            <div className="min-w-0">
               <p className="text-sm font-medium">{t("onb.joinCreator")}</p>
               <p className="text-xs text-muted-foreground">{t("onb.joinCreatorHint")}</p>
             </div>
-            <Switch checked={creator} onCheckedChange={setCr} />
+            <Switch checked={creator} onCheckedChange={setCr} className="shrink-0" />
           </div>
         )}
 
@@ -232,9 +244,15 @@ function Onboarding() {
           <span className="text-muted-foreground">{t("onb.guidelines")}</span>
         </label>
 
-        <Button onClick={submit} disabled={busy || !accept} className="w-full brand-gradient text-primary-foreground">
-          {t("onb.cta")}
-        </Button>
+        {/* Sticky CTA on mobile so submit is always reachable above the keyboard/nav */}
+        <div
+          className="sticky bottom-0 -mx-4 sm:mx-0 px-4 sm:px-0 pt-3 pb-3 sm:pt-0 sm:pb-0 bg-gradient-to-t from-background via-background/95 to-background/0 sm:bg-none"
+          style={{ paddingBottom: "max(0.75rem, env(safe-area-inset-bottom))" }}
+        >
+          <Button onClick={submit} disabled={busy || !accept} className="w-full h-12 text-base brand-gradient text-primary-foreground">
+            {t("onb.cta")}
+          </Button>
+        </div>
       </Card>
     </div>
   );
