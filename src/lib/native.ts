@@ -88,6 +88,32 @@ export function onHardwareBack(handler: () => boolean | void): () => void {
   return () => cleanup?.();
 }
 
+/* ---------------- External browser (Play Store compliant payments) ----------------
+ * Google Play policy prohibits alternative billing (Razorpay/Juspay/etc.) for
+ * digital goods bought inside the app. To stay compliant, coin purchases on
+ * the Android build open the user's default browser at talkoraapp.com/recharge,
+ * where the same Razorpay flow runs outside the app. The web session credits
+ * the wallet, and the app auto-refreshes the balance when it resumes.
+ *
+ * On web this is a no-op wrapper around window.open.
+ */
+export async function openExternalUrl(url: string): Promise<void> {
+  if (!isNative()) {
+    try { window.open(url, '_blank', 'noopener'); } catch { /* ignore */ }
+    return;
+  }
+  try {
+    const { Browser } = await import('@capacitor/browser');
+    // presentationStyle 'popover' / windowName '_system'-like — Capacitor
+    // Browser uses Chrome Custom Tabs on Android, which counts as the system
+    // browser for Play policy purposes (not our WebView).
+    await Browser.open({ url });
+  } catch (e) {
+    console.warn('[external] Browser.open failed, falling back', e);
+    try { window.open(url, '_system'); } catch { /* ignore */ }
+  }
+}
+
 /* ---------------- Push notifications ---------------- */
 
 export interface PushRegistration {
