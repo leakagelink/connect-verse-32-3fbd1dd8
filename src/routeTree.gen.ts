@@ -50,6 +50,7 @@ import { Route as Call_e2ePeerSheetBannerRouteImport } from './routes/call.__e2e
 import { Route as ApiPublicRazorpayWebhookRouteImport } from './routes/api/public/razorpay-webhook'
 import { Route as AuthenticatedRoomsNewRouteImport } from './routes/_authenticated/rooms.new'
 import { Route as AuthenticatedRoomsIdRouteImport } from './routes/_authenticated/rooms.$id'
+import { Route as AuthenticatedRechargeStatusRouteImport } from './routes/_authenticated/recharge.status'
 import { Route as AuthenticatedMysteryCaseIdRouteImport } from './routes/_authenticated/mystery.$caseId'
 import { Route as AuthenticatedMatchmakerNewRouteImport } from './routes/_authenticated/matchmaker.new'
 import { Route as AuthenticatedMatchmakerIdRouteImport } from './routes/_authenticated/matchmaker.$id'
@@ -269,6 +270,12 @@ const AuthenticatedRoomsIdRoute = AuthenticatedRoomsIdRouteImport.update({
   path: '/rooms/$id',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedRechargeStatusRoute =
+  AuthenticatedRechargeStatusRouteImport.update({
+    id: '/status',
+    path: '/status',
+    getParentRoute: () => AuthenticatedRechargeRoute,
+  } as any)
 const AuthenticatedMysteryCaseIdRoute =
   AuthenticatedMysteryCaseIdRouteImport.update({
     id: '/mystery/$caseId',
@@ -341,7 +348,7 @@ export interface FileRoutesByFullPath {
   '/notifications': typeof AuthenticatedNotificationsRoute
   '/onboarding': typeof AuthenticatedOnboardingRoute
   '/recents': typeof AuthenticatedRecentsRoute
-  '/recharge': typeof AuthenticatedRechargeRoute
+  '/recharge': typeof AuthenticatedRechargeRouteWithChildren
   '/refer': typeof AuthenticatedReferRoute
   '/requests': typeof AuthenticatedRequestsRoute
   '/settings': typeof AuthenticatedSettingsRoute
@@ -351,6 +358,7 @@ export interface FileRoutesByFullPath {
   '/matchmaker/$id': typeof AuthenticatedMatchmakerIdRoute
   '/matchmaker/new': typeof AuthenticatedMatchmakerNewRoute
   '/mystery/$caseId': typeof AuthenticatedMysteryCaseIdRoute
+  '/recharge/status': typeof AuthenticatedRechargeStatusRoute
   '/rooms/$id': typeof AuthenticatedRoomsIdRoute
   '/rooms/new': typeof AuthenticatedRoomsNewRoute
   '/api/public/razorpay-webhook': typeof ApiPublicRazorpayWebhookRoute
@@ -388,7 +396,7 @@ export interface FileRoutesByTo {
   '/notifications': typeof AuthenticatedNotificationsRoute
   '/onboarding': typeof AuthenticatedOnboardingRoute
   '/recents': typeof AuthenticatedRecentsRoute
-  '/recharge': typeof AuthenticatedRechargeRoute
+  '/recharge': typeof AuthenticatedRechargeRouteWithChildren
   '/refer': typeof AuthenticatedReferRoute
   '/requests': typeof AuthenticatedRequestsRoute
   '/settings': typeof AuthenticatedSettingsRoute
@@ -398,6 +406,7 @@ export interface FileRoutesByTo {
   '/matchmaker/$id': typeof AuthenticatedMatchmakerIdRoute
   '/matchmaker/new': typeof AuthenticatedMatchmakerNewRoute
   '/mystery/$caseId': typeof AuthenticatedMysteryCaseIdRoute
+  '/recharge/status': typeof AuthenticatedRechargeStatusRoute
   '/rooms/$id': typeof AuthenticatedRoomsIdRoute
   '/rooms/new': typeof AuthenticatedRoomsNewRoute
   '/api/public/razorpay-webhook': typeof ApiPublicRazorpayWebhookRoute
@@ -439,7 +448,7 @@ export interface FileRoutesById {
   '/_authenticated/notifications': typeof AuthenticatedNotificationsRoute
   '/_authenticated/onboarding': typeof AuthenticatedOnboardingRoute
   '/_authenticated/recents': typeof AuthenticatedRecentsRoute
-  '/_authenticated/recharge': typeof AuthenticatedRechargeRoute
+  '/_authenticated/recharge': typeof AuthenticatedRechargeRouteWithChildren
   '/_authenticated/refer': typeof AuthenticatedReferRoute
   '/_authenticated/requests': typeof AuthenticatedRequestsRoute
   '/_authenticated/settings': typeof AuthenticatedSettingsRoute
@@ -449,6 +458,7 @@ export interface FileRoutesById {
   '/_authenticated/matchmaker/$id': typeof AuthenticatedMatchmakerIdRoute
   '/_authenticated/matchmaker/new': typeof AuthenticatedMatchmakerNewRoute
   '/_authenticated/mystery/$caseId': typeof AuthenticatedMysteryCaseIdRoute
+  '/_authenticated/recharge/status': typeof AuthenticatedRechargeStatusRoute
   '/_authenticated/rooms/$id': typeof AuthenticatedRoomsIdRoute
   '/_authenticated/rooms/new': typeof AuthenticatedRoomsNewRoute
   '/api/public/razorpay-webhook': typeof ApiPublicRazorpayWebhookRoute
@@ -500,6 +510,7 @@ export interface FileRouteTypes {
     | '/matchmaker/$id'
     | '/matchmaker/new'
     | '/mystery/$caseId'
+    | '/recharge/status'
     | '/rooms/$id'
     | '/rooms/new'
     | '/api/public/razorpay-webhook'
@@ -547,6 +558,7 @@ export interface FileRouteTypes {
     | '/matchmaker/$id'
     | '/matchmaker/new'
     | '/mystery/$caseId'
+    | '/recharge/status'
     | '/rooms/$id'
     | '/rooms/new'
     | '/api/public/razorpay-webhook'
@@ -597,6 +609,7 @@ export interface FileRouteTypes {
     | '/_authenticated/matchmaker/$id'
     | '/_authenticated/matchmaker/new'
     | '/_authenticated/mystery/$caseId'
+    | '/_authenticated/recharge/status'
     | '/_authenticated/rooms/$id'
     | '/_authenticated/rooms/new'
     | '/api/public/razorpay-webhook'
@@ -919,6 +932,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedRoomsIdRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/recharge/status': {
+      id: '/_authenticated/recharge/status'
+      path: '/status'
+      fullPath: '/recharge/status'
+      preLoaderRoute: typeof AuthenticatedRechargeStatusRouteImport
+      parentRoute: typeof AuthenticatedRechargeRoute
+    }
     '/_authenticated/mystery/$caseId': {
       id: '/_authenticated/mystery/$caseId'
       path: '/mystery/$caseId'
@@ -995,6 +1015,19 @@ const AuthenticatedChatRouteChildren: AuthenticatedChatRouteChildren = {
 const AuthenticatedChatRouteWithChildren =
   AuthenticatedChatRoute._addFileChildren(AuthenticatedChatRouteChildren)
 
+interface AuthenticatedRechargeRouteChildren {
+  AuthenticatedRechargeStatusRoute: typeof AuthenticatedRechargeStatusRoute
+}
+
+const AuthenticatedRechargeRouteChildren: AuthenticatedRechargeRouteChildren = {
+  AuthenticatedRechargeStatusRoute: AuthenticatedRechargeStatusRoute,
+}
+
+const AuthenticatedRechargeRouteWithChildren =
+  AuthenticatedRechargeRoute._addFileChildren(
+    AuthenticatedRechargeRouteChildren,
+  )
+
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAccountDeleteRoute: typeof AuthenticatedAccountDeleteRoute
   AuthenticatedAdminRoute: typeof AuthenticatedAdminRouteWithChildren
@@ -1010,7 +1043,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedNotificationsRoute: typeof AuthenticatedNotificationsRoute
   AuthenticatedOnboardingRoute: typeof AuthenticatedOnboardingRoute
   AuthenticatedRecentsRoute: typeof AuthenticatedRecentsRoute
-  AuthenticatedRechargeRoute: typeof AuthenticatedRechargeRoute
+  AuthenticatedRechargeRoute: typeof AuthenticatedRechargeRouteWithChildren
   AuthenticatedReferRoute: typeof AuthenticatedReferRoute
   AuthenticatedRequestsRoute: typeof AuthenticatedRequestsRoute
   AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRoute
@@ -1040,7 +1073,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedNotificationsRoute: AuthenticatedNotificationsRoute,
   AuthenticatedOnboardingRoute: AuthenticatedOnboardingRoute,
   AuthenticatedRecentsRoute: AuthenticatedRecentsRoute,
-  AuthenticatedRechargeRoute: AuthenticatedRechargeRoute,
+  AuthenticatedRechargeRoute: AuthenticatedRechargeRouteWithChildren,
   AuthenticatedReferRoute: AuthenticatedReferRoute,
   AuthenticatedRequestsRoute: AuthenticatedRequestsRoute,
   AuthenticatedSettingsRoute: AuthenticatedSettingsRoute,
