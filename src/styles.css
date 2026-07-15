@@ -113,10 +113,9 @@
   overflow-y: hidden;
   scrollbar-width: none;
   -webkit-overflow-scrolling: touch;
+  &::-webkit-scrollbar { display: none; }
 }
-@utility h-scroll::-webkit-scrollbar {
-  display: none;
-}
+
 
 
 @utility safe-top {

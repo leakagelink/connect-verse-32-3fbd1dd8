@@ -95,20 +95,20 @@ function Settings() {
     <AppShell isAdmin={me?.isAdmin}>
       <h1 className="text-2xl font-bold mb-4">{t("settings.heading")}</h1>
 
-      <Card className="glass p-6">
-        <div className="flex items-center gap-4">
-          <Avatar className="size-20">
+      <Card className="glass p-4 sm:p-6">
+        <div className="flex items-center gap-3 sm:gap-4">
+          <Avatar className="size-16 sm:size-20 shrink-0">
             {p?.avatar_url && <AvatarImage src={p.avatar_url} />}
-            <AvatarFallback className="brand-gradient text-primary-foreground font-bold text-2xl">
+            <AvatarFallback className="brand-gradient text-primary-foreground font-bold text-xl sm:text-2xl">
               {(p?.username ?? "?").slice(0, 2).toUpperCase()}
             </AvatarFallback>
           </Avatar>
           <div className="flex-1 min-w-0">
-            <div className="flex flex-wrap items-center gap-2">
-              <p className="text-lg font-semibold truncate">{p?.username ?? "—"}</p>
-              {p?.is_creator && <Badge variant="secondary">Creator</Badge>}
+            <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+              <p className="text-base sm:text-lg font-semibold truncate">{p?.username ?? "—"}</p>
+              {p?.is_creator && <Badge variant="secondary" className="text-[10px]">Creator</Badge>}
               {me?.isAdmin && (
-                <Badge className="bg-accent text-accent-foreground">
+                <Badge className="bg-accent text-accent-foreground text-[10px]">
                   <Shield className="size-3 mr-1" />Admin
                 </Badge>
               )}
@@ -118,6 +118,7 @@ function Settings() {
             </p>
           </div>
         </div>
+
 
         {/* Followers / Following / Coins */}
         <div className="mt-5 grid grid-cols-3 gap-2 text-center">

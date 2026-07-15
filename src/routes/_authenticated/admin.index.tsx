@@ -101,24 +101,26 @@ function AdminPanel() {
       </div>
 
       <Tabs defaultValue="users">
-        <TabsList className="flex-wrap h-auto">
-          <TabsTrigger value="users">Users</TabsTrigger>
-          <TabsTrigger value="reports">Reports</TabsTrigger>
-          <TabsTrigger value="moderation">AI Moderation</TabsTrigger>
-          <TabsTrigger value="csam">CSAM</TabsTrigger>
-          <TabsTrigger value="kyc">KYC</TabsTrigger>
-          <TabsTrigger value="withdrawals">Withdrawals</TabsTrigger>
-          <TabsTrigger value="purge-log">Purge Log</TabsTrigger>
-          <TabsTrigger value="transactions">Transactions</TabsTrigger>
-          <TabsTrigger value="payments">Payments</TabsTrigger>
-          <TabsTrigger value="calling">Calling</TabsTrigger>
-          <TabsTrigger value="call-audit"><Phone className="size-3.5 mr-1" />Call Audit</TabsTrigger>
+        <div className="h-scroll -mx-4 px-4 sm:mx-0 sm:px-0">
+          <TabsList className="inline-flex w-max min-w-full flex-nowrap sm:flex-wrap sm:h-auto">
+            <TabsTrigger value="users">Users</TabsTrigger>
+            <TabsTrigger value="reports">Reports</TabsTrigger>
+            <TabsTrigger value="moderation">AI Moderation</TabsTrigger>
+            <TabsTrigger value="csam">CSAM</TabsTrigger>
+            <TabsTrigger value="kyc">KYC</TabsTrigger>
+            <TabsTrigger value="withdrawals">Withdrawals</TabsTrigger>
+            <TabsTrigger value="purge-log">Purge Log</TabsTrigger>
+            <TabsTrigger value="transactions">Transactions</TabsTrigger>
+            <TabsTrigger value="payments">Payments</TabsTrigger>
+            <TabsTrigger value="calling">Calling</TabsTrigger>
+            <TabsTrigger value="call-audit"><Phone className="size-3.5 mr-1" />Call Audit</TabsTrigger>
+            <TabsTrigger value="broadcast">Broadcast</TabsTrigger>
+            <TabsTrigger value="fcm">Push (FCM)</TabsTrigger>
+            <TabsTrigger value="performance"><Activity className="size-3.5 mr-1" />Performance</TabsTrigger>
+            <TabsTrigger value="settings">Settings</TabsTrigger>
+          </TabsList>
+        </div>
 
-          <TabsTrigger value="broadcast">Broadcast</TabsTrigger>
-          <TabsTrigger value="fcm">Push (FCM)</TabsTrigger>
-          <TabsTrigger value="performance"><Activity className="size-3.5 mr-1" />Performance</TabsTrigger>
-          <TabsTrigger value="settings">Settings</TabsTrigger>
-        </TabsList>
 
         <TabsContent value="performance" className="space-y-3">
           <PerformanceTab />
@@ -139,10 +141,10 @@ function AdminPanel() {
 
 
         <TabsContent value="users" className="space-y-3">
-          <div className="flex gap-2">
+          <div className="flex flex-col sm:flex-row gap-2">
             <Input placeholder="Search username…" value={q} onChange={(e) => setQ(e.target.value)} />
             <Select value={filter} onValueChange={(v) => setFilter(v as any)}>
-              <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
+              <SelectTrigger className="w-full sm:w-40"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All</SelectItem>
                 <SelectItem value="creators">Creators</SelectItem>
@@ -151,18 +153,18 @@ function AdminPanel() {
             </Select>
           </div>
           {(users ?? []).map((u: any) => (
-            <Card key={u.id} className="glass p-3 flex items-center gap-3">
+            <Card key={u.id} className="glass p-3 flex flex-col sm:flex-row sm:items-center gap-3">
               <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                   <p className="font-medium truncate">{u.username ?? "—"}</p>
                   {u.is_creator && <Badge variant="secondary" className="text-xs">Creator</Badge>}
                   {u.is_banned && <Badge variant="destructive" className="text-xs">Banned</Badge>}
                 </div>
-                <p className="text-xs text-muted-foreground truncate">
+                <p className="text-xs text-muted-foreground break-words">
                   {[u.gender, u.country].filter(Boolean).join(" · ")}
                   {u.ban_reason ? ` · Reason: ${u.ban_reason}` : ""}
                 </p>
-                <p className="text-xs mt-1 truncate">
+                <p className="text-xs mt-1 break-all">
                   <span className="text-muted-foreground">Email:</span>{" "}
                   <span className="font-mono">{u.email ?? "—"}</span>
                 </p>
@@ -170,7 +172,7 @@ function AdminPanel() {
                   Password: hidden (securely hashed — cannot be displayed)
                 </p>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2 sm:justify-end">
                 <AdjustCoinsDialog userId={u.id} username={u.username ?? "user"} />
                 {u.is_banned ? (
                   <Button size="sm" variant="outline" onClick={async () => {
@@ -189,6 +191,7 @@ function AdminPanel() {
             </Card>
           ))}
         </TabsContent>
+
 
         <TabsContent value="reports" className="space-y-3">
           {(reports ?? []).map((r: any) => (

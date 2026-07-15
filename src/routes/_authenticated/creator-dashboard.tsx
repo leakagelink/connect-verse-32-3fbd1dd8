@@ -65,16 +65,17 @@ function CreatorDashboard() {
 
   return (
     <AppShell>
-      <div className="mx-auto max-w-2xl p-4">
+      <div className="mx-auto max-w-2xl p-3 sm:p-4">
         <div className="flex items-center gap-2 mb-4">
-          <Button variant="ghost" size="icon" onClick={() => navigate({ to: "/home" })}>
+          <Button variant="ghost" size="icon" onClick={() => navigate({ to: "/home" })} className="shrink-0">
             <ArrowLeft className="size-5" />
           </Button>
-          <div>
-            <h1 className="text-xl font-bold">Creator Dashboard</h1>
-            <p className="text-xs text-muted-foreground">Track earnings, schedule and fans</p>
+          <div className="min-w-0">
+            <h1 className="text-lg sm:text-xl font-bold truncate">Creator Dashboard</h1>
+            <p className="text-xs text-muted-foreground truncate">Track earnings, schedule and fans</p>
           </div>
         </div>
+
 
         {/* Quick stats */}
         <div className="grid grid-cols-2 gap-3 mb-4">
