@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { listPlans, getWallet, mockRecharge } from "@/lib/wallet.functions";
@@ -10,10 +10,11 @@ import { AppShell } from "@/components/app-shell";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Coins, Sparkles, Gift, ShieldCheck, FlaskConical } from "lucide-react";
+import { Coins, Sparkles, Gift, ShieldCheck, FlaskConical, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
 import { bonusForDeposit, APP_NAME } from "@/lib/constants";
 import { openRazorpay } from "@/lib/razorpay-client";
+import { isNative, openExternalUrl } from "@/lib/native";
 
 export const Route = createFileRoute("/_authenticated/recharge")({
   component: Recharge,
@@ -37,6 +38,32 @@ function Recharge() {
 
   const bonusPct = bonusForDeposit(wallet?.depositCount ?? 0);
   const isTest = cfg?.mode !== "live";
+  const native = isNative();
+  // Play Store policy: on the Android build, live purchases must NOT go through
+  // in-app alternative billing. Route to the website instead. Test mode stays
+  // in-app so QA can still credit coins without real money.
+  const useExternalCheckout = native && !isTest;
+
+  // When the user returns from the external browser after paying, refresh the
+  // wallet + payment config so newly-credited coins appear without a manual
+  // reload. Capacitor's App plugin surfaces resume events on Android.
+  useEffect(() => {
+    if (!native) return;
+    let cleanup: (() => void) | undefined;
+    (async () => {
+      try {
+        const { App } = await import("@capacitor/app");
+        const sub = await App.addListener("appStateChange", (state) => {
+          if (state.isActive) {
+            qc.invalidateQueries({ queryKey: ["wallet"] });
+            qc.invalidateQueries({ queryKey: ["payment-config"] });
+          }
+        });
+        cleanup = () => sub.remove();
+      } catch { /* ignore */ }
+    })();
+    return () => cleanup?.();
+  }, [native, qc]);
 
   async function buy(planId: string, planLabel: string) {
     setBusy(planId);
@@ -50,6 +77,22 @@ function Recharge() {
         setBusy(null);
         return;
       }
+
+      if (useExternalCheckout) {
+        // Open the same /recharge page in the system browser. The user signs in
+        // there (Supabase session on the web is separate from the app WebView)
+        // and completes Razorpay checkout outside the app. Coins auto-sync
+        // via the appStateChange listener above when they return.
+        const url = `https://talkoraapp.com/recharge?plan=${encodeURIComponent(planId)}&src=android`;
+        await openExternalUrl(url);
+        toast.info("Opening secure browser for payment", {
+          description: "Complete your recharge in the browser. Coins will appear here automatically when you return.",
+          duration: 8000,
+        });
+        setBusy(null);
+        return;
+      }
+
       const order = await createOrderFn({ data: { planId } });
       await openRazorpay({
         keyId: order.keyId,
@@ -103,6 +146,16 @@ function Recharge() {
         </Card>
       )}
 
+      {useExternalCheckout && (
+        <Card className="glass mt-4 p-3 flex items-center gap-2 border-primary/40 bg-primary/5">
+          <ExternalLink className="size-4 text-primary shrink-0" />
+          <div className="flex-1 text-xs">
+            <p className="font-semibold">Recharge opens in your browser</p>
+            <p className="text-muted-foreground">For your safety and to comply with Play Store rules, coin purchases complete in your default browser. Coins will appear here automatically when you return.</p>
+          </div>
+        </Card>
+      )}
+
       {bonusPct > 0 && (
         <Card className="glass mt-4 p-4 flex items-center gap-3 border-accent/40">
           <Gift className="size-5 text-accent" />
@@ -133,7 +186,7 @@ function Recharge() {
                 onClick={() => buy(p.id, p.label ?? "Coin pack")}
                 className="mt-3 w-full brand-gradient text-primary-foreground"
               >
-                {busy === p.id ? "…" : "Buy"}
+                {busy === p.id ? "…" : useExternalCheckout ? "Buy in browser" : "Buy"}
               </Button>
             </Card>
           );
