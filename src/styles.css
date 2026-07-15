@@ -93,6 +93,7 @@
 @layer base {
   * { border-color: var(--color-border); }
   html, body { background-color: var(--color-background); color: var(--color-foreground); }
+  html, body { overflow-x: hidden; }
   body {
     background-image:
       radial-gradient(ellipse 80% 50% at 50% -20%, oklch(0.7 0.19 22 / 0.18), transparent 60%),
@@ -100,7 +101,22 @@
     background-attachment: fixed;
     min-height: 100vh;
   }
+  /* Prevent iOS auto-zoom on focus by keeping form control base font-size >=16px on mobile */
+  @media (max-width: 640px) {
+    input, select, textarea { font-size: 16px; }
+  }
 }
+
+@utility h-scroll {
+  /* horizontal scroll container for tabs/chips on mobile — hides scrollbar */
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+  &::-webkit-scrollbar { display: none; }
+}
+
+
 
 @utility safe-top {
   /* Use the OS-reported inset, but guarantee a sensible minimum so the

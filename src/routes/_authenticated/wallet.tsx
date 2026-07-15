@@ -25,10 +25,10 @@ function Wallet() {
   return (
     <AppShell isAdmin={me?.isAdmin}>
       <h1 className="text-2xl font-bold mb-4">{t("wallet.title")}</h1>
-      <Card className="glass p-6 border-primary/30">
+      <Card className="glass p-4 sm:p-6 border-primary/30">
         <div className="flex items-center gap-2 text-xs text-muted-foreground"><Coins className="size-4 text-coin" /> {t("wallet.balanceLabel")}</div>
-        <div className="mt-1 flex items-baseline gap-2">
-          <span className="text-4xl font-bold text-coin">{(data?.balance ?? 0).toLocaleString("en-IN")}</span>
+        <div className="mt-1 flex items-baseline gap-2 flex-wrap">
+          <span className="text-3xl sm:text-4xl font-bold text-coin break-all">{(data?.balance ?? 0).toLocaleString("en-IN")}</span>
           <span className="text-sm text-muted-foreground">{t("common.coins")}</span>
         </div>
         {data && data.freeSeconds > 0 && (
@@ -36,11 +36,12 @@ function Wallet() {
             <Sparkles className="size-4" /> {t("wallet.freeMinsLeft", { m: Math.floor(data.freeSeconds/60) })}
           </div>
         )}
-        <div className="mt-4 flex gap-2">
-          <Link to="/recharge"><Button className="brand-gradient text-primary-foreground">{t("wallet.rechargeCoins")}</Button></Link>
-          <Link to="/withdraw"><Button variant="outline">{t("wallet.withdraw")}</Button></Link>
+        <div className="mt-4 flex flex-col sm:flex-row gap-2">
+          <Link to="/recharge" className="flex-1 sm:flex-none"><Button className="w-full sm:w-auto brand-gradient text-primary-foreground">{t("wallet.rechargeCoins")}</Button></Link>
+          <Link to="/withdraw" className="flex-1 sm:flex-none"><Button variant="outline" className="w-full sm:w-auto">{t("wallet.withdraw")}</Button></Link>
         </div>
       </Card>
+
 
       <h2 className="mt-8 mb-3 text-sm font-semibold text-muted-foreground">{t("wallet.recentTxn")}</h2>
       {isLoading ? (
