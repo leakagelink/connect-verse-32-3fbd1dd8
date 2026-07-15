@@ -6,6 +6,7 @@ import { listPlans, getWallet, mockRecharge } from "@/lib/wallet.functions";
 import { createRazorpayOrder, verifyRazorpayPayment } from "@/lib/razorpay.functions";
 import { getPaymentConfig } from "@/lib/payments.functions";
 import { getMyProfile } from "@/lib/onboarding.functions";
+import { createAutoLoginUrl } from "@/lib/auto-login.functions";
 import { AppShell } from "@/components/app-shell";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
