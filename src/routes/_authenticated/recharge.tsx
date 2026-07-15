@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { listPlans, getWallet, mockRecharge } from "@/lib/wallet.functions";
@@ -10,10 +10,11 @@ import { AppShell } from "@/components/app-shell";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Coins, Sparkles, Gift, ShieldCheck, FlaskConical } from "lucide-react";
+import { Coins, Sparkles, Gift, ShieldCheck, FlaskConical, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
 import { bonusForDeposit, APP_NAME } from "@/lib/constants";
 import { openRazorpay } from "@/lib/razorpay-client";
+import { isNative, openExternalUrl } from "@/lib/native";
 
 export const Route = createFileRoute("/_authenticated/recharge")({
   component: Recharge,
