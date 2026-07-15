@@ -146,6 +146,16 @@ function Recharge() {
         </Card>
       )}
 
+      {useExternalCheckout && (
+        <Card className="glass mt-4 p-3 flex items-center gap-2 border-primary/40 bg-primary/5">
+          <ExternalLink className="size-4 text-primary shrink-0" />
+          <div className="flex-1 text-xs">
+            <p className="font-semibold">Recharge opens in your browser</p>
+            <p className="text-muted-foreground">For your safety and to comply with Play Store rules, coin purchases complete in your default browser. Coins will appear here automatically when you return.</p>
+          </div>
+        </Card>
+      )}
+
       {bonusPct > 0 && (
         <Card className="glass mt-4 p-4 flex items-center gap-3 border-accent/40">
           <Gift className="size-5 text-accent" />
