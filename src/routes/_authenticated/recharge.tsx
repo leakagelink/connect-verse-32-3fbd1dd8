@@ -169,10 +169,24 @@ function Recharge() {
 
   return (
     <AppShell isAdmin={me?.isAdmin}>
-      <h1 className="text-2xl font-bold">Recharge coins</h1>
-      <p className="text-sm text-muted-foreground flex items-center gap-1">
-        <ShieldCheck className="size-3.5 text-primary" /> Secure payments via Razorpay — UPI, Cards, NetBanking, Wallets.
-      </p>
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <h1 className="text-2xl font-bold">Recharge coins</h1>
+          <p className="text-sm text-muted-foreground flex items-center gap-1">
+            <ShieldCheck className="size-3.5 text-primary" /> Secure payments via Razorpay — UPI, Cards, NetBanking, Wallets.
+          </p>
+        </div>
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() => void syncCoins()}
+          disabled={syncing}
+          className="shrink-0"
+        >
+          <RefreshCw className={`size-4 ${syncing ? "animate-spin" : ""}`} />
+          <span className="ml-1.5">{syncing ? "Syncing…" : "Sync coins"}</span>
+        </Button>
+      </div>
 
       {isTest && (
         <Card className="glass mt-4 p-3 flex items-center gap-2 border-warning/40 bg-warning/5">
@@ -189,7 +203,7 @@ function Recharge() {
           <ExternalLink className="size-4 text-primary shrink-0" />
           <div className="flex-1 text-xs">
             <p className="font-semibold">Recharge opens in your browser</p>
-            <p className="text-muted-foreground">For your safety and to comply with Play Store rules, coin purchases complete in your default browser. Coins will appear here automatically when you return.</p>
+            <p className="text-muted-foreground">For your safety and to comply with Play Store rules, coin purchases complete in your default browser. Coins will appear here automatically when you return — or tap <span className="font-semibold">Sync coins</span>.</p>
           </div>
         </Card>
       )}
