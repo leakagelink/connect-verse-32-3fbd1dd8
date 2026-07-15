@@ -10,7 +10,7 @@ import { AppShell } from "@/components/app-shell";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Coins, Sparkles, Gift, ShieldCheck, FlaskConical, ExternalLink } from "lucide-react";
+import { Coins, Sparkles, Gift, ShieldCheck, FlaskConical, ExternalLink, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { bonusForDeposit, APP_NAME } from "@/lib/constants";
 import { openRazorpay } from "@/lib/razorpay-client";
