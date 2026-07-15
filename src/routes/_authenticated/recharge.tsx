@@ -30,6 +30,7 @@ function Recharge() {
   const verifyFn = useServerFn(verifyRazorpayPayment);
   const mockFn = useServerFn(mockRecharge);
   const cfgFn = useServerFn(getPaymentConfig);
+  const autoLoginFn = useServerFn(createAutoLoginUrl);
 
   const { data: me } = useQuery({ queryKey: ["me"], queryFn: () => profileFn() });
   const { data: plans } = useQuery({ queryKey: ["plans"], queryFn: () => plansFn() });
