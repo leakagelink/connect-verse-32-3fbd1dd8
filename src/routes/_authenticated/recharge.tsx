@@ -153,21 +153,26 @@ function Recharge() {
         description: `${planLabel} coin pack`,
         prefillName: order.username || undefined,
         onSuccess: async (resp) => {
+          // Hand off to the status screen immediately so the user sees a clear
+          // pending/success/failed state. Verification + wallet refresh still
+          // run here for instant credit; the status screen polls the order in
+          // case the webhook is slower than the redirect.
+          navigate({
+            to: "/recharge/status",
+            search: { orderId: order.orderId },
+          });
           try {
-            const v = await verifyFn({ data: resp });
-            const credit: any = v?.credit ?? {};
-            const coins = Number(credit.coins ?? 0);
-            const bonus = Number(credit.bonus ?? 0);
-            toast.success(
-              `+${coins.toLocaleString("en-IN")} coins${bonus > 0 ? ` (+${bonus} bonus)` : ""}`,
-            );
+            await verifyFn({ data: resp });
             qc.invalidateQueries({ queryKey: ["wallet"] });
+            qc.invalidateQueries({ queryKey: ["recharge-order", order.orderId] });
           } catch (e: any) {
-            toast.error(e.message ?? "Verification failed");
+            // Non-fatal — the webhook will still credit. Status screen surfaces the outcome.
+            console.warn("verifyRazorpayPayment failed", e);
           } finally {
             setBusy(null);
           }
         },
+
         onDismiss: () => {
           setBusy(null);
           toast.info("Payment cancelled");
