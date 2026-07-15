@@ -23,6 +23,7 @@ export const Route = createFileRoute("/_authenticated/recharge")({
 
 function Recharge() {
   const qc = useQueryClient();
+  const navigate = useNavigate();
   const plansFn = useServerFn(listPlans);
   const walletFn = useServerFn(getWallet);
   const profileFn = useServerFn(getMyProfile);
