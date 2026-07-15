@@ -6,6 +6,7 @@ import { listPlans, getWallet, mockRecharge } from "@/lib/wallet.functions";
 import { createRazorpayOrder, verifyRazorpayPayment } from "@/lib/razorpay.functions";
 import { getPaymentConfig } from "@/lib/payments.functions";
 import { getMyProfile } from "@/lib/onboarding.functions";
+import { createAutoLoginUrl } from "@/lib/auto-login.functions";
 import { AppShell } from "@/components/app-shell";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -29,6 +30,7 @@ function Recharge() {
   const verifyFn = useServerFn(verifyRazorpayPayment);
   const mockFn = useServerFn(mockRecharge);
   const cfgFn = useServerFn(getPaymentConfig);
+  const autoLoginFn = useServerFn(createAutoLoginUrl);
 
   const { data: me } = useQuery({ queryKey: ["me"], queryFn: () => profileFn() });
   const { data: plans } = useQuery({ queryKey: ["plans"], queryFn: () => plansFn() });
@@ -117,11 +119,19 @@ function Recharge() {
       }
 
       if (useExternalCheckout) {
-        // Open the same /recharge page in the system browser. The user signs in
-        // there (Supabase session on the web is separate from the app WebView)
-        // and completes Razorpay checkout outside the app. Coins auto-sync
-        // via the appStateChange listener above when they return.
-        const url = `https://talkoraapp.com/recharge?plan=${encodeURIComponent(planId)}&src=android`;
+        // Open the same /recharge page in the system browser. To avoid a
+        // second sign-in, we mint a short-lived Supabase magic link server-
+        // side; opening it signs the user into the website and lands them on
+        // /recharge with the chosen plan preselected. Coins auto-sync via the
+        // appStateChange listener above when they return.
+        const redirectPath = `/recharge?plan=${encodeURIComponent(planId)}&src=android`;
+        let url = `https://talkoraapp.com${redirectPath}`;
+        try {
+          const r = await autoLoginFn({ data: { redirectPath } });
+          if (r?.url) url = r.url;
+        } catch {
+          // Fall back to plain URL — user will sign in on the website.
+        }
         await openExternalUrl(url);
         toast.info("Opening secure browser for payment", {
           description: "Complete your recharge in the browser. Coins will appear here automatically when you return.",
@@ -130,6 +140,7 @@ function Recharge() {
         setBusy(null);
         return;
       }
+
 
       const order = await createOrderFn({ data: { planId } });
       await openRazorpay({
