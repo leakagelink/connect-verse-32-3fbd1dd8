@@ -35,6 +35,7 @@ function Recharge() {
   const { data: wallet } = useQuery({ queryKey: ["wallet"], queryFn: () => walletFn() });
   const { data: cfg } = useQuery({ queryKey: ["payment-config"], queryFn: () => cfgFn() });
   const [busy, setBusy] = useState<string | null>(null);
+  const [syncing, setSyncing] = useState(false);
 
   const bonusPct = bonusForDeposit(wallet?.depositCount ?? 0);
   const isTest = cfg?.mode !== "live";
@@ -44,9 +45,48 @@ function Recharge() {
   // in-app so QA can still credit coins without real money.
   const useExternalCheckout = native && !isTest;
 
-  // When the user returns from the external browser after paying, refresh the
-  // wallet + payment config so newly-credited coins appear without a manual
-  // reload. Capacitor's App plugin surfaces resume events on Android.
+  /**
+   * Re-fetch wallet + payment config, retrying a few times because the webhook
+   * from Razorpay can lag a few seconds behind the user's redirect back to the
+   * app. Compares the balance before/after so we can tell the user whether
+   * anything actually landed. Safe to call from anywhere (auto-resume or the
+   * manual "Sync coins" button).
+   */
+  async function syncCoins(opts?: { silent?: boolean }): Promise<boolean> {
+    if (syncing) return false;
+    setSyncing(true);
+    const before = wallet?.balance ?? 0;
+    const attempts = [0, 1500, 3000, 5000, 8000]; // ms — total ~17s
+    let landed = false;
+    try {
+      for (let i = 0; i < attempts.length; i++) {
+        if (attempts[i]) await new Promise((r) => setTimeout(r, attempts[i]));
+        await qc.invalidateQueries({ queryKey: ["wallet"] });
+        await qc.invalidateQueries({ queryKey: ["payment-config"] });
+        const fresh = await walletFn().catch(() => null);
+        const after = fresh?.balance ?? before;
+        if (after > before) {
+          landed = true;
+          const delta = after - before;
+          toast.success(`+${delta.toLocaleString("en-IN")} coins credited`, {
+            description: `New balance: ${after.toLocaleString("en-IN")}`,
+          });
+          break;
+        }
+      }
+      if (!landed && !opts?.silent) {
+        toast.info("No new coins yet", {
+          description: "If you just paid, it can take up to a minute. Tap Sync again shortly.",
+        });
+      }
+    } finally {
+      setSyncing(false);
+    }
+    return landed;
+  }
+
+  // When the user returns from the external browser after paying, auto-sync
+  // (silent — no toast if nothing landed) so the balance updates without a tap.
   useEffect(() => {
     if (!native) return;
     let cleanup: (() => void) | undefined;
@@ -54,16 +94,14 @@ function Recharge() {
       try {
         const { App } = await import("@capacitor/app");
         const sub = await App.addListener("appStateChange", (state) => {
-          if (state.isActive) {
-            qc.invalidateQueries({ queryKey: ["wallet"] });
-            qc.invalidateQueries({ queryKey: ["payment-config"] });
-          }
+          if (state.isActive) void syncCoins({ silent: true });
         });
         cleanup = () => sub.remove();
       } catch { /* ignore */ }
     })();
     return () => cleanup?.();
-  }, [native, qc]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [native]);
 
   async function buy(planId: string, planLabel: string) {
     setBusy(planId);
