@@ -38,6 +38,32 @@ function Recharge() {
 
   const bonusPct = bonusForDeposit(wallet?.depositCount ?? 0);
   const isTest = cfg?.mode !== "live";
+  const native = isNative();
+  // Play Store policy: on the Android build, live purchases must NOT go through
+  // in-app alternative billing. Route to the website instead. Test mode stays
+  // in-app so QA can still credit coins without real money.
+  const useExternalCheckout = native && !isTest;
+
+  // When the user returns from the external browser after paying, refresh the
+  // wallet + payment config so newly-credited coins appear without a manual
+  // reload. Capacitor's App plugin surfaces resume events on Android.
+  useEffect(() => {
+    if (!native) return;
+    let cleanup: (() => void) | undefined;
+    (async () => {
+      try {
+        const { App } = await import("@capacitor/app");
+        const sub = await App.addListener("appStateChange", (state) => {
+          if (state.isActive) {
+            qc.invalidateQueries({ queryKey: ["wallet"] });
+            qc.invalidateQueries({ queryKey: ["payment-config"] });
+          }
+        });
+        cleanup = () => sub.remove();
+      } catch { /* ignore */ }
+    })();
+    return () => cleanup?.();
+  }, [native, qc]);
 
   async function buy(planId: string, planLabel: string) {
     setBusy(planId);
@@ -51,6 +77,22 @@ function Recharge() {
         setBusy(null);
         return;
       }
+
+      if (useExternalCheckout) {
+        // Open the same /recharge page in the system browser. The user signs in
+        // there (Supabase session on the web is separate from the app WebView)
+        // and completes Razorpay checkout outside the app. Coins auto-sync
+        // via the appStateChange listener above when they return.
+        const url = `https://talkoraapp.com/recharge?plan=${encodeURIComponent(planId)}&src=android`;
+        await openExternalUrl(url);
+        toast.info("Opening secure browser for payment", {
+          description: "Complete your recharge in the browser. Coins will appear here automatically when you return.",
+          duration: 8000,
+        });
+        setBusy(null);
+        return;
+      }
+
       const order = await createOrderFn({ data: { planId } });
       await openRazorpay({
         keyId: order.keyId,
