@@ -152,6 +152,8 @@ export const createRazorpayOrder = createServerFn({ method: "POST" })
       keyId,
       planLabel: plan.label,
       username: profile?.username ?? "",
+      reused: false as const,
+      purchaseId,
     };
   });
 
