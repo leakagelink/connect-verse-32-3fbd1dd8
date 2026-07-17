@@ -37,7 +37,14 @@ export const Route = createFileRoute("/_authenticated/recharge")({
 // survive the app being backgrounded / browser tab being closed early, so we
 // can prompt the user to resume without losing their plan choice.
 const PENDING_KEY = "talkora.recharge.pending";
-type PendingRecharge = { planId: string; planLabel: string; startedAt: number };
+type PendingRecharge = { planId: string; planLabel: string; startedAt: number; purchaseId: string };
+
+function newPurchaseId(): string {
+  try {
+    if (typeof crypto !== "undefined" && "randomUUID" in crypto) return crypto.randomUUID();
+  } catch { /* ignore */ }
+  return `pp_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`;
+}
 
 function readPending(): PendingRecharge | null {
   if (typeof window === "undefined") return null;
