@@ -51,13 +51,20 @@ function readPending(): PendingRecharge | null {
   try {
     const raw = window.localStorage.getItem(PENDING_KEY);
     if (!raw) return null;
-    const p = JSON.parse(raw) as PendingRecharge;
+    const p = JSON.parse(raw) as Partial<PendingRecharge>;
     // Expire stale pending records after 30 min — Razorpay orders are short-lived.
     if (!p?.planId || Date.now() - (p.startedAt ?? 0) > 30 * 60_000) {
       window.localStorage.removeItem(PENDING_KEY);
       return null;
     }
-    return p;
+    // Back-compat: older records may not have a purchaseId; mint one now
+    // so the next retry still dedupes against the server.
+    return {
+      planId: p.planId,
+      planLabel: p.planLabel ?? "Coin pack",
+      startedAt: p.startedAt ?? Date.now(),
+      purchaseId: p.purchaseId ?? newPurchaseId(),
+    };
   } catch {
     return null;
   }
