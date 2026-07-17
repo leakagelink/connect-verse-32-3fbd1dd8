@@ -26,6 +26,9 @@ const SearchSchema = z.object({
   plan: z.string().min(1).max(100).optional(),
   src: z.string().max(50).optional(),
   resume: z.union([z.literal("1"), z.literal("0")]).optional(),
+  // Client-generated idempotency key forwarded via deep link so the website
+  // side of the magic-link handoff uses the same key when creating the order.
+  pp: z.string().min(8).max(80).optional(),
 }).partial();
 
 export const Route = createFileRoute("/_authenticated/recharge")({
