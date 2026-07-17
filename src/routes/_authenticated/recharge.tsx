@@ -189,7 +189,13 @@ function Recharge() {
         // side; opening it signs the user into the website and lands them on
         // /recharge with the chosen plan preselected. Coins auto-sync via the
         // appStateChange listener above when they return.
-        const redirectPath = `/recharge?plan=${encodeURIComponent(planId)}&src=android`;
+        // Persist the plan choice BEFORE launching the browser so that if the
+        // user closes the tab early / the return-sync finds nothing, we can
+        // still show a "Resume payment" prompt with the right plan.
+        const record: PendingRecharge = { planId, planLabel, startedAt: Date.now() };
+        writePending(record);
+        setPending(record);
+        const redirectPath = `/recharge?plan=${encodeURIComponent(planId)}&src=android&resume=1`;
         let url = `https://talkoraapp.com${redirectPath}`;
         try {
           const r = await autoLoginFn({ data: { redirectPath } });
@@ -205,6 +211,7 @@ function Recharge() {
         setBusy(null);
         return;
       }
+
 
 
       const order = await createOrderFn({ data: { planId } });
