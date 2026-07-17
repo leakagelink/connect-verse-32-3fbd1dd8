@@ -23,8 +23,12 @@ function TermsPage() {
     <div className="min-h-screen">
       <header className="mx-auto flex max-w-4xl items-center justify-between px-6 py-5">
         <Link to="/" className="font-bold text-lg">{APP_NAME}</Link>
-        <Link to="/privacy" className="text-sm text-muted-foreground hover:text-foreground">Privacy</Link>
+        <nav className="flex items-center gap-4 text-sm text-muted-foreground">
+          <Link to="/privacy" className="hover:text-foreground">Privacy</Link>
+          <Link to="/delete-account" className="hover:text-foreground">Delete Account</Link>
+        </nav>
       </header>
+
 
       <main className="mx-auto max-w-3xl px-6 pb-20">
         <h1 className="text-4xl font-bold tracking-tight">Terms of Service</h1>
