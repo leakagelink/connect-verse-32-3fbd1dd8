@@ -1,5 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { z } from "zod";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { listPlans, getWallet, mockRecharge } from "@/lib/wallet.functions";
@@ -11,19 +12,62 @@ import { AppShell } from "@/components/app-shell";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Coins, Sparkles, Gift, ShieldCheck, FlaskConical, ExternalLink, RefreshCw } from "lucide-react";
+import { Coins, Sparkles, Gift, ShieldCheck, FlaskConical, ExternalLink, RefreshCw, AlertTriangle, X } from "lucide-react";
 import { toast } from "sonner";
 import { bonusForDeposit, APP_NAME } from "@/lib/constants";
 import { openRazorpay } from "@/lib/razorpay-client";
 import { isNative, openExternalUrl } from "@/lib/native";
 
+// Deep-link params. `plan` is preselected (e.g. magic-link handoff from the
+// Android app → website). `src=android` lets us tell handoffs apart from
+// regular website visits. `resume=1` is set when we bounce the user back
+// into a retry flow after an interrupted external checkout.
+const SearchSchema = z.object({
+  plan: z.string().min(1).max(100).optional(),
+  src: z.string().max(50).optional(),
+  resume: z.union([z.literal("1"), z.literal("0")]).optional(),
+}).partial();
+
 export const Route = createFileRoute("/_authenticated/recharge")({
+  validateSearch: (s) => SearchSchema.parse(s ?? {}),
   component: Recharge,
 });
+
+// localStorage key + shape for the "pending external recharge" record. Used to
+// survive the app being backgrounded / browser tab being closed early, so we
+// can prompt the user to resume without losing their plan choice.
+const PENDING_KEY = "talkora.recharge.pending";
+type PendingRecharge = { planId: string; planLabel: string; startedAt: number };
+
+function readPending(): PendingRecharge | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = window.localStorage.getItem(PENDING_KEY);
+    if (!raw) return null;
+    const p = JSON.parse(raw) as PendingRecharge;
+    // Expire stale pending records after 30 min — Razorpay orders are short-lived.
+    if (!p?.planId || Date.now() - (p.startedAt ?? 0) > 30 * 60_000) {
+      window.localStorage.removeItem(PENDING_KEY);
+      return null;
+    }
+    return p;
+  } catch {
+    return null;
+  }
+}
+
+function writePending(p: PendingRecharge) {
+  try { window.localStorage.setItem(PENDING_KEY, JSON.stringify(p)); } catch { /* ignore */ }
+}
+
+function clearPending() {
+  try { window.localStorage.removeItem(PENDING_KEY); } catch { /* ignore */ }
+}
 
 function Recharge() {
   const qc = useQueryClient();
   const navigate = useNavigate();
+  const search = Route.useSearch();
   const plansFn = useServerFn(listPlans);
   const walletFn = useServerFn(getWallet);
   const profileFn = useServerFn(getMyProfile);
@@ -39,6 +83,10 @@ function Recharge() {
   const { data: cfg } = useQuery({ queryKey: ["payment-config"], queryFn: () => cfgFn() });
   const [busy, setBusy] = useState<string | null>(null);
   const [syncing, setSyncing] = useState(false);
+  // Non-null while a previous external checkout was started but never confirmed
+  // credited — drives the "Resume payment" retry banner. Hydrated from
+  // localStorage on mount so a full app restart still surfaces the prompt.
+  const [pending, setPending] = useState<PendingRecharge | null>(null);
 
   const bonusPct = bonusForDeposit(wallet?.depositCount ?? 0);
   const isTest = cfg?.mode !== "live";
@@ -47,6 +95,7 @@ function Recharge() {
   // in-app alternative billing. Route to the website instead. Test mode stays
   // in-app so QA can still credit coins without real money.
   const useExternalCheckout = native && !isTest;
+
 
   /**
    * Re-fetch wallet + payment config, retrying a few times because the webhook
@@ -74,6 +123,9 @@ function Recharge() {
           toast.success(`+${delta.toLocaleString("en-IN")} coins credited`, {
             description: `New balance: ${after.toLocaleString("en-IN")}`,
           });
+          // Payment confirmed — drop any pending retry record.
+          clearPending();
+          setPending(null);
           break;
         }
       }
@@ -88,16 +140,27 @@ function Recharge() {
     return landed;
   }
 
+  // Hydrate pending-recharge state from localStorage on mount so a browser
+  // closed early, an app kill, or a failed return-sync still surfaces the
+  // "Resume payment" prompt without losing the user's plan choice.
+  useEffect(() => {
+    setPending(readPending());
+  }, []);
+
   // When the user returns from the external browser after paying, auto-sync
   // (silent — no toast if nothing landed) so the balance updates without a tap.
+  // If we still have a pending record after the sync attempts, keep showing
+  // the retry banner so the user can resume without losing the plan choice.
   useEffect(() => {
     if (!native) return;
     let cleanup: (() => void) | undefined;
     (async () => {
       try {
         const { App } = await import("@capacitor/app");
-        const sub = await App.addListener("appStateChange", (state) => {
-          if (state.isActive) void syncCoins({ silent: true });
+        const sub = await App.addListener("appStateChange", async (state) => {
+          if (!state.isActive) return;
+          const credited = await syncCoins({ silent: true });
+          if (!credited) setPending(readPending());
         });
         cleanup = () => sub.remove();
       } catch { /* ignore */ }
@@ -105,6 +168,7 @@ function Recharge() {
     return () => cleanup?.();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [native]);
+
 
   async function buy(planId: string, planLabel: string) {
     setBusy(planId);
@@ -125,7 +189,13 @@ function Recharge() {
         // side; opening it signs the user into the website and lands them on
         // /recharge with the chosen plan preselected. Coins auto-sync via the
         // appStateChange listener above when they return.
-        const redirectPath = `/recharge?plan=${encodeURIComponent(planId)}&src=android`;
+        // Persist the plan choice BEFORE launching the browser so that if the
+        // user closes the tab early / the return-sync finds nothing, we can
+        // still show a "Resume payment" prompt with the right plan.
+        const record: PendingRecharge = { planId, planLabel, startedAt: Date.now() };
+        writePending(record);
+        setPending(record);
+        const redirectPath = `/recharge?plan=${encodeURIComponent(planId)}&src=android&resume=1`;
         let url = `https://talkoraapp.com${redirectPath}`;
         try {
           const r = await autoLoginFn({ data: { redirectPath } });
@@ -143,6 +213,7 @@ function Recharge() {
       }
 
 
+
       const order = await createOrderFn({ data: { planId } });
       await openRazorpay({
         keyId: order.keyId,
@@ -157,6 +228,9 @@ function Recharge() {
           // pending/success/failed state. Verification + wallet refresh still
           // run here for instant credit; the status screen polls the order in
           // case the webhook is slower than the redirect.
+          // Also clear any pending-retry record — this checkout completed.
+          clearPending();
+          setPending(null);
           navigate({
             to: "/recharge/status",
             search: { orderId: order.orderId },
@@ -183,6 +257,28 @@ function Recharge() {
       setBusy(null);
     }
   }
+
+  // Deep-link auto-buy: when the website is opened with `?plan=<id>` (from
+  // the Android magic-link handoff, or a saved deep link), auto-open Razorpay
+  // for that plan as soon as plans + config are ready. Runs at most once per
+  // page load; native app itself ignores this because it re-launches the
+  // browser rather than opening checkout in-place.
+  const autoBuyTried = useRef(false);
+  useEffect(() => {
+    if (autoBuyTried.current) return;
+    if (native) return; // native shell reopens browser; don't loop
+    if (!search.plan) return;
+    if (!plans || !cfg) return;
+    if (busy) return;
+    const plan = plans.find((p) => p.id === search.plan);
+    if (!plan) return;
+    autoBuyTried.current = true;
+    // Strip the deep-link params from the URL so a refresh doesn't re-trigger.
+    navigate({ to: "/recharge", search: {}, replace: true });
+    void buy(plan.id, plan.label ?? "Coin pack");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [search.plan, plans, cfg, native, busy]);
+
 
   return (
     <AppShell isAdmin={me?.isAdmin}>
@@ -224,6 +320,52 @@ function Recharge() {
           </div>
         </Card>
       )}
+
+      {pending && (
+        <Card className="glass mt-4 p-3 border-warning/50 bg-warning/5">
+          <div className="flex items-start gap-2">
+            <AlertTriangle className="size-4 text-warning shrink-0 mt-0.5" />
+            <div className="flex-1 min-w-0 text-xs">
+              <p className="font-semibold">Finish your {pending.planLabel} recharge?</p>
+              <p className="text-muted-foreground mt-0.5">
+                We didn't confirm your last payment yet. If you closed the browser
+                early, tap <span className="font-semibold">Resume payment</span> to
+                try again with the same plan — you won't be charged twice.
+              </p>
+              <div className="mt-2 flex flex-wrap items-center gap-2">
+                <Button
+                  size="sm"
+                  className="brand-gradient text-primary-foreground h-8"
+                  disabled={busy === pending.planId}
+                  onClick={() => buy(pending.planId, pending.planLabel)}
+                >
+                  {busy === pending.planId ? "…" : "Resume payment"}
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-8"
+                  disabled={syncing}
+                  onClick={() => void syncCoins()}
+                >
+                  <RefreshCw className={`size-3.5 ${syncing ? "animate-spin" : ""}`} />
+                  <span className="ml-1.5">Check status</span>
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-8 text-muted-foreground"
+                  onClick={() => { clearPending(); setPending(null); }}
+                >
+                  <X className="size-3.5" />
+                  <span className="ml-1">Dismiss</span>
+                </Button>
+              </div>
+            </div>
+          </div>
+        </Card>
+      )}
+
 
       {bonusPct > 0 && (
         <Card className="glass mt-4 p-4 flex items-center gap-3 border-accent/40">
