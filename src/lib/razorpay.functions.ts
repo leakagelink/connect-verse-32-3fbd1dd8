@@ -42,7 +42,49 @@ export const createRazorpayOrder = createServerFn({ method: "POST" })
       .maybeSingle();
     if (profile?.is_banned) throw new Error("Account suspended");
 
-    // Create Razorpay order via REST API
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    // === Idempotency ===
+    // If the caller sent a purchaseId and we already have a live order for
+    // (user, purchaseId), reuse it. This makes double-taps, page reloads,
+    // "Resume payment" retries, and network retries all safe — no duplicate
+    // Razorpay order is created, so credit_razorpay_payment can only ever
+    // fire once for the same purchase intent.
+    const purchaseId = data.purchaseId ?? null;
+    if (purchaseId) {
+      const { data: existing } = await supabaseAdmin
+        .from("razorpay_orders")
+        .select("razorpay_order_id, amount_paise, currency, status, plan_id")
+        .eq("user_id", userId)
+        .eq("client_purchase_id", purchaseId)
+        .maybeSingle();
+      if (existing) {
+        if (existing.status === "credited") {
+          throw new Error("This purchase was already credited. Refresh your balance.");
+        }
+        if (existing.plan_id !== plan.id) {
+          throw new Error("Purchase id already used for a different plan.");
+        }
+        if (existing.status !== "expired" && existing.status !== "failed") {
+          return {
+            orderId: existing.razorpay_order_id,
+            amount: Number(existing.amount_paise),
+            currency: existing.currency,
+            keyId,
+            planLabel: plan.label,
+            username: profile?.username ?? "",
+            reused: true as const,
+            purchaseId,
+          };
+        }
+        // expired/failed → fall through and create a fresh Razorpay order,
+        // but keep the same client_purchase_id row updated below.
+      }
+    }
+
+    // Create Razorpay order via REST API. Passing an Idempotency-Key
+    // makes Razorpay itself return the same order on retries within their
+    // window, so a network retry before we persist locally is also safe.
     const receipt = `rcpt_${Date.now().toString(36)}_${userId.slice(0, 8)}`;
     const auth = btoa(`${keyId}:${keySecret}`);
     const res = await fetch("https://api.razorpay.com/v1/orders", {
@@ -50,12 +92,18 @@ export const createRazorpayOrder = createServerFn({ method: "POST" })
       headers: {
         "Content-Type": "application/json",
         Authorization: `Basic ${auth}`,
+        ...(purchaseId ? { "X-Razorpay-Idempotency": purchaseId } : {}),
       },
       body: JSON.stringify({
         amount: amountPaise,
         currency: "INR",
         receipt,
-        notes: { user_id: userId, plan_id: plan.id, plan_label: plan.label },
+        notes: {
+          user_id: userId,
+          plan_id: plan.id,
+          plan_label: plan.label,
+          ...(purchaseId ? { client_purchase_id: purchaseId } : {}),
+        },
       }),
     });
     if (!res.ok) {
@@ -65,18 +113,37 @@ export const createRazorpayOrder = createServerFn({ method: "POST" })
     }
     const order = (await res.json()) as { id: string; amount: number; currency: string };
 
-    // Persist order via admin client
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { error: insErr } = await supabaseAdmin.from("razorpay_orders").insert({
-      user_id: userId,
-      plan_id: plan.id,
-      razorpay_order_id: order.id,
-      amount_paise: amountPaise,
-      currency: "INR",
-      status: "created",
-      notes: { receipt, plan_label: plan.label },
-    });
-    if (insErr) throw new Error(insErr.message);
+    // Persist order. Upsert on (user_id, client_purchase_id) so a retry
+    // after expired/failed replaces the stale row atomically.
+    if (purchaseId) {
+      const { error: upErr } = await supabaseAdmin
+        .from("razorpay_orders")
+        .upsert(
+          {
+            user_id: userId,
+            plan_id: plan.id,
+            razorpay_order_id: order.id,
+            amount_paise: amountPaise,
+            currency: "INR",
+            status: "created",
+            notes: { receipt, plan_label: plan.label },
+            client_purchase_id: purchaseId,
+          },
+          { onConflict: "user_id,client_purchase_id" },
+        );
+      if (upErr) throw new Error(upErr.message);
+    } else {
+      const { error: insErr } = await supabaseAdmin.from("razorpay_orders").insert({
+        user_id: userId,
+        plan_id: plan.id,
+        razorpay_order_id: order.id,
+        amount_paise: amountPaise,
+        currency: "INR",
+        status: "created",
+        notes: { receipt, plan_label: plan.label },
+      });
+      if (insErr) throw new Error(insErr.message);
+    }
 
     return {
       orderId: order.id,
