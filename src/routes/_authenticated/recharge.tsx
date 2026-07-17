@@ -123,6 +123,9 @@ function Recharge() {
           toast.success(`+${delta.toLocaleString("en-IN")} coins credited`, {
             description: `New balance: ${after.toLocaleString("en-IN")}`,
           });
+          // Payment confirmed — drop any pending retry record.
+          clearPending();
+          setPending(null);
           break;
         }
       }
@@ -137,16 +140,27 @@ function Recharge() {
     return landed;
   }
 
+  // Hydrate pending-recharge state from localStorage on mount so a browser
+  // closed early, an app kill, or a failed return-sync still surfaces the
+  // "Resume payment" prompt without losing the user's plan choice.
+  useEffect(() => {
+    setPending(readPending());
+  }, []);
+
   // When the user returns from the external browser after paying, auto-sync
   // (silent — no toast if nothing landed) so the balance updates without a tap.
+  // If we still have a pending record after the sync attempts, keep showing
+  // the retry banner so the user can resume without losing the plan choice.
   useEffect(() => {
     if (!native) return;
     let cleanup: (() => void) | undefined;
     (async () => {
       try {
         const { App } = await import("@capacitor/app");
-        const sub = await App.addListener("appStateChange", (state) => {
-          if (state.isActive) void syncCoins({ silent: true });
+        const sub = await App.addListener("appStateChange", async (state) => {
+          if (!state.isActive) return;
+          const credited = await syncCoins({ silent: true });
+          if (!credited) setPending(readPending());
         });
         cleanup = () => sub.remove();
       } catch { /* ignore */ }
@@ -154,6 +168,7 @@ function Recharge() {
     return () => cleanup?.();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [native]);
+
 
   async function buy(planId: string, planLabel: string) {
     setBusy(planId);
