@@ -67,6 +67,7 @@ function clearPending() {
 function Recharge() {
   const qc = useQueryClient();
   const navigate = useNavigate();
+  const search = Route.useSearch();
   const plansFn = useServerFn(listPlans);
   const walletFn = useServerFn(getWallet);
   const profileFn = useServerFn(getMyProfile);
@@ -82,6 +83,10 @@ function Recharge() {
   const { data: cfg } = useQuery({ queryKey: ["payment-config"], queryFn: () => cfgFn() });
   const [busy, setBusy] = useState<string | null>(null);
   const [syncing, setSyncing] = useState(false);
+  // Non-null while a previous external checkout was started but never confirmed
+  // credited — drives the "Resume payment" retry banner. Hydrated from
+  // localStorage on mount so a full app restart still surfaces the prompt.
+  const [pending, setPending] = useState<PendingRecharge | null>(null);
 
   const bonusPct = bonusForDeposit(wallet?.depositCount ?? 0);
   const isTest = cfg?.mode !== "live";
@@ -90,6 +95,7 @@ function Recharge() {
   // in-app alternative billing. Route to the website instead. Test mode stays
   // in-app so QA can still credit coins without real money.
   const useExternalCheckout = native && !isTest;
+
 
   /**
    * Re-fetch wallet + payment config, retrying a few times because the webhook
