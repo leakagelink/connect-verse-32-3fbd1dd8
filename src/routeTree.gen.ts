@@ -56,6 +56,7 @@ import { Route as AuthenticatedMatchmakerNewRouteImport } from './routes/_authen
 import { Route as AuthenticatedMatchmakerIdRouteImport } from './routes/_authenticated/matchmaker.$id'
 import { Route as AuthenticatedChatConversationIdRouteImport } from './routes/_authenticated/chat.$conversationId'
 import { Route as ApiPublicHooksResetCallingQuotasRouteImport } from './routes/api/public/hooks/reset-calling-quotas'
+import { Route as ApiPublicHooksReconcileRazorpayRouteImport } from './routes/api/public/hooks/reconcile-razorpay'
 import { Route as ApiPublicHooksKycCleanupRouteImport } from './routes/api/public/hooks/kyc-cleanup'
 import { Route as AuthenticatedCallKindUserIdRouteImport } from './routes/_authenticated/call.$kind.$userId'
 
@@ -306,6 +307,12 @@ const ApiPublicHooksResetCallingQuotasRoute =
     path: '/api/public/hooks/reset-calling-quotas',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicHooksReconcileRazorpayRoute =
+  ApiPublicHooksReconcileRazorpayRouteImport.update({
+    id: '/api/public/hooks/reconcile-razorpay',
+    path: '/api/public/hooks/reconcile-razorpay',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicHooksKycCleanupRoute =
   ApiPublicHooksKycCleanupRouteImport.update({
     id: '/api/public/hooks/kyc-cleanup',
@@ -367,6 +374,7 @@ export interface FileRoutesByFullPath {
   '/chat/': typeof AuthenticatedChatIndexRoute
   '/call/$kind/$userId': typeof AuthenticatedCallKindUserIdRoute
   '/api/public/hooks/kyc-cleanup': typeof ApiPublicHooksKycCleanupRoute
+  '/api/public/hooks/reconcile-razorpay': typeof ApiPublicHooksReconcileRazorpayRoute
   '/api/public/hooks/reset-calling-quotas': typeof ApiPublicHooksResetCallingQuotasRoute
 }
 export interface FileRoutesByTo {
@@ -415,6 +423,7 @@ export interface FileRoutesByTo {
   '/chat': typeof AuthenticatedChatIndexRoute
   '/call/$kind/$userId': typeof AuthenticatedCallKindUserIdRoute
   '/api/public/hooks/kyc-cleanup': typeof ApiPublicHooksKycCleanupRoute
+  '/api/public/hooks/reconcile-razorpay': typeof ApiPublicHooksReconcileRazorpayRoute
   '/api/public/hooks/reset-calling-quotas': typeof ApiPublicHooksResetCallingQuotasRoute
 }
 export interface FileRoutesById {
@@ -467,6 +476,7 @@ export interface FileRoutesById {
   '/_authenticated/chat/': typeof AuthenticatedChatIndexRoute
   '/_authenticated/call/$kind/$userId': typeof AuthenticatedCallKindUserIdRoute
   '/api/public/hooks/kyc-cleanup': typeof ApiPublicHooksKycCleanupRoute
+  '/api/public/hooks/reconcile-razorpay': typeof ApiPublicHooksReconcileRazorpayRoute
   '/api/public/hooks/reset-calling-quotas': typeof ApiPublicHooksResetCallingQuotasRoute
 }
 export interface FileRouteTypes {
@@ -519,6 +529,7 @@ export interface FileRouteTypes {
     | '/chat/'
     | '/call/$kind/$userId'
     | '/api/public/hooks/kyc-cleanup'
+    | '/api/public/hooks/reconcile-razorpay'
     | '/api/public/hooks/reset-calling-quotas'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -567,6 +578,7 @@ export interface FileRouteTypes {
     | '/chat'
     | '/call/$kind/$userId'
     | '/api/public/hooks/kyc-cleanup'
+    | '/api/public/hooks/reconcile-razorpay'
     | '/api/public/hooks/reset-calling-quotas'
   id:
     | '__root__'
@@ -618,6 +630,7 @@ export interface FileRouteTypes {
     | '/_authenticated/chat/'
     | '/_authenticated/call/$kind/$userId'
     | '/api/public/hooks/kyc-cleanup'
+    | '/api/public/hooks/reconcile-razorpay'
     | '/api/public/hooks/reset-calling-quotas'
   fileRoutesById: FileRoutesById
 }
@@ -640,6 +653,7 @@ export interface RootRouteChildren {
   ApiPublicRazorpayWebhookRoute: typeof ApiPublicRazorpayWebhookRoute
   Call_e2ePeerSheetBannerRoute: typeof Call_e2ePeerSheetBannerRoute
   ApiPublicHooksKycCleanupRoute: typeof ApiPublicHooksKycCleanupRoute
+  ApiPublicHooksReconcileRazorpayRoute: typeof ApiPublicHooksReconcileRazorpayRoute
   ApiPublicHooksResetCallingQuotasRoute: typeof ApiPublicHooksResetCallingQuotasRoute
 }
 
@@ -974,6 +988,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicHooksResetCallingQuotasRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/hooks/reconcile-razorpay': {
+      id: '/api/public/hooks/reconcile-razorpay'
+      path: '/api/public/hooks/reconcile-razorpay'
+      fullPath: '/api/public/hooks/reconcile-razorpay'
+      preLoaderRoute: typeof ApiPublicHooksReconcileRazorpayRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/hooks/kyc-cleanup': {
       id: '/api/public/hooks/kyc-cleanup'
       path: '/api/public/hooks/kyc-cleanup'
@@ -1109,6 +1130,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicRazorpayWebhookRoute: ApiPublicRazorpayWebhookRoute,
   Call_e2ePeerSheetBannerRoute: Call_e2ePeerSheetBannerRoute,
   ApiPublicHooksKycCleanupRoute: ApiPublicHooksKycCleanupRoute,
+  ApiPublicHooksReconcileRazorpayRoute: ApiPublicHooksReconcileRazorpayRoute,
   ApiPublicHooksResetCallingQuotasRoute: ApiPublicHooksResetCallingQuotasRoute,
 }
 export const routeTree = rootRouteImport
