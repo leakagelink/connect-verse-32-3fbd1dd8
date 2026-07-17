@@ -1,5 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { z } from "zod";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { listPlans, getWallet, mockRecharge } from "@/lib/wallet.functions";
@@ -11,15 +12,57 @@ import { AppShell } from "@/components/app-shell";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Coins, Sparkles, Gift, ShieldCheck, FlaskConical, ExternalLink, RefreshCw } from "lucide-react";
+import { Coins, Sparkles, Gift, ShieldCheck, FlaskConical, ExternalLink, RefreshCw, AlertTriangle, X } from "lucide-react";
 import { toast } from "sonner";
 import { bonusForDeposit, APP_NAME } from "@/lib/constants";
 import { openRazorpay } from "@/lib/razorpay-client";
 import { isNative, openExternalUrl } from "@/lib/native";
 
+// Deep-link params. `plan` is preselected (e.g. magic-link handoff from the
+// Android app → website). `src=android` lets us tell handoffs apart from
+// regular website visits. `resume=1` is set when we bounce the user back
+// into a retry flow after an interrupted external checkout.
+const SearchSchema = z.object({
+  plan: z.string().min(1).max(100).optional(),
+  src: z.string().max(50).optional(),
+  resume: z.union([z.literal("1"), z.literal("0")]).optional(),
+}).partial();
+
 export const Route = createFileRoute("/_authenticated/recharge")({
+  validateSearch: (s) => SearchSchema.parse(s ?? {}),
   component: Recharge,
 });
+
+// localStorage key + shape for the "pending external recharge" record. Used to
+// survive the app being backgrounded / browser tab being closed early, so we
+// can prompt the user to resume without losing their plan choice.
+const PENDING_KEY = "talkora.recharge.pending";
+type PendingRecharge = { planId: string; planLabel: string; startedAt: number };
+
+function readPending(): PendingRecharge | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = window.localStorage.getItem(PENDING_KEY);
+    if (!raw) return null;
+    const p = JSON.parse(raw) as PendingRecharge;
+    // Expire stale pending records after 30 min — Razorpay orders are short-lived.
+    if (!p?.planId || Date.now() - (p.startedAt ?? 0) > 30 * 60_000) {
+      window.localStorage.removeItem(PENDING_KEY);
+      return null;
+    }
+    return p;
+  } catch {
+    return null;
+  }
+}
+
+function writePending(p: PendingRecharge) {
+  try { window.localStorage.setItem(PENDING_KEY, JSON.stringify(p)); } catch { /* ignore */ }
+}
+
+function clearPending() {
+  try { window.localStorage.removeItem(PENDING_KEY); } catch { /* ignore */ }
+}
 
 function Recharge() {
   const qc = useQueryClient();
