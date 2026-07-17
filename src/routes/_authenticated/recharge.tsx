@@ -26,6 +26,9 @@ const SearchSchema = z.object({
   plan: z.string().min(1).max(100).optional(),
   src: z.string().max(50).optional(),
   resume: z.union([z.literal("1"), z.literal("0")]).optional(),
+  // Client-generated idempotency key forwarded via deep link so the website
+  // side of the magic-link handoff uses the same key when creating the order.
+  pp: z.string().min(8).max(80).optional(),
 }).partial();
 
 export const Route = createFileRoute("/_authenticated/recharge")({
@@ -37,20 +40,34 @@ export const Route = createFileRoute("/_authenticated/recharge")({
 // survive the app being backgrounded / browser tab being closed early, so we
 // can prompt the user to resume without losing their plan choice.
 const PENDING_KEY = "talkora.recharge.pending";
-type PendingRecharge = { planId: string; planLabel: string; startedAt: number };
+type PendingRecharge = { planId: string; planLabel: string; startedAt: number; purchaseId: string };
+
+function newPurchaseId(): string {
+  try {
+    if (typeof crypto !== "undefined" && "randomUUID" in crypto) return crypto.randomUUID();
+  } catch { /* ignore */ }
+  return `pp_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`;
+}
 
 function readPending(): PendingRecharge | null {
   if (typeof window === "undefined") return null;
   try {
     const raw = window.localStorage.getItem(PENDING_KEY);
     if (!raw) return null;
-    const p = JSON.parse(raw) as PendingRecharge;
+    const p = JSON.parse(raw) as Partial<PendingRecharge>;
     // Expire stale pending records after 30 min — Razorpay orders are short-lived.
     if (!p?.planId || Date.now() - (p.startedAt ?? 0) > 30 * 60_000) {
       window.localStorage.removeItem(PENDING_KEY);
       return null;
     }
-    return p;
+    // Back-compat: older records may not have a purchaseId; mint one now
+    // so the next retry still dedupes against the server.
+    return {
+      planId: p.planId,
+      planLabel: p.planLabel ?? "Coin pack",
+      startedAt: p.startedAt ?? Date.now(),
+      purchaseId: p.purchaseId ?? newPurchaseId(),
+    };
   } catch {
     return null;
   }
@@ -183,6 +200,13 @@ function Recharge() {
         return;
       }
 
+      // Reuse the purchaseId from any live pending record for the SAME plan,
+      // so a "Resume payment" tap dedupes against the server-side order —
+      // even after a browser close, app kill, or accidental double tap.
+      const existing = readPending();
+      const purchaseId =
+        existing && existing.planId === planId ? existing.purchaseId : newPurchaseId();
+
       if (useExternalCheckout) {
         // Open the same /recharge page in the system browser. To avoid a
         // second sign-in, we mint a short-lived Supabase magic link server-
@@ -192,10 +216,10 @@ function Recharge() {
         // Persist the plan choice BEFORE launching the browser so that if the
         // user closes the tab early / the return-sync finds nothing, we can
         // still show a "Resume payment" prompt with the right plan.
-        const record: PendingRecharge = { planId, planLabel, startedAt: Date.now() };
+        const record: PendingRecharge = { planId, planLabel, startedAt: Date.now(), purchaseId };
         writePending(record);
         setPending(record);
-        const redirectPath = `/recharge?plan=${encodeURIComponent(planId)}&src=android&resume=1`;
+        const redirectPath = `/recharge?plan=${encodeURIComponent(planId)}&src=android&resume=1&pp=${encodeURIComponent(purchaseId)}`;
         let url = `https://talkoraapp.com${redirectPath}`;
         try {
           const r = await autoLoginFn({ data: { redirectPath } });
@@ -214,7 +238,10 @@ function Recharge() {
 
 
 
-      const order = await createOrderFn({ data: { planId } });
+      const order = await createOrderFn({ data: { planId, purchaseId } });
+      // Persist so a page reload / crash between order creation and the
+      // Razorpay callback still dedupes on retry.
+      writePending({ planId, planLabel, startedAt: Date.now(), purchaseId });
       await openRazorpay({
         keyId: order.keyId,
         orderId: order.orderId,
@@ -273,6 +300,11 @@ function Recharge() {
     const plan = plans.find((p) => p.id === search.plan);
     if (!plan) return;
     autoBuyTried.current = true;
+    // Seed the pending record with the deep-link purchaseId so buy() reuses
+    // the same idempotency key server-side and doesn't create a duplicate.
+    if (search.pp) {
+      writePending({ planId: plan.id, planLabel: plan.label ?? "Coin pack", startedAt: Date.now(), purchaseId: search.pp });
+    }
     // Strip the deep-link params from the URL so a refresh doesn't re-trigger.
     navigate({ to: "/recharge", search: {}, replace: true });
     void buy(plan.id, plan.label ?? "Coin pack");

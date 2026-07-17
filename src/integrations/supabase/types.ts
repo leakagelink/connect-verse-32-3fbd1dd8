@@ -1563,6 +1563,7 @@ export type Database = {
         Row: {
           amount_paise: number
           bonus_credited: number | null
+          client_purchase_id: string | null
           coins_credited: number | null
           created_at: string
           credited_at: string | null
@@ -1581,6 +1582,7 @@ export type Database = {
         Insert: {
           amount_paise: number
           bonus_credited?: number | null
+          client_purchase_id?: string | null
           coins_credited?: number | null
           created_at?: string
           credited_at?: string | null
@@ -1599,6 +1601,7 @@ export type Database = {
         Update: {
           amount_paise?: number
           bonus_credited?: number | null
+          client_purchase_id?: string | null
           coins_credited?: number | null
           created_at?: string
           credited_at?: string | null
