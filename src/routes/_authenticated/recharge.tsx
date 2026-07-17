@@ -36,50 +36,17 @@ export const Route = createFileRoute("/_authenticated/recharge")({
   component: Recharge,
 });
 
-// localStorage key + shape for the "pending external recharge" record. Used to
-// survive the app being backgrounded / browser tab being closed early, so we
-// can prompt the user to resume without losing their plan choice.
-const PENDING_KEY = "talkora.recharge.pending";
-type PendingRecharge = { planId: string; planLabel: string; startedAt: number; purchaseId: string };
+// Pending-recharge storage helpers (see `src/lib/recharge-pending.ts`) live
+// in a shared module so `tests/e2e/recharge-retry.spec.ts` exercises the
+// exact same contract as production.
+import {
+  readPending,
+  writePending,
+  clearPending,
+  newPurchaseId,
+  type PendingRecharge,
+} from "@/lib/recharge-pending";
 
-function newPurchaseId(): string {
-  try {
-    if (typeof crypto !== "undefined" && "randomUUID" in crypto) return crypto.randomUUID();
-  } catch { /* ignore */ }
-  return `pp_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`;
-}
-
-function readPending(): PendingRecharge | null {
-  if (typeof window === "undefined") return null;
-  try {
-    const raw = window.localStorage.getItem(PENDING_KEY);
-    if (!raw) return null;
-    const p = JSON.parse(raw) as Partial<PendingRecharge>;
-    // Expire stale pending records after 30 min — Razorpay orders are short-lived.
-    if (!p?.planId || Date.now() - (p.startedAt ?? 0) > 30 * 60_000) {
-      window.localStorage.removeItem(PENDING_KEY);
-      return null;
-    }
-    // Back-compat: older records may not have a purchaseId; mint one now
-    // so the next retry still dedupes against the server.
-    return {
-      planId: p.planId,
-      planLabel: p.planLabel ?? "Coin pack",
-      startedAt: p.startedAt ?? Date.now(),
-      purchaseId: p.purchaseId ?? newPurchaseId(),
-    };
-  } catch {
-    return null;
-  }
-}
-
-function writePending(p: PendingRecharge) {
-  try { window.localStorage.setItem(PENDING_KEY, JSON.stringify(p)); } catch { /* ignore */ }
-}
-
-function clearPending() {
-  try { window.localStorage.removeItem(PENDING_KEY); } catch { /* ignore */ }
-}
 
 function Recharge() {
   const qc = useQueryClient();
