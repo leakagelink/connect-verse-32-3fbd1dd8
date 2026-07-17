@@ -228,6 +228,9 @@ function Recharge() {
           // pending/success/failed state. Verification + wallet refresh still
           // run here for instant credit; the status screen polls the order in
           // case the webhook is slower than the redirect.
+          // Also clear any pending-retry record — this checkout completed.
+          clearPending();
+          setPending(null);
           navigate({
             to: "/recharge/status",
             search: { orderId: order.orderId },
@@ -254,6 +257,28 @@ function Recharge() {
       setBusy(null);
     }
   }
+
+  // Deep-link auto-buy: when the website is opened with `?plan=<id>` (from
+  // the Android magic-link handoff, or a saved deep link), auto-open Razorpay
+  // for that plan as soon as plans + config are ready. Runs at most once per
+  // page load; native app itself ignores this because it re-launches the
+  // browser rather than opening checkout in-place.
+  const autoBuyTried = useRef(false);
+  useEffect(() => {
+    if (autoBuyTried.current) return;
+    if (native) return; // native shell reopens browser; don't loop
+    if (!search.plan) return;
+    if (!plans || !cfg) return;
+    if (busy) return;
+    const plan = plans.find((p) => p.id === search.plan);
+    if (!plan) return;
+    autoBuyTried.current = true;
+    // Strip the deep-link params from the URL so a refresh doesn't re-trigger.
+    navigate({ to: "/recharge", search: {}, replace: true });
+    void buy(plan.id, plan.label ?? "Coin pack");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [search.plan, plans, cfg, native, busy]);
+
 
   return (
     <AppShell isAdmin={me?.isAdmin}>
