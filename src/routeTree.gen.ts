@@ -40,6 +40,7 @@ import { Route as AuthenticatedConnectRouteImport } from './routes/_authenticate
 import { Route as AuthenticatedChatRouteImport } from './routes/_authenticated/chat'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
 import { Route as AuthenticatedAccountDeleteRouteImport } from './routes/_authenticated/account-delete'
+import { Route as _e2eRechargeRetryRouteImport } from './routes/__e2e.recharge-retry'
 import { Route as _e2ePeerSheetBannerRouteImport } from './routes/__e2e.peer-sheet-banner'
 import { Route as _e2eCallRecoveryRouteImport } from './routes/__e2e.call-recovery'
 import { Route as _e2eCallFullscreenRouteImport } from './routes/__e2e.call-fullscreen'
@@ -220,6 +221,11 @@ const AuthenticatedAccountDeleteRoute =
     path: '/account-delete',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const _e2eRechargeRetryRoute = _e2eRechargeRetryRouteImport.update({
+  id: '/__e2e/recharge-retry',
+  path: '/recharge-retry',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const _e2ePeerSheetBannerRoute = _e2ePeerSheetBannerRouteImport.update({
   id: '/__e2e/peer-sheet-banner',
   path: '/peer-sheet-banner',
@@ -341,6 +347,7 @@ export interface FileRoutesByFullPath {
   '/call-fullscreen': typeof _e2eCallFullscreenRoute
   '/call-recovery': typeof _e2eCallRecoveryRoute
   '/peer-sheet-banner': typeof _e2ePeerSheetBannerRoute
+  '/recharge-retry': typeof _e2eRechargeRetryRoute
   '/account-delete': typeof AuthenticatedAccountDeleteRoute
   '/admin': typeof AuthenticatedAdminRouteWithChildren
   '/chat': typeof AuthenticatedChatRouteWithChildren
@@ -392,6 +399,7 @@ export interface FileRoutesByTo {
   '/call-fullscreen': typeof _e2eCallFullscreenRoute
   '/call-recovery': typeof _e2eCallRecoveryRoute
   '/peer-sheet-banner': typeof _e2ePeerSheetBannerRoute
+  '/recharge-retry': typeof _e2eRechargeRetryRoute
   '/account-delete': typeof AuthenticatedAccountDeleteRoute
   '/connect': typeof AuthenticatedConnectRoute
   '/creator-dashboard': typeof AuthenticatedCreatorDashboardRoute
@@ -443,6 +451,7 @@ export interface FileRoutesById {
   '/__e2e/call-fullscreen': typeof _e2eCallFullscreenRoute
   '/__e2e/call-recovery': typeof _e2eCallRecoveryRoute
   '/__e2e/peer-sheet-banner': typeof _e2ePeerSheetBannerRoute
+  '/__e2e/recharge-retry': typeof _e2eRechargeRetryRoute
   '/_authenticated/account-delete': typeof AuthenticatedAccountDeleteRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRouteWithChildren
   '/_authenticated/chat': typeof AuthenticatedChatRouteWithChildren
@@ -496,6 +505,7 @@ export interface FileRouteTypes {
     | '/call-fullscreen'
     | '/call-recovery'
     | '/peer-sheet-banner'
+    | '/recharge-retry'
     | '/account-delete'
     | '/admin'
     | '/chat'
@@ -547,6 +557,7 @@ export interface FileRouteTypes {
     | '/call-fullscreen'
     | '/call-recovery'
     | '/peer-sheet-banner'
+    | '/recharge-retry'
     | '/account-delete'
     | '/connect'
     | '/creator-dashboard'
@@ -597,6 +608,7 @@ export interface FileRouteTypes {
     | '/__e2e/call-fullscreen'
     | '/__e2e/call-recovery'
     | '/__e2e/peer-sheet-banner'
+    | '/__e2e/recharge-retry'
     | '/_authenticated/account-delete'
     | '/_authenticated/admin'
     | '/_authenticated/chat'
@@ -650,6 +662,7 @@ export interface RootRouteChildren {
   _e2eCallFullscreenRoute: typeof _e2eCallFullscreenRoute
   _e2eCallRecoveryRoute: typeof _e2eCallRecoveryRoute
   _e2ePeerSheetBannerRoute: typeof _e2ePeerSheetBannerRoute
+  _e2eRechargeRetryRoute: typeof _e2eRechargeRetryRoute
   ApiPublicRazorpayWebhookRoute: typeof ApiPublicRazorpayWebhookRoute
   Call_e2ePeerSheetBannerRoute: typeof Call_e2ePeerSheetBannerRoute
   ApiPublicHooksKycCleanupRoute: typeof ApiPublicHooksKycCleanupRoute
@@ -875,6 +888,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/account-delete'
       preLoaderRoute: typeof AuthenticatedAccountDeleteRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/__e2e/recharge-retry': {
+      id: '/__e2e/recharge-retry'
+      path: '/recharge-retry'
+      fullPath: '/recharge-retry'
+      preLoaderRoute: typeof _e2eRechargeRetryRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/__e2e/peer-sheet-banner': {
       id: '/__e2e/peer-sheet-banner'
@@ -1127,6 +1147,7 @@ const rootRouteChildren: RootRouteChildren = {
   _e2eCallFullscreenRoute: _e2eCallFullscreenRoute,
   _e2eCallRecoveryRoute: _e2eCallRecoveryRoute,
   _e2ePeerSheetBannerRoute: _e2ePeerSheetBannerRoute,
+  _e2eRechargeRetryRoute: _e2eRechargeRetryRoute,
   ApiPublicRazorpayWebhookRoute: ApiPublicRazorpayWebhookRoute,
   Call_e2ePeerSheetBannerRoute: Call_e2ePeerSheetBannerRoute,
   ApiPublicHooksKycCleanupRoute: ApiPublicHooksKycCleanupRoute,
