@@ -321,6 +321,52 @@ function Recharge() {
         </Card>
       )}
 
+      {pending && (
+        <Card className="glass mt-4 p-3 border-warning/50 bg-warning/5">
+          <div className="flex items-start gap-2">
+            <AlertTriangle className="size-4 text-warning shrink-0 mt-0.5" />
+            <div className="flex-1 min-w-0 text-xs">
+              <p className="font-semibold">Finish your {pending.planLabel} recharge?</p>
+              <p className="text-muted-foreground mt-0.5">
+                We didn't confirm your last payment yet. If you closed the browser
+                early, tap <span className="font-semibold">Resume payment</span> to
+                try again with the same plan — you won't be charged twice.
+              </p>
+              <div className="mt-2 flex flex-wrap items-center gap-2">
+                <Button
+                  size="sm"
+                  className="brand-gradient text-primary-foreground h-8"
+                  disabled={busy === pending.planId}
+                  onClick={() => buy(pending.planId, pending.planLabel)}
+                >
+                  {busy === pending.planId ? "…" : "Resume payment"}
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-8"
+                  disabled={syncing}
+                  onClick={() => void syncCoins()}
+                >
+                  <RefreshCw className={`size-3.5 ${syncing ? "animate-spin" : ""}`} />
+                  <span className="ml-1.5">Check status</span>
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-8 text-muted-foreground"
+                  onClick={() => { clearPending(); setPending(null); }}
+                >
+                  <X className="size-3.5" />
+                  <span className="ml-1">Dismiss</span>
+                </Button>
+              </div>
+            </div>
+          </div>
+        </Card>
+      )}
+
+
       {bonusPct > 0 && (
         <Card className="glass mt-4 p-4 flex items-center gap-3 border-accent/40">
           <Gift className="size-5 text-accent" />
