@@ -197,6 +197,13 @@ function Recharge() {
         return;
       }
 
+      // Reuse the purchaseId from any live pending record for the SAME plan,
+      // so a "Resume payment" tap dedupes against the server-side order —
+      // even after a browser close, app kill, or accidental double tap.
+      const existing = readPending();
+      const purchaseId =
+        existing && existing.planId === planId ? existing.purchaseId : newPurchaseId();
+
       if (useExternalCheckout) {
         // Open the same /recharge page in the system browser. To avoid a
         // second sign-in, we mint a short-lived Supabase magic link server-
@@ -206,10 +213,10 @@ function Recharge() {
         // Persist the plan choice BEFORE launching the browser so that if the
         // user closes the tab early / the return-sync finds nothing, we can
         // still show a "Resume payment" prompt with the right plan.
-        const record: PendingRecharge = { planId, planLabel, startedAt: Date.now() };
+        const record: PendingRecharge = { planId, planLabel, startedAt: Date.now(), purchaseId };
         writePending(record);
         setPending(record);
-        const redirectPath = `/recharge?plan=${encodeURIComponent(planId)}&src=android&resume=1`;
+        const redirectPath = `/recharge?plan=${encodeURIComponent(planId)}&src=android&resume=1&pp=${encodeURIComponent(purchaseId)}`;
         let url = `https://talkoraapp.com${redirectPath}`;
         try {
           const r = await autoLoginFn({ data: { redirectPath } });
@@ -228,7 +235,10 @@ function Recharge() {
 
 
 
-      const order = await createOrderFn({ data: { planId } });
+      const order = await createOrderFn({ data: { planId, purchaseId } });
+      // Persist so a page reload / crash between order creation and the
+      // Razorpay callback still dedupes on retry.
+      writePending({ planId, planLabel, startedAt: Date.now(), purchaseId });
       await openRazorpay({
         keyId: order.keyId,
         orderId: order.orderId,
