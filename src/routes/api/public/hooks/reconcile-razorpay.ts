@@ -114,7 +114,31 @@ export const Route = createFileRoute("/api/public/hooks/reconcile-razorpay")({
                 creditResult &&
                 typeof creditResult === "object" &&
                 (creditResult as { ok?: boolean }).ok !== false;
-              if (ok) credited++;
+              if (ok) {
+                credited++;
+                try {
+                  const { data: fresh } = await supabaseAdmin
+                    .from("razorpay_orders")
+                    .select("user_id, coins_credited, bonus_credited, status")
+                    .eq("id", row.id)
+                    .maybeSingle();
+                  if (fresh?.user_id && fresh.status === "credited") {
+                    const coins = Number(fresh.coins_credited ?? 0);
+                    const bonus = Number(fresh.bonus_credited ?? 0);
+                    const bonusTxt = bonus > 0 ? ` (incl. ${bonus} bonus)` : "";
+                    const { notifyUser } = await import("@/lib/push.functions");
+                    await notifyUser({
+                      userId: fresh.user_id,
+                      kind: "system",
+                      title: "Recharge successful",
+                      body: `${coins} coins credited to your wallet${bonusTxt}.`,
+                      deepLink: "/wallet",
+                    });
+                  }
+                } catch (e) {
+                  console.error("reconcile success notify failed", e);
+                }
+              }
               continue;
             }
 
@@ -126,6 +150,18 @@ export const Route = createFileRoute("/api/public/hooks/reconcile-razorpay")({
                 .eq("id", row.id)
                 .neq("status", "credited");
               expired++;
+              try {
+                const { notifyUser } = await import("@/lib/push.functions");
+                await notifyUser({
+                  userId: row.user_id,
+                  kind: "system",
+                  title: "Recharge pending expired",
+                  body: "We couldn't confirm your payment. If money was debited, it will be refunded automatically. Tap to try again.",
+                  deepLink: "/recharge",
+                });
+              } catch (e) {
+                console.error("reconcile expiry notify failed", e);
+              }
             } else {
               stillPending++;
             }
