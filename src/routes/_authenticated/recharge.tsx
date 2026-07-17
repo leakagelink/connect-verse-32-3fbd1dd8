@@ -300,6 +300,11 @@ function Recharge() {
     const plan = plans.find((p) => p.id === search.plan);
     if (!plan) return;
     autoBuyTried.current = true;
+    // Seed the pending record with the deep-link purchaseId so buy() reuses
+    // the same idempotency key server-side and doesn't create a duplicate.
+    if (search.pp) {
+      writePending({ planId: plan.id, planLabel: plan.label ?? "Coin pack", startedAt: Date.now(), purchaseId: search.pp });
+    }
     // Strip the deep-link params from the URL so a refresh doesn't re-trigger.
     navigate({ to: "/recharge", search: {}, replace: true });
     void buy(plan.id, plan.label ?? "Coin pack");
