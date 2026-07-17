@@ -1,4 +1,23 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+
+// The project's vitest runs in the default node environment (no jsdom /
+// happy-dom installed). `recharge-pending` only needs `window.localStorage`,
+// so provide a tiny in-memory polyfill instead of pulling in a full DOM.
+class MemoryStorage {
+  private store = new Map<string, string>();
+  getItem(k: string) { return this.store.has(k) ? this.store.get(k)! : null; }
+  setItem(k: string, v: string) { this.store.set(k, String(v)); }
+  removeItem(k: string) { this.store.delete(k); }
+  clear() { this.store.clear(); }
+  key(i: number) { return Array.from(this.store.keys())[i] ?? null; }
+  get length() { return this.store.size; }
+}
+const memoryLocalStorage = new MemoryStorage();
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+(globalThis as any).window = { localStorage: memoryLocalStorage };
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+(globalThis as any).localStorage = memoryLocalStorage;
+
 import {
   PENDING_KEY,
   PENDING_TTL_MS,
@@ -9,8 +28,6 @@ import {
   type PendingRecharge,
 } from "@/lib/recharge-pending";
 
-// jsdom provides window/localStorage; reset between tests so state from one
-// case never leaks into another (writePending / clearPending mutate globals).
 beforeEach(() => {
   window.localStorage.clear();
 });
@@ -18,6 +35,7 @@ beforeEach(() => {
 afterEach(() => {
   vi.useRealTimers();
 });
+
 
 function makeRecord(over: Partial<PendingRecharge> = {}): PendingRecharge {
   return {
