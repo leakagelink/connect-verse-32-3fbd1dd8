@@ -108,11 +108,14 @@ function Landing() {
 
       <footer className="border-t border-border/50 py-6 text-center text-xs text-muted-foreground space-y-2">
         <div>© {new Date().getFullYear()} {APP_NAME}. 18+ only. Be kind. Be safe.</div>
-        <div className="flex justify-center gap-4">
+        <div className="flex flex-wrap justify-center gap-x-4 gap-y-1">
           <Link to="/privacy" className="hover:text-foreground">Privacy Policy</Link>
-          <span>·</span>
+          <span aria-hidden>·</span>
           <Link to="/terms" className="hover:text-foreground">Terms of Service</Link>
+          <span aria-hidden>·</span>
+          <Link to="/delete-account" className="hover:text-foreground">Delete Account</Link>
         </div>
+
       </footer>
     </div>
   );
