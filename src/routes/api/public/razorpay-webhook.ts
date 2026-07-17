@@ -84,6 +84,30 @@ export const Route = createFileRoute("/api/public/razorpay-webhook")({
               return new Response("Credit error", { status: 500 });
             }
             console.log("razorpay credit:", orderId, credit);
+
+            // Notify user of successful recharge (in-app bell + push).
+            try {
+              const { data: row } = await supabaseAdmin
+                .from("razorpay_orders")
+                .select("user_id, coins_credited, bonus_credited, status")
+                .eq("razorpay_order_id", orderId)
+                .maybeSingle();
+              if (row?.user_id && row.status === "credited") {
+                const coins = Number(row.coins_credited ?? 0);
+                const bonus = Number(row.bonus_credited ?? 0);
+                const bonusTxt = bonus > 0 ? ` (incl. ${bonus} bonus)` : "";
+                const { notifyUser } = await import("@/lib/push.functions");
+                await notifyUser({
+                  userId: row.user_id,
+                  kind: "system",
+                  title: "Recharge successful",
+                  body: `${coins} coins credited to your wallet${bonusTxt}.`,
+                  deepLink: "/wallet",
+                });
+              }
+            } catch (e) {
+              console.error("recharge success notify failed", e);
+            }
           } else if (event === "payment.failed") {
             const payment = payload?.payload?.payment?.entity;
             const orderId = payment?.order_id;
@@ -97,6 +121,28 @@ export const Route = createFileRoute("/api/public/razorpay-webhook")({
                 })
                 .eq("razorpay_order_id", orderId)
                 .neq("status", "credited");
+
+              // Notify user of failed recharge so they can retry.
+              try {
+                const { data: row } = await supabaseAdmin
+                  .from("razorpay_orders")
+                  .select("user_id, status")
+                  .eq("razorpay_order_id", orderId)
+                  .maybeSingle();
+                if (row?.user_id && row.status === "failed") {
+                  const reason = payment?.error_description || payment?.error_reason || "Payment could not be completed";
+                  const { notifyUser } = await import("@/lib/push.functions");
+                  await notifyUser({
+                    userId: row.user_id,
+                    kind: "system",
+                    title: "Recharge failed",
+                    body: `${reason}. Tap to try again.`,
+                    deepLink: "/recharge",
+                  });
+                }
+              } catch (e) {
+                console.error("recharge fail notify failed", e);
+              }
             }
           }
         } catch (e) {
