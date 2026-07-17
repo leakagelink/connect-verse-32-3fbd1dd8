@@ -3,7 +3,13 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { getPaymentSettings } from "./payments.functions";
 
-const CreateOrderInput = z.object({ planId: z.string().uuid() });
+const CreateOrderInput = z.object({
+  planId: z.string().uuid(),
+  // Client-generated idempotency key. Same key + same user = same order,
+  // even across retries / duplicate taps / page reloads. If the caller
+  // omits it we mint one server-side (legacy behaviour, no dedupe).
+  purchaseId: z.string().min(8).max(80).optional(),
+});
 
 export const createRazorpayOrder = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
