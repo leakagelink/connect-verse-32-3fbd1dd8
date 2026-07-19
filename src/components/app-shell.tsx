@@ -51,7 +51,7 @@ export function AppShell({ children, isAdmin }: { children: ReactNode; isAdmin?:
     };
   }, []);
 
-  // Phase 4 — Capacitor: status-b...
+  // Phase 4 — Capacitor: status-bar colour, splash hide, push token registration.
   // Phase 10 — deep-link bridge (talkora:// → in-app route).
   useEffect(() => {
     let dispose: (() => void) | undefined;
