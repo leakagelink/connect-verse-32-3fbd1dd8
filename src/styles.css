@@ -503,3 +503,205 @@ html.reduce-motion *::after {
   outline-offset: 2px;
   border-radius: 4px;
 }
+
+/* ============================================================
+   ENGAGING SURFACE SYSTEM — gradients, glows, shine
+   ------------------------------------------------------------
+   Consistent language for buttons/cards/backgrounds so we don't
+   ad-hoc gradients per component. Every utility reads from
+   semantic tokens — theme changes propagate automatically.
+   ============================================================ */
+
+/* --- Keyframes ---------------------------------------------- */
+@keyframes talkora-glow-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 color-mix(in oklab, var(--primary) 45%, transparent),
+                        0 12px 32px -12px color-mix(in oklab, var(--primary) 50%, transparent); }
+  50%      { box-shadow: 0 0 0 8px color-mix(in oklab, var(--primary) 0%, transparent),
+                        0 18px 42px -14px color-mix(in oklab, var(--primary) 65%, transparent); }
+}
+@keyframes talkora-shine {
+  0%   { transform: translateX(-120%) skewX(-18deg); }
+  100% { transform: translateX(220%)  skewX(-18deg); }
+}
+@keyframes talkora-mesh-drift {
+  0%, 100% { background-position: 0% 0%, 100% 100%, 50% 50%; }
+  50%      { background-position: 20% 10%, 80% 90%, 60% 40%; }
+}
+
+/* --- Buttons ------------------------------------------------- */
+
+/* Primary gradient CTA — pink → purple, glow at rest, shine on hover.
+   Pair with size classes: <button class="btn-gradient px-5 h-11 rounded-full">Go</button> */
+@utility btn-gradient {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  color: var(--primary-foreground);
+  background-image: var(--gradient-brand);
+  background-size: 180% 180%;
+  background-position: 0% 50%;
+  box-shadow:
+    0 8px 24px -10px color-mix(in oklab, var(--primary) 55%, transparent),
+    inset 0 1px 0 color-mix(in oklab, white 35%, transparent);
+  transition: background-position 400ms ease, box-shadow 250ms ease, transform 150ms ease;
+  &:hover {
+    background-position: 100% 50%;
+    box-shadow:
+      0 12px 32px -10px color-mix(in oklab, var(--primary) 65%, transparent),
+      0 0 0 1px color-mix(in oklab, var(--primary) 30%, transparent),
+      inset 0 1px 0 color-mix(in oklab, white 45%, transparent);
+  }
+  &:active { transform: translateY(1px) scale(0.99); }
+  &::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(100deg,
+      transparent 30%,
+      color-mix(in oklab, white 55%, transparent) 50%,
+      transparent 70%);
+    transform: translateX(-120%) skewX(-18deg);
+    pointer-events: none;
+  }
+  &:hover::after { animation: talkora-shine 900ms ease-out; }
+}
+
+/* Soft-tinted secondary button — pastel wash of primary, no glow. */
+@utility btn-soft {
+  background-color: var(--primary-soft);
+  color: var(--foreground);
+  border: 1px solid color-mix(in oklab, var(--primary) 22%, transparent);
+  transition: background-color 200ms ease, border-color 200ms ease, transform 150ms ease;
+  &:hover {
+    background-color: color-mix(in oklab, var(--primary) 22%, var(--surface));
+    border-color: color-mix(in oklab, var(--primary) 35%, transparent);
+  }
+  &:active { transform: translateY(1px); }
+}
+
+/* Outline pill with animated gradient border — good for tertiary CTAs. */
+@utility btn-outline-glow {
+  position: relative;
+  color: var(--foreground);
+  background-color: var(--surface);
+  border: 1px solid transparent;
+  background-image:
+    linear-gradient(var(--surface), var(--surface)),
+    var(--gradient-brand);
+  background-origin: border-box;
+  background-clip: padding-box, border-box;
+  transition: box-shadow 200ms ease, transform 150ms ease;
+  &:hover {
+    box-shadow: 0 0 0 3px color-mix(in oklab, var(--primary) 18%, transparent);
+  }
+  &:active { transform: translateY(1px); }
+}
+
+/* Attention pulse — apply on CTAs the user should notice
+   (e.g. Recharge banner when coins are low). */
+@utility pulse-primary {
+  animation: talkora-glow-pulse 2.4s ease-in-out infinite;
+}
+
+/* --- Cards -------------------------------------------------- */
+
+/* Elevated card with soft brand-tinted shadow. */
+@utility card-elevated {
+  background-color: var(--surface-elevated);
+  color: var(--surface-foreground);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--elevation-2);
+  transition: transform 250ms ease, box-shadow 250ms ease, border-color 250ms ease;
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--elevation-3);
+    border-color: color-mix(in oklab, var(--primary) 28%, transparent);
+  }
+}
+
+/* Feature card with corner glow — pair with card-elevated for hero surfaces. */
+@utility card-glow {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  &::before {
+    content: "";
+    position: absolute;
+    inset: -30% -30% auto auto;
+    width: 65%;
+    aspect-ratio: 1;
+    background: radial-gradient(circle,
+      color-mix(in oklab, var(--primary) 55%, transparent) 0%,
+      transparent 65%);
+    filter: blur(30px);
+    opacity: 0.75;
+    pointer-events: none;
+    z-index: -1;
+  }
+  &::after {
+    content: "";
+    position: absolute;
+    inset: auto auto -30% -30%;
+    width: 60%;
+    aspect-ratio: 1;
+    background: radial-gradient(circle,
+      color-mix(in oklab, var(--accent) 50%, transparent) 0%,
+      transparent 65%);
+    filter: blur(30px);
+    opacity: 0.65;
+    pointer-events: none;
+    z-index: -1;
+  }
+}
+
+/* Coin/gold surface for wallet, purchases, gifts. */
+@utility card-coin {
+  background-image: linear-gradient(135deg,
+    color-mix(in oklab, var(--coin) 22%, var(--surface)) 0%,
+    var(--surface) 55%,
+    color-mix(in oklab, var(--primary) 12%, var(--surface)) 100%);
+  border: 1px solid color-mix(in oklab, var(--coin) 40%, transparent);
+  box-shadow:
+    0 12px 32px -14px color-mix(in oklab, var(--coin) 45%, transparent),
+    inset 0 1px 0 color-mix(in oklab, white 60%, transparent);
+}
+
+/* --- Backgrounds -------------------------------------------- */
+
+/* Ambient brand mesh — subtle drifting blobs. Use behind hero
+   sections or empty states. Automatically pauses under
+   .reduce-motion (a11y). */
+@utility bg-mesh {
+  background-color: var(--background);
+  background-image:
+    radial-gradient(60% 45% at 15% 20%,
+      color-mix(in oklab, var(--primary) 22%, transparent), transparent 65%),
+    radial-gradient(50% 40% at 85% 80%,
+      color-mix(in oklab, var(--accent) 20%, transparent), transparent 65%),
+    radial-gradient(45% 40% at 60% 30%,
+      color-mix(in oklab, var(--secondary) 90%, transparent), transparent 70%);
+  background-size: 140% 140%, 140% 140%, 140% 140%;
+  animation: talkora-mesh-drift 18s ease-in-out infinite;
+}
+html.reduce-motion .bg-mesh { animation: none; }
+
+/* Flat brand gradient wash — for banners, headers. */
+@utility bg-gradient-brand {
+  background-image: var(--gradient-brand);
+  color: var(--primary-foreground);
+}
+
+/* Soft brand wash — for section dividers, chips. */
+@utility bg-gradient-soft {
+  background-image: var(--gradient-soft);
+}
+
+/* Ring glow — outline halo that echoes primary; sits on avatars,
+   coin badges, live-indicator dots. */
+@utility ring-glow {
+  box-shadow:
+    0 0 0 2px var(--surface),
+    0 0 0 4px color-mix(in oklab, var(--primary) 55%, transparent),
+    0 0 24px -4px color-mix(in oklab, var(--primary) 50%, transparent);
+}
