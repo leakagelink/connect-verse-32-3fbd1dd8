@@ -122,13 +122,19 @@ export function AppShell({ children, isAdmin }: { children: ReactNode; isAdmin?:
             className="flex shrink-0 items-center gap-2 rounded-full pr-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
             aria-label={`${APP_NAME} home`}
           >
-            <span className="relative grid size-9 place-items-center rounded-xl bg-gradient-brand shadow-[0_6px_16px_-6px_color-mix(in_oklab,var(--primary)_55%,transparent)]">
+            <span className={cn(
+              "relative grid place-items-center rounded-xl bg-gradient-brand shadow-[0_6px_16px_-6px_color-mix(in_oklab,var(--primary)_55%,transparent)] transition-[width,height] duration-200 ease-out",
+              isShrunk ? "size-8" : "size-9"
+            )}>
               <img
                 src={talkoraLogo.url}
                 alt=""
                 width={22}
                 height={22}
-                className="size-[22px] rounded-md"
+                className={cn(
+                  "rounded-md transition-[width,height] duration-200 ease-out",
+                  isShrunk ? "size-5" : "size-[22px]"
+                )}
               />
             </span>
             <span className="hidden bg-gradient-brand bg-clip-text text-base font-black tracking-tight text-transparent sm:inline">
