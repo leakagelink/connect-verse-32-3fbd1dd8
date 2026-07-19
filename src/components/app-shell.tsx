@@ -29,8 +29,29 @@ export function AppShell({ children, isAdmin }: { children: ReactNode; isAdmin?:
   const unread = me?.unreadCount ?? 0;
   const admin = isAdmin ?? me?.isAdmin;
   const { t, setLocale, locale } = useT();
+  const [isShrunk, setIsShrunk] = useState(false);
 
-  // Phase 4 — Capacitor: status-bar colour, splash hide, push token registration.
+  useEffect(() => {
+    let raf = 0;
+    let last = 0;
+    const onScroll = () => {
+      const now = performance.now();
+      if (now - last < 80) return;
+      last = now;
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(() => {
+        setIsShrunk(window.scrollY > 16);
+      });
+    };
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      cancelAnimationFrame(raf);
+    };
+  }, []);
+
+  // Phase 4 — Capacitor: status-b...
   // Phase 10 — deep-link bridge (talkora:// → in-app route).
   useEffect(() => {
     let dispose: (() => void) | undefined;
