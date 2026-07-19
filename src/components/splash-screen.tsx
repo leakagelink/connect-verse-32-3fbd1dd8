@@ -95,6 +95,9 @@ export function SplashScreen() {
     }, HOLD_MS + FADE_MS);
 
     return () => {
+      if (typeof window !== "undefined") {
+        (window as any).__splashCleanupCount = ((window as any).__splashCleanupCount || 0) + 1;
+      }
       clearTimeout(t1);
       clearTimeout(t2);
       if (progressRef.current) cancelAnimationFrame(progressRef.current);
