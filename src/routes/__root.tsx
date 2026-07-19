@@ -13,6 +13,8 @@ import { LanguageProvider } from "@/lib/i18n";
 import talkoraLogo from "@/assets/talkora-logo.png.asset.json";
 import { installPerfTracker } from "@/lib/perf-tracker";
 import { SplashScreen } from "@/components/splash-screen";
+import { initA11y } from "@/lib/a11y";
+
 
 
 function NotFoundComponent() {
@@ -103,7 +105,9 @@ function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   const router = useRouter();
   useEffect(() => {
+    initA11y();
     installPerfTracker(router);
+
     const { data: sub } = supabase.auth.onAuthStateChange((event) => {
       if (event !== "SIGNED_IN" && event !== "SIGNED_OUT" && event !== "USER_UPDATED") return;
       router.invalidate();
