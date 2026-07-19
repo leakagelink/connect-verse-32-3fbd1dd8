@@ -85,16 +85,10 @@ export function SplashScreen() {
     const t1 = setTimeout(() => setStage("fade"), HOLD_MS);
     const t2 = setTimeout(() => {
       setStage("gone");
-      try {
-        sessionStorage.setItem(SEEN_KEY, "1");
-        if (typeof document !== "undefined") document.body.setAttribute("data-splash-done", "1");
-      } catch {}
+      try { sessionStorage.setItem(SEEN_KEY, "1"); } catch {}
     }, HOLD_MS + FADE_MS);
 
     return () => {
-      if (typeof window !== "undefined") {
-        (window as any).__splashCleanupCount = ((window as any).__splashCleanupCount || 0) + 1;
-      }
       clearTimeout(t1);
       clearTimeout(t2);
       if (progressRef.current) cancelAnimationFrame(progressRef.current);
