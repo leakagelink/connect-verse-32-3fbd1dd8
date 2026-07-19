@@ -4,8 +4,8 @@ import talkoraLogo from "@/assets/talkora-logo.png.asset.json";
 
 const SEEN_KEY = "talkora.splash.seen";
 const LOGO_CACHE_KEY = "talkora.splash.logo.v1";
-const HOLD_MS = 1700;
-const FADE_MS = 400;
+const HOLD_MS = 1200;
+const FADE_MS = 300;
 
 function useCachedLogo(url: string) {
   const [src, setSrc] = useState<string>(() => {
