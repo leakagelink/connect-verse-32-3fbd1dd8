@@ -478,10 +478,15 @@ html.text-scale-lg  { font-size: 112.5%; }   /* 18px base */
 html.text-scale-xl  { font-size: 125%;   }   /* 20px base */
 
 /* --- Reduced-motion honoring ---------------------------------
-   Respect prefers-reduced-motion AND the manual opt-in class. */
+   Respect the manual opt-in class AND the OS preference. */
 html.reduce-motion *,
 html.reduce-motion *::before,
-html.reduce-motion *::after,
+html.reduce-motion *::after {
+  animation-duration: 0.001ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.001ms !important;
+  scroll-behavior: auto !important;
+}
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.001ms !important;
@@ -490,6 +495,7 @@ html.reduce-motion *::after,
     scroll-behavior: auto !important;
   }
 }
+
 
 /* --- Always-visible focus ring for keyboard users ------------ */
 :focus-visible {
