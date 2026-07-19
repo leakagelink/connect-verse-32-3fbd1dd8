@@ -523,6 +523,12 @@ html.reduce-motion *::after {
   0%   { transform: translateX(-120%) skewX(-18deg); }
   100% { transform: translateX(220%)  skewX(-18deg); }
 }
+@keyframes talkora-shimmer-loop {
+  0%, 100% { transform: translateX(-120%) skewX(-18deg); opacity: 0; }
+  8%       { opacity: 0.65; }
+  35%      { transform: translateX(220%) skewX(-18deg); opacity: 0; }
+  60%      { transform: translateX(220%) skewX(-18deg); opacity: 0; }
+}
 @keyframes talkora-mesh-drift {
   0%, 100% { background-position: 0% 0%, 100% 100%, 50% 50%; }
   50%      { background-position: 20% 10%, 80% 90%, 60% 40%; }
