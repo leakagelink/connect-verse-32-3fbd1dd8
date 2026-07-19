@@ -389,3 +389,111 @@ body[data-call-active="1"] {
   background-image: none;
   background-color: var(--ink-950);
 }
+
+/* ============================================================
+   LOW-VISION FRIENDLY THEMES (opt-in via <html class="…">)
+   ------------------------------------------------------------
+   Toggled from Settings → Accessibility. Preferences persist in
+   localStorage and are re-applied on boot by A11yProvider.
+   ============================================================ */
+
+/* --- High-contrast theme -------------------------------------
+   Pushes every semantic token to AAA-friendly contrast:
+   pure white surfaces, near-black ink, saturated primary, and
+   solid opaque borders. Keeps brand identity (pink+purple) but
+   removes soft transparencies that hurt low-vision users. */
+html.theme-high-contrast {
+  --background:           oklch(1 0 0);
+  --foreground:           oklch(0.15 0.02 320);
+
+  --surface:              oklch(1 0 0);
+  --surface-foreground:   oklch(0.15 0.02 320);
+  --surface-elevated:     oklch(1 0 0);
+  --surface-sunken:       oklch(0.97 0.01 340);
+
+  --card:                 var(--surface);
+  --card-foreground:      var(--surface-foreground);
+  --popover:              var(--surface-elevated);
+  --popover-foreground:   var(--surface-foreground);
+
+  --primary:              oklch(0.42 0.22 355);   /* deep rose — 7:1 on white */
+  --primary-foreground:   oklch(1 0 0);
+  --primary-soft:         oklch(0.94 0.05 350);
+
+  --secondary:            oklch(0.94 0.03 350);
+  --secondary-foreground: oklch(0.18 0.05 340);
+
+  --accent:               oklch(0.36 0.22 295);   /* deep purple */
+  --accent-foreground:    oklch(1 0 0);
+  --accent-soft:          oklch(0.94 0.04 295);
+
+  --muted:                oklch(0.96 0.008 340);
+  --muted-foreground:     oklch(0.25 0.03 330);   /* ~10:1 on white */
+
+  --error:                oklch(0.42 0.24 27);
+  --error-foreground:     oklch(1 0 0);
+  --success:              oklch(0.42 0.16 155);
+  --success-foreground:   oklch(1 0 0);
+  --warning:              oklch(0.62 0.18 75);
+  --warning-foreground:   oklch(0.15 0.02 320);
+  --info:                 oklch(0.38 0.18 240);
+  --info-foreground:      oklch(1 0 0);
+
+  --border:               oklch(0.15 0.02 320 / 0.55);
+  --input:                oklch(0.15 0.02 320 / 0.65);
+  --ring:                 oklch(0.42 0.22 355);
+
+  --glass:                oklch(1 0 0 / 0.96);
+  --glass-border:         oklch(0.15 0.02 320 / 0.45);
+}
+/* Kill decorative page glow — it lowers effective contrast. */
+html.theme-high-contrast body {
+  background-image: none;
+}
+/* Same high-contrast palette while on the call screen. */
+html.theme-high-contrast body[data-call-active="1"],
+html.theme-high-contrast body[data-call-active="1"] [data-radix-portal] {
+  --background:         oklch(0.08 0.01 320);
+  --foreground:         oklch(1 0 0);
+  --surface:            oklch(0.14 0.02 320);
+  --surface-foreground: oklch(1 0 0);
+  --surface-elevated:   oklch(0.18 0.025 320);
+  --surface-sunken:     oklch(0.05 0.01 320);
+  --card:               var(--surface);
+  --card-foreground:    var(--surface-foreground);
+  --popover:            var(--surface-elevated);
+  --popover-foreground: var(--surface-foreground);
+  --primary:            oklch(0.82 0.18 358);
+  --primary-foreground: oklch(0.08 0.01 320);
+  --muted-foreground:   oklch(0.92 0.01 340);
+  --border:             oklch(1 0 0 / 0.55);
+  --input:              oklch(1 0 0 / 0.65);
+}
+
+/* --- Text-scale utility (applied on <html>) ------------------
+   Multiplies the root font-size so every rem-based measurement
+   (spacing, line-height, text) scales together — matches how OS
+   accessibility "Larger Text" settings behave. */
+html.text-scale-lg  { font-size: 112.5%; }   /* 18px base */
+html.text-scale-xl  { font-size: 125%;   }   /* 20px base */
+
+/* --- Reduced-motion honoring ---------------------------------
+   Respect prefers-reduced-motion AND the manual opt-in class. */
+html.reduce-motion *,
+html.reduce-motion *::before,
+html.reduce-motion *::after,
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* --- Always-visible focus ring for keyboard users ------------ */
+:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
