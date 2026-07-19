@@ -268,7 +268,9 @@ function Settings() {
         <LinkRow to="/privacy" icon={<Shield className="size-4 text-primary" />} label="Privacy Policy" />
         <LinkRow to="/terms" icon={<FileText className="size-4 text-primary" />} label="Terms of Service" />
         <LinkRow to="/refund-policy" icon={<BadgeIndianRupee className="size-4 text-primary" />} label="Refund Policy" />
+        <LinkRow to="/privacy-center" icon={<Shield className="size-4 text-primary" />} label="Privacy Center" />
         <LinkRow to="/data-export" icon={<Download className="size-4 text-primary" />} label="Download my data" />
+
       </Card>
 
       <Button onClick={signOut} variant="outline" className="mt-6 w-full">

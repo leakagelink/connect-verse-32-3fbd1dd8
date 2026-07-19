@@ -29,6 +29,7 @@ import { Route as AuthenticatedReferRouteImport } from './routes/_authenticated/
 import { Route as AuthenticatedRechargeRouteImport } from './routes/_authenticated/recharge'
 import { Route as AuthenticatedRecentsRouteImport } from './routes/_authenticated/recents'
 import { Route as AuthenticatedReceiptsRouteImport } from './routes/_authenticated/receipts'
+import { Route as AuthenticatedPrivacyCenterRouteImport } from './routes/_authenticated/privacy-center'
 import { Route as AuthenticatedOnboardingRouteImport } from './routes/_authenticated/onboarding'
 import { Route as AuthenticatedNotificationsRouteImport } from './routes/_authenticated/notifications'
 import { Route as AuthenticatedNotificationPreferencesRouteImport } from './routes/_authenticated/notification-preferences'
@@ -60,6 +61,7 @@ import { Route as AuthenticatedMatchmakerIdRouteImport } from './routes/_authent
 import { Route as AuthenticatedChatConversationIdRouteImport } from './routes/_authenticated/chat.$conversationId'
 import { Route as ApiPublicHooksResetCallingQuotasRouteImport } from './routes/api/public/hooks/reset-calling-quotas'
 import { Route as ApiPublicHooksReconcileRazorpayRouteImport } from './routes/api/public/hooks/reconcile-razorpay'
+import { Route as ApiPublicHooksProcessPrivacyDeletionsRouteImport } from './routes/api/public/hooks/process-privacy-deletions'
 import { Route as ApiPublicHooksKycCleanupRouteImport } from './routes/api/public/hooks/kyc-cleanup'
 import { Route as AuthenticatedCallKindUserIdRouteImport } from './routes/_authenticated/call.$kind.$userId'
 
@@ -162,6 +164,12 @@ const AuthenticatedReceiptsRoute = AuthenticatedReceiptsRouteImport.update({
   path: '/receipts',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedPrivacyCenterRoute =
+  AuthenticatedPrivacyCenterRouteImport.update({
+    id: '/privacy-center',
+    path: '/privacy-center',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedOnboardingRoute = AuthenticatedOnboardingRouteImport.update({
   id: '/onboarding',
   path: '/onboarding',
@@ -331,6 +339,12 @@ const ApiPublicHooksReconcileRazorpayRoute =
     path: '/api/public/hooks/reconcile-razorpay',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicHooksProcessPrivacyDeletionsRoute =
+  ApiPublicHooksProcessPrivacyDeletionsRouteImport.update({
+    id: '/api/public/hooks/process-privacy-deletions',
+    path: '/api/public/hooks/process-privacy-deletions',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicHooksKycCleanupRoute =
   ApiPublicHooksKycCleanupRouteImport.update({
     id: '/api/public/hooks/kyc-cleanup',
@@ -373,6 +387,7 @@ export interface FileRoutesByFullPath {
   '/notification-preferences': typeof AuthenticatedNotificationPreferencesRoute
   '/notifications': typeof AuthenticatedNotificationsRoute
   '/onboarding': typeof AuthenticatedOnboardingRoute
+  '/privacy-center': typeof AuthenticatedPrivacyCenterRoute
   '/receipts': typeof AuthenticatedReceiptsRoute
   '/recents': typeof AuthenticatedRecentsRoute
   '/recharge': typeof AuthenticatedRechargeRouteWithChildren
@@ -395,6 +410,7 @@ export interface FileRoutesByFullPath {
   '/chat/': typeof AuthenticatedChatIndexRoute
   '/call/$kind/$userId': typeof AuthenticatedCallKindUserIdRoute
   '/api/public/hooks/kyc-cleanup': typeof ApiPublicHooksKycCleanupRoute
+  '/api/public/hooks/process-privacy-deletions': typeof ApiPublicHooksProcessPrivacyDeletionsRoute
   '/api/public/hooks/reconcile-razorpay': typeof ApiPublicHooksReconcileRazorpayRoute
   '/api/public/hooks/reset-calling-quotas': typeof ApiPublicHooksResetCallingQuotasRoute
 }
@@ -425,6 +441,7 @@ export interface FileRoutesByTo {
   '/notification-preferences': typeof AuthenticatedNotificationPreferencesRoute
   '/notifications': typeof AuthenticatedNotificationsRoute
   '/onboarding': typeof AuthenticatedOnboardingRoute
+  '/privacy-center': typeof AuthenticatedPrivacyCenterRoute
   '/receipts': typeof AuthenticatedReceiptsRoute
   '/recents': typeof AuthenticatedRecentsRoute
   '/recharge': typeof AuthenticatedRechargeRouteWithChildren
@@ -447,6 +464,7 @@ export interface FileRoutesByTo {
   '/chat': typeof AuthenticatedChatIndexRoute
   '/call/$kind/$userId': typeof AuthenticatedCallKindUserIdRoute
   '/api/public/hooks/kyc-cleanup': typeof ApiPublicHooksKycCleanupRoute
+  '/api/public/hooks/process-privacy-deletions': typeof ApiPublicHooksProcessPrivacyDeletionsRoute
   '/api/public/hooks/reconcile-razorpay': typeof ApiPublicHooksReconcileRazorpayRoute
   '/api/public/hooks/reset-calling-quotas': typeof ApiPublicHooksResetCallingQuotasRoute
 }
@@ -481,6 +499,7 @@ export interface FileRoutesById {
   '/_authenticated/notification-preferences': typeof AuthenticatedNotificationPreferencesRoute
   '/_authenticated/notifications': typeof AuthenticatedNotificationsRoute
   '/_authenticated/onboarding': typeof AuthenticatedOnboardingRoute
+  '/_authenticated/privacy-center': typeof AuthenticatedPrivacyCenterRoute
   '/_authenticated/receipts': typeof AuthenticatedReceiptsRoute
   '/_authenticated/recents': typeof AuthenticatedRecentsRoute
   '/_authenticated/recharge': typeof AuthenticatedRechargeRouteWithChildren
@@ -503,6 +522,7 @@ export interface FileRoutesById {
   '/_authenticated/chat/': typeof AuthenticatedChatIndexRoute
   '/_authenticated/call/$kind/$userId': typeof AuthenticatedCallKindUserIdRoute
   '/api/public/hooks/kyc-cleanup': typeof ApiPublicHooksKycCleanupRoute
+  '/api/public/hooks/process-privacy-deletions': typeof ApiPublicHooksProcessPrivacyDeletionsRoute
   '/api/public/hooks/reconcile-razorpay': typeof ApiPublicHooksReconcileRazorpayRoute
   '/api/public/hooks/reset-calling-quotas': typeof ApiPublicHooksResetCallingQuotasRoute
 }
@@ -537,6 +557,7 @@ export interface FileRouteTypes {
     | '/notification-preferences'
     | '/notifications'
     | '/onboarding'
+    | '/privacy-center'
     | '/receipts'
     | '/recents'
     | '/recharge'
@@ -559,6 +580,7 @@ export interface FileRouteTypes {
     | '/chat/'
     | '/call/$kind/$userId'
     | '/api/public/hooks/kyc-cleanup'
+    | '/api/public/hooks/process-privacy-deletions'
     | '/api/public/hooks/reconcile-razorpay'
     | '/api/public/hooks/reset-calling-quotas'
   fileRoutesByTo: FileRoutesByTo
@@ -589,6 +611,7 @@ export interface FileRouteTypes {
     | '/notification-preferences'
     | '/notifications'
     | '/onboarding'
+    | '/privacy-center'
     | '/receipts'
     | '/recents'
     | '/recharge'
@@ -611,6 +634,7 @@ export interface FileRouteTypes {
     | '/chat'
     | '/call/$kind/$userId'
     | '/api/public/hooks/kyc-cleanup'
+    | '/api/public/hooks/process-privacy-deletions'
     | '/api/public/hooks/reconcile-razorpay'
     | '/api/public/hooks/reset-calling-quotas'
   id:
@@ -644,6 +668,7 @@ export interface FileRouteTypes {
     | '/_authenticated/notification-preferences'
     | '/_authenticated/notifications'
     | '/_authenticated/onboarding'
+    | '/_authenticated/privacy-center'
     | '/_authenticated/receipts'
     | '/_authenticated/recents'
     | '/_authenticated/recharge'
@@ -666,6 +691,7 @@ export interface FileRouteTypes {
     | '/_authenticated/chat/'
     | '/_authenticated/call/$kind/$userId'
     | '/api/public/hooks/kyc-cleanup'
+    | '/api/public/hooks/process-privacy-deletions'
     | '/api/public/hooks/reconcile-razorpay'
     | '/api/public/hooks/reset-calling-quotas'
   fileRoutesById: FileRoutesById
@@ -690,6 +716,7 @@ export interface RootRouteChildren {
   ApiPublicRazorpayWebhookRoute: typeof ApiPublicRazorpayWebhookRoute
   Call_e2ePeerSheetBannerRoute: typeof Call_e2ePeerSheetBannerRoute
   ApiPublicHooksKycCleanupRoute: typeof ApiPublicHooksKycCleanupRoute
+  ApiPublicHooksProcessPrivacyDeletionsRoute: typeof ApiPublicHooksProcessPrivacyDeletionsRoute
   ApiPublicHooksReconcileRazorpayRoute: typeof ApiPublicHooksReconcileRazorpayRoute
   ApiPublicHooksResetCallingQuotasRoute: typeof ApiPublicHooksResetCallingQuotasRoute
 }
@@ -834,6 +861,13 @@ declare module '@tanstack/react-router' {
       path: '/receipts'
       fullPath: '/receipts'
       preLoaderRoute: typeof AuthenticatedReceiptsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/privacy-center': {
+      id: '/_authenticated/privacy-center'
+      path: '/privacy-center'
+      fullPath: '/privacy-center'
+      preLoaderRoute: typeof AuthenticatedPrivacyCenterRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/onboarding': {
@@ -1053,6 +1087,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicHooksReconcileRazorpayRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/hooks/process-privacy-deletions': {
+      id: '/api/public/hooks/process-privacy-deletions'
+      path: '/api/public/hooks/process-privacy-deletions'
+      fullPath: '/api/public/hooks/process-privacy-deletions'
+      preLoaderRoute: typeof ApiPublicHooksProcessPrivacyDeletionsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/hooks/kyc-cleanup': {
       id: '/api/public/hooks/kyc-cleanup'
       path: '/api/public/hooks/kyc-cleanup'
@@ -1121,6 +1162,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedNotificationPreferencesRoute: typeof AuthenticatedNotificationPreferencesRoute
   AuthenticatedNotificationsRoute: typeof AuthenticatedNotificationsRoute
   AuthenticatedOnboardingRoute: typeof AuthenticatedOnboardingRoute
+  AuthenticatedPrivacyCenterRoute: typeof AuthenticatedPrivacyCenterRoute
   AuthenticatedReceiptsRoute: typeof AuthenticatedReceiptsRoute
   AuthenticatedRecentsRoute: typeof AuthenticatedRecentsRoute
   AuthenticatedRechargeRoute: typeof AuthenticatedRechargeRouteWithChildren
@@ -1153,6 +1195,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
     AuthenticatedNotificationPreferencesRoute,
   AuthenticatedNotificationsRoute: AuthenticatedNotificationsRoute,
   AuthenticatedOnboardingRoute: AuthenticatedOnboardingRoute,
+  AuthenticatedPrivacyCenterRoute: AuthenticatedPrivacyCenterRoute,
   AuthenticatedReceiptsRoute: AuthenticatedReceiptsRoute,
   AuthenticatedRecentsRoute: AuthenticatedRecentsRoute,
   AuthenticatedRechargeRoute: AuthenticatedRechargeRouteWithChildren,
@@ -1193,6 +1236,8 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicRazorpayWebhookRoute: ApiPublicRazorpayWebhookRoute,
   Call_e2ePeerSheetBannerRoute: Call_e2ePeerSheetBannerRoute,
   ApiPublicHooksKycCleanupRoute: ApiPublicHooksKycCleanupRoute,
+  ApiPublicHooksProcessPrivacyDeletionsRoute:
+    ApiPublicHooksProcessPrivacyDeletionsRoute,
   ApiPublicHooksReconcileRazorpayRoute: ApiPublicHooksReconcileRazorpayRoute,
   ApiPublicHooksResetCallingQuotasRoute: ApiPublicHooksResetCallingQuotasRoute,
 }
