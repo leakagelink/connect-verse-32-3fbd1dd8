@@ -115,13 +115,13 @@ export function AppShell({ children, isAdmin }: { children: ReactNode; isAdmin?:
             <Link
               to="/recharge"
               aria-label={`Available coins: ${balance.toLocaleString("en-IN")}. Recharge`}
-              className="group inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full border border-[color-mix(in_oklab,var(--coin)_45%,transparent)] bg-[linear-gradient(135deg,color-mix(in_oklab,var(--coin)_22%,var(--surface))_0%,var(--surface)_60%,color-mix(in_oklab,var(--primary)_14%,var(--surface))_100%)] pl-2 pr-1 text-xs font-bold text-foreground shadow-[0_4px_12px_-6px_color-mix(in_oklab,var(--coin)_55%,transparent)] transition hover:-translate-y-px hover:shadow-[0_8px_18px_-6px_color-mix(in_oklab,var(--coin)_65%,transparent)]"
+              className="group shimmer-sweep inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full border border-[color-mix(in_oklab,var(--coin)_45%,transparent)] bg-[linear-gradient(135deg,color-mix(in_oklab,var(--coin)_22%,var(--surface))_0%,var(--surface)_60%,color-mix(in_oklab,var(--primary)_14%,var(--surface))_100%)] pl-2 pr-1 text-xs font-bold text-foreground shadow-[0_4px_12px_-6px_color-mix(in_oklab,var(--coin)_55%,transparent)] transition hover:-translate-y-px hover:shadow-[0_8px_18px_-6px_color-mix(in_oklab,var(--coin)_65%,transparent)]"
             >
-              <Coins className="size-3.5 text-coin" />
-              <span className="truncate max-w-[70px] tabular-nums sm:max-w-none">
+              <Coins className="relative z-10 size-3.5 text-coin" />
+              <span className="relative z-10 truncate max-w-[70px] tabular-nums sm:max-w-none">
                 {balance.toLocaleString("en-IN")}
               </span>
-              <span className="grid size-5 place-items-center rounded-full bg-gradient-brand text-[12px] leading-none text-primary-foreground shadow-sm">
+              <span className="relative z-10 grid size-5 place-items-center rounded-full bg-gradient-brand text-[12px] leading-none text-primary-foreground shadow-sm">
                 +
               </span>
             </Link>
