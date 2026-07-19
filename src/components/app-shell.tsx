@@ -80,59 +80,72 @@ export function AppShell({ children, isAdmin }: { children: ReactNode; isAdmin?:
 
   return (
     <div className="min-h-screen pb-20">
-      <header className="sticky top-0 z-40 glass border-b backdrop-blur-xl safe-top">
-        <div className="mx-auto grid max-w-3xl grid-cols-[auto_minmax(0,1fr)] items-center gap-1.5 px-2 py-2 sm:px-4 sm:py-2.5">
-          <Link to="/home" className="flex shrink-0 items-center" aria-label={`${APP_NAME} home`}>
-            <img src={talkoraLogo.url} alt={`${APP_NAME} logo`} width={32} height={32} className="size-8 rounded-md" />
+      <header className="sticky top-0 z-40 safe-top border-b border-primary/10 bg-surface/70 backdrop-blur-xl backdrop-saturate-150 shadow-[0_1px_0_0_color-mix(in_oklab,var(--primary)_10%,transparent),0_8px_24px_-18px_color-mix(in_oklab,var(--primary)_35%,transparent)]">
+        {/* soft brand wash so the bar sits inside the palette, not on top of it */}
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 -z-10 opacity-70"
+          style={{
+            backgroundImage:
+              "radial-gradient(60% 120% at 0% 0%, color-mix(in oklab, var(--primary) 14%, transparent), transparent 60%), radial-gradient(60% 120% at 100% 0%, color-mix(in oklab, var(--accent) 12%, transparent), transparent 60%)",
+          }}
+        />
+        <div className="mx-auto grid max-w-3xl grid-cols-[auto_minmax(0,1fr)] items-center gap-2 px-3 py-2 sm:px-4 sm:py-2.5">
+          <Link
+            to="/home"
+            className="flex shrink-0 items-center gap-2 rounded-full pr-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+            aria-label={`${APP_NAME} home`}
+          >
+            <span className="relative grid size-9 place-items-center rounded-xl bg-gradient-brand shadow-[0_6px_16px_-6px_color-mix(in_oklab,var(--primary)_55%,transparent)]">
+              <img
+                src={talkoraLogo.url}
+                alt=""
+                width={22}
+                height={22}
+                className="size-[22px] rounded-md"
+              />
+            </span>
+            <span className="hidden bg-gradient-brand bg-clip-text text-base font-black tracking-tight text-transparent sm:inline">
+              {APP_NAME}
+            </span>
           </Link>
-          <div className="flex min-w-0 items-center justify-end gap-1 sm:gap-2">
+
+          <div className="flex min-w-0 items-center justify-end gap-1 sm:gap-1.5">
+            {/* Coin pill — gold gradient, matches palette accent */}
             <Link
               to="/recharge"
-              className="inline-flex shrink-0 items-center gap-1 rounded-full bg-coin/15 px-2 py-1 text-[11px] font-semibold text-coin hover:bg-coin/25 transition sm:px-2.5 sm:text-xs"
-              title="Available coins"
+              aria-label={`Available coins: ${balance.toLocaleString("en-IN")}. Recharge`}
+              className="group inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full border border-[color-mix(in_oklab,var(--coin)_45%,transparent)] bg-[linear-gradient(135deg,color-mix(in_oklab,var(--coin)_22%,var(--surface))_0%,var(--surface)_60%,color-mix(in_oklab,var(--primary)_14%,var(--surface))_100%)] pl-2 pr-1 text-xs font-bold text-foreground shadow-[0_4px_12px_-6px_color-mix(in_oklab,var(--coin)_55%,transparent)] transition hover:-translate-y-px hover:shadow-[0_8px_18px_-6px_color-mix(in_oklab,var(--coin)_65%,transparent)]"
             >
-              <Coins className="size-3.5" />
-              <span className="truncate max-w-[72px] sm:max-w-none">{balance.toLocaleString("en-IN")}</span>
-              <span className="ml-0.5 rounded-full bg-coin/30 px-1.5 text-[10px]">+</span>
+              <Coins className="size-3.5 text-coin" />
+              <span className="truncate max-w-[70px] tabular-nums sm:max-w-none">
+                {balance.toLocaleString("en-IN")}
+              </span>
+              <span className="grid size-5 place-items-center rounded-full bg-gradient-brand text-[12px] leading-none text-primary-foreground shadow-sm">
+                +
+              </span>
             </Link>
-            <Link
+
+            <HeaderIconLink
               to="/chat"
-              className={cn(
-                "relative inline-flex size-8 shrink-0 items-center justify-center rounded-full transition sm:size-9",
-                pathname.startsWith("/chat") ? "bg-primary/15 text-primary" : "hover:bg-muted text-foreground/80"
-              )}
-              title="Inbox"
-            >
-              <MessageCircle className="size-4 sm:size-[18px]" />
-              {unread > 0 && (
-                <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 px-1 rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold flex items-center justify-center">
-                  {unread > 99 ? "99+" : unread}
-                </span>
-              )}
-            </Link>
+              label="Inbox"
+              active={pathname.startsWith("/chat")}
+              badge={unread}
+              icon={<MessageCircle className="size-[18px]" />}
+            />
             <NotificationsBell active={pathname.startsWith("/notifications")} />
-
-            <Link
+            <HeaderIconLink
               to="/recents"
-              className={cn(
-                "inline-flex size-8 shrink-0 items-center justify-center rounded-full transition sm:size-9",
-                pathname.startsWith("/recents") ? "bg-primary/15 text-primary" : "hover:bg-muted text-foreground/80"
-              )}
-              title="Recents · call history"
-            >
-              <History className="size-4 sm:size-[18px]" />
-            </Link>
-
-            <Link
+              label="Recents"
+              active={pathname.startsWith("/recents")}
+              icon={<History className="size-[18px]" />}
+            />
+            <HeaderIconLink
               to="/settings"
-              className={cn(
-                "inline-flex size-8 shrink-0 items-center justify-center rounded-full transition sm:size-9",
-                pathname.startsWith("/settings") ? "bg-primary/15 text-primary" : "hover:bg-muted text-foreground/80"
-              )}
-              title="Profile"
-            >
-              <User className="size-4 sm:size-[18px]" />
-            </Link>
+              label="Profile"
+              active={pathname.startsWith("/settings")}
+              icon={<User className="size-[18px]" />}
+            />
           </div>
         </div>
       </header>
@@ -206,3 +219,45 @@ export function AppShell({ children, isAdmin }: { children: ReactNode; isAdmin?:
     </div>
   );
 }
+
+function HeaderIconLink({
+  to,
+  label,
+  icon,
+  active,
+  badge,
+}: {
+  to: string;
+  label: string;
+  icon: ReactNode;
+  active?: boolean;
+  badge?: number;
+}) {
+  return (
+    <Link
+      to={to}
+      aria-label={label}
+      aria-current={active ? "page" : undefined}
+      className={cn(
+        "relative inline-flex size-10 shrink-0 items-center justify-center rounded-full transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50",
+        active
+          ? "bg-primary-soft text-primary shadow-[inset_0_0_0_1px_color-mix(in_oklab,var(--primary)_28%,transparent)]"
+          : "text-foreground/75 hover:bg-primary-soft/60 hover:text-foreground",
+      )}
+    >
+      {icon}
+      {active && (
+        <span
+          aria-hidden
+          className="pointer-events-none absolute -bottom-0.5 h-1 w-1 rounded-full bg-primary shadow-[0_0_8px_color-mix(in_oklab,var(--primary)_70%,transparent)]"
+        />
+      )}
+      {typeof badge === "number" && badge > 0 && (
+        <span className="absolute -top-0.5 -right-0.5 grid min-w-[16px] h-4 px-1 place-items-center rounded-full bg-gradient-brand text-[10px] font-bold leading-none text-primary-foreground shadow-[0_2px_6px_-1px_color-mix(in_oklab,var(--primary)_60%,transparent)]">
+          {badge > 99 ? "99+" : badge}
+        </span>
+      )}
+    </Link>
+  );
+}
+
