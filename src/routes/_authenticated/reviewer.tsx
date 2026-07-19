@@ -90,7 +90,7 @@ function ReviewerPage() {
 
   if (status.isError) {
     return (
-      <AppShell title="Reviewer Mode">
+      <AppShell>
         <div className="p-6">
           <Card className="p-6 text-center">
             <ShieldAlert className="mx-auto mb-3 h-10 w-10 text-destructive" />
@@ -108,7 +108,7 @@ function ReviewerPage() {
   const s = status.data;
 
   return (
-    <AppShell title="Reviewer Mode">
+    <AppShell>
       <div className="mx-auto max-w-2xl space-y-4 p-4 pb-24">
         <Card className="p-4">
           <div className="flex items-center justify-between">
