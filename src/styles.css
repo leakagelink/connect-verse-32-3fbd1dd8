@@ -523,6 +523,12 @@ html.reduce-motion *::after {
   0%   { transform: translateX(-120%) skewX(-18deg); }
   100% { transform: translateX(220%)  skewX(-18deg); }
 }
+@keyframes talkora-shimmer-loop {
+  0%, 100% { transform: translateX(-120%) skewX(-18deg); opacity: 0; }
+  8%       { opacity: 0.65; }
+  35%      { transform: translateX(220%) skewX(-18deg); opacity: 0; }
+  60%      { transform: translateX(220%) skewX(-18deg); opacity: 0; }
+}
 @keyframes talkora-mesh-drift {
   0%, 100% { background-position: 0% 0%, 100% 100%, 50% 50%; }
   50%      { background-position: 20% 10%, 80% 90%, 60% 40%; }
@@ -601,6 +607,27 @@ html.reduce-motion *::after {
    (e.g. Recharge banner when coins are low). */
 @utility pulse-primary {
   animation: talkora-glow-pulse 2.4s ease-in-out infinite;
+}
+
+/* Continuous shimmer sweep — draws attention to a small CTA pill
+   without being as aggressive as a full glow pulse. Respects
+   .reduce-motion / prefers-reduced-motion automatically. */
+@utility shimmer-sweep {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  &::after {
+    content: "";
+    position: absolute;
+    inset: -50% 0;
+    background: linear-gradient(100deg,
+      transparent 30%,
+      color-mix(in oklab, white 60%, transparent) 50%,
+      transparent 70%);
+    transform: translateX(-120%) skewX(-18deg);
+    pointer-events: none;
+    animation: talkora-shimmer-loop 3.5s ease-in-out infinite;
+  }
 }
 
 /* --- Cards -------------------------------------------------- */
