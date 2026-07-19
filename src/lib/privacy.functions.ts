@@ -73,14 +73,10 @@ export const requestDataExport = createServerFn({ method: "POST" })
     if (insErr) throw new Error(insErr.message);
 
     try {
-      const { exportMyData } = await import("@/lib/data-export.functions");
-      // exportMyData is itself a server fn but exported handler; call the
-      // underlying logic by re-fetching directly to avoid RPC round-trip.
-      const payload = await (exportMyData as any).__executeHandler?.({ context })
-        ?? await (async () => {
-          // Fallback: rebuild inline (should not happen in normal runtime).
-          return { meta: { app: "Talkora", userId, exportedAt: new Date().toISOString() } };
-        })();
+      const { collectUserExportPayload } = await import("@/lib/data-export.functions");
+      const payload = await collectUserExportPayload(supabase, userId);
+
+
 
       const json = JSON.stringify(payload, null, 2);
       const bytes = new TextEncoder().encode(json);
