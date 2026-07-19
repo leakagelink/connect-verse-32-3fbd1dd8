@@ -76,6 +76,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     ],
     links: [
       { rel: "stylesheet", href: appCss },
+      { rel: "preload", href: `${talkoraLogo.url}?v=${talkoraLogo.asset_id}`, as: "image", type: "image/png", fetchpriority: "high" },
       { rel: "icon", type: "image/png", sizes: "any", href: `${talkoraLogo.url}?v=${talkoraLogo.asset_id}` },
       { rel: "shortcut icon", type: "image/png", href: `${talkoraLogo.url}?v=${talkoraLogo.asset_id}` },
       { rel: "apple-touch-icon", sizes: "180x180", href: `${talkoraLogo.url}?v=${talkoraLogo.asset_id}` },
