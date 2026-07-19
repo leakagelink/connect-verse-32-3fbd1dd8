@@ -28,6 +28,7 @@ import { Route as AuthenticatedRequestsRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedReferRouteImport } from './routes/_authenticated/refer'
 import { Route as AuthenticatedRechargeRouteImport } from './routes/_authenticated/recharge'
 import { Route as AuthenticatedRecentsRouteImport } from './routes/_authenticated/recents'
+import { Route as AuthenticatedReceiptsRouteImport } from './routes/_authenticated/receipts'
 import { Route as AuthenticatedOnboardingRouteImport } from './routes/_authenticated/onboarding'
 import { Route as AuthenticatedNotificationsRouteImport } from './routes/_authenticated/notifications'
 import { Route as AuthenticatedNotificationPreferencesRouteImport } from './routes/_authenticated/notification-preferences'
@@ -154,6 +155,11 @@ const AuthenticatedRechargeRoute = AuthenticatedRechargeRouteImport.update({
 const AuthenticatedRecentsRoute = AuthenticatedRecentsRouteImport.update({
   id: '/recents',
   path: '/recents',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedReceiptsRoute = AuthenticatedReceiptsRouteImport.update({
+  id: '/receipts',
+  path: '/receipts',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedOnboardingRoute = AuthenticatedOnboardingRouteImport.update({
@@ -367,6 +373,7 @@ export interface FileRoutesByFullPath {
   '/notification-preferences': typeof AuthenticatedNotificationPreferencesRoute
   '/notifications': typeof AuthenticatedNotificationsRoute
   '/onboarding': typeof AuthenticatedOnboardingRoute
+  '/receipts': typeof AuthenticatedReceiptsRoute
   '/recents': typeof AuthenticatedRecentsRoute
   '/recharge': typeof AuthenticatedRechargeRouteWithChildren
   '/refer': typeof AuthenticatedReferRoute
@@ -418,6 +425,7 @@ export interface FileRoutesByTo {
   '/notification-preferences': typeof AuthenticatedNotificationPreferencesRoute
   '/notifications': typeof AuthenticatedNotificationsRoute
   '/onboarding': typeof AuthenticatedOnboardingRoute
+  '/receipts': typeof AuthenticatedReceiptsRoute
   '/recents': typeof AuthenticatedRecentsRoute
   '/recharge': typeof AuthenticatedRechargeRouteWithChildren
   '/refer': typeof AuthenticatedReferRoute
@@ -473,6 +481,7 @@ export interface FileRoutesById {
   '/_authenticated/notification-preferences': typeof AuthenticatedNotificationPreferencesRoute
   '/_authenticated/notifications': typeof AuthenticatedNotificationsRoute
   '/_authenticated/onboarding': typeof AuthenticatedOnboardingRoute
+  '/_authenticated/receipts': typeof AuthenticatedReceiptsRoute
   '/_authenticated/recents': typeof AuthenticatedRecentsRoute
   '/_authenticated/recharge': typeof AuthenticatedRechargeRouteWithChildren
   '/_authenticated/refer': typeof AuthenticatedReferRoute
@@ -528,6 +537,7 @@ export interface FileRouteTypes {
     | '/notification-preferences'
     | '/notifications'
     | '/onboarding'
+    | '/receipts'
     | '/recents'
     | '/recharge'
     | '/refer'
@@ -579,6 +589,7 @@ export interface FileRouteTypes {
     | '/notification-preferences'
     | '/notifications'
     | '/onboarding'
+    | '/receipts'
     | '/recents'
     | '/recharge'
     | '/refer'
@@ -633,6 +644,7 @@ export interface FileRouteTypes {
     | '/_authenticated/notification-preferences'
     | '/_authenticated/notifications'
     | '/_authenticated/onboarding'
+    | '/_authenticated/receipts'
     | '/_authenticated/recents'
     | '/_authenticated/recharge'
     | '/_authenticated/refer'
@@ -815,6 +827,13 @@ declare module '@tanstack/react-router' {
       path: '/recents'
       fullPath: '/recents'
       preLoaderRoute: typeof AuthenticatedRecentsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/receipts': {
+      id: '/_authenticated/receipts'
+      path: '/receipts'
+      fullPath: '/receipts'
+      preLoaderRoute: typeof AuthenticatedReceiptsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/onboarding': {
@@ -1102,6 +1121,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedNotificationPreferencesRoute: typeof AuthenticatedNotificationPreferencesRoute
   AuthenticatedNotificationsRoute: typeof AuthenticatedNotificationsRoute
   AuthenticatedOnboardingRoute: typeof AuthenticatedOnboardingRoute
+  AuthenticatedReceiptsRoute: typeof AuthenticatedReceiptsRoute
   AuthenticatedRecentsRoute: typeof AuthenticatedRecentsRoute
   AuthenticatedRechargeRoute: typeof AuthenticatedRechargeRouteWithChildren
   AuthenticatedReferRoute: typeof AuthenticatedReferRoute
@@ -1133,6 +1153,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
     AuthenticatedNotificationPreferencesRoute,
   AuthenticatedNotificationsRoute: AuthenticatedNotificationsRoute,
   AuthenticatedOnboardingRoute: AuthenticatedOnboardingRoute,
+  AuthenticatedReceiptsRoute: AuthenticatedReceiptsRoute,
   AuthenticatedRecentsRoute: AuthenticatedRecentsRoute,
   AuthenticatedRechargeRoute: AuthenticatedRechargeRouteWithChildren,
   AuthenticatedReferRoute: AuthenticatedReferRoute,
