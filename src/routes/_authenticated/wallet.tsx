@@ -7,7 +7,7 @@ import { AppShell } from "@/components/app-shell";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { CoinBadge } from "@/components/coin-badge";
-import { Coins, Sparkles, ArrowUpRight, ArrowDownRight } from "lucide-react";
+import { Coins, Sparkles, ArrowUpRight, ArrowDownRight, Receipt } from "lucide-react";
 import { format } from "date-fns";
 import { useT } from "@/lib/i18n";
 
@@ -38,6 +38,7 @@ function Wallet() {
         )}
         <div className="mt-4 flex flex-col sm:flex-row gap-2">
           <Link to="/recharge" className="flex-1 sm:flex-none"><Button className="w-full sm:w-auto brand-gradient text-primary-foreground">{t("wallet.rechargeCoins")}</Button></Link>
+          <Link to="/receipts" className="flex-1 sm:flex-none"><Button variant="outline" className="w-full sm:w-auto"><Receipt className="size-4 mr-1" /> Receipts</Button></Link>
           <Link to="/withdraw" className="flex-1 sm:flex-none"><Button variant="outline" className="w-full sm:w-auto">{t("wallet.withdraw")}</Button></Link>
         </div>
       </Card>
