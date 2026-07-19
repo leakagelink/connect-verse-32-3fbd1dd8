@@ -609,6 +609,27 @@ html.reduce-motion *::after {
   animation: talkora-glow-pulse 2.4s ease-in-out infinite;
 }
 
+/* Continuous shimmer sweep — draws attention to a small CTA pill
+   without being as aggressive as a full glow pulse. Respects
+   .reduce-motion / prefers-reduced-motion automatically. */
+@utility shimmer-sweep {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  &::after {
+    content: "";
+    position: absolute;
+    inset: -50% 0;
+    background: linear-gradient(100deg,
+      transparent 30%,
+      color-mix(in oklab, white 60%, transparent) 50%,
+      transparent 70%);
+    transform: translateX(-120%) skewX(-18deg);
+    pointer-events: none;
+    animation: talkora-shimmer-loop 3.5s ease-in-out infinite;
+  }
+}
+
 /* --- Cards -------------------------------------------------- */
 
 /* Elevated card with soft brand-tinted shadow. */
