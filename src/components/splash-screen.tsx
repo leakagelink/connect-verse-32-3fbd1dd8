@@ -1,11 +1,12 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 import { APP_NAME } from "@/lib/constants";
 import talkoraLogo from "@/assets/talkora-logo.png.asset.json";
 
 const SEEN_KEY = "talkora.splash.seen";
 const LOGO_CACHE_KEY = "talkora.splash.logo.v1";
-const HOLD_MS = 1200;
+const HOLD_MS = 1000;
 const FADE_MS = 300;
+const TOTAL_MS = HOLD_MS + FADE_MS;
 
 function useCachedLogo(url: string) {
   const [src, setSrc] = useState<string>(() => {
@@ -59,54 +60,37 @@ function useCachedLogo(url: string) {
  * - Pure CSS animations; respects prefers-reduced-motion.
  */
 export function SplashScreen() {
-  const [stage, setStage] = useState<"show" | "fade" | "gone">("show");
-  const [progress, setProgress] = useState(0);
-  const progressRef = useRef<number | null>(null);
-  const logoSrc = useCachedLogo(`${talkoraLogo.url}?v=${talkoraLogo.asset_id}`);
+  const [seen, setSeen] = useState(() => {
+    if (typeof window === "undefined") return false;
+    try {
+      return !!sessionStorage.getItem(SEEN_KEY);
+    } catch {
+      return false;
+    }
+  });
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-    if (sessionStorage.getItem(SEEN_KEY)) {
-      setStage("gone");
-      return;
-    }
-
-    const start = performance.now();
-    const tick = () => {
-      const elapsed = performance.now() - start;
-      const p = Math.min(100, (elapsed / HOLD_MS) * 100);
-      setProgress(p);
-      if (p < 100) {
-        progressRef.current = requestAnimationFrame(tick);
-      }
-    };
-    progressRef.current = requestAnimationFrame(tick);
-
-    const t1 = setTimeout(() => setStage("fade"), HOLD_MS);
-    const t2 = setTimeout(() => {
-      setStage("gone");
-      try { sessionStorage.setItem(SEEN_KEY, "1"); } catch {}
-    }, HOLD_MS + FADE_MS);
-
-    return () => {
-      clearTimeout(t1);
-      clearTimeout(t2);
-      if (progressRef.current) cancelAnimationFrame(progressRef.current);
-    };
+    // Mark as seen as soon as React commits so rapid reloads in the same
+    // session do not show the splash again.
+    try { sessionStorage.setItem(SEEN_KEY, "1"); } catch {}
+    const t = setTimeout(() => setSeen(true), TOTAL_MS);
+    return () => clearTimeout(t);
   }, []);
 
-  if (stage === "gone") return null;
+  if (seen) return null;
+
+  const logoSrc = useCachedLogo(`${talkoraLogo.url}?v=${talkoraLogo.asset_id}`);
+  const progressDuration = `${HOLD_MS}ms`;
+  const fadeDuration = `${TOTAL_MS}ms`;
 
   return (
     <div
       aria-hidden="true"
-      className="fixed inset-0 z-[9999] flex items-center justify-center overflow-hidden"
+      className="fixed inset-0 z-[9999] flex items-center justify-center overflow-hidden splash-fade"
       style={{
         background:
           "radial-gradient(ellipse 120% 80% at 50% -20%, oklch(0.35 0.14 340 / 0.55), transparent 60%), radial-gradient(ellipse 100% 70% at 50% 120%, oklch(0.32 0.12 22 / 0.50), transparent 55%), #0B0B12",
-        opacity: stage === "fade" ? 0 : 1,
-        transition: `opacity ${FADE_MS}ms ease-out`,
-        pointerEvents: stage === "fade" ? "none" : "auto",
       }}
     >
       {/* ambient mesh orbs */}
@@ -132,7 +116,7 @@ export function SplashScreen() {
         </div>
 
         <div className="text-center splash-text-rise">
-          <h1 className="text-4xl sm:text-5xl font-bold tracking-tight text-gradient">
+          <h1 className="text-4xl sm:text-5xl font-bold tracking-tight text-gradient drop-shadow-[0_2px_10px_rgba(255,255,255,0.15)]">
             {APP_NAME}
           </h1>
           <p className="mt-2 text-sm sm:text-base text-pink-200/80 font-medium">
@@ -146,8 +130,8 @@ export function SplashScreen() {
         {/* progress bar */}
         <div className="w-40 sm:w-48 h-1.5 rounded-full bg-white/10 overflow-hidden splash-text-rise" style={{ animationDelay: "350ms" }}>
           <div
-            className="h-full rounded-full bg-gradient-to-r from-pink-400 via-purple-400 to-pink-400 transition-all duration-75 ease-linear"
-            style={{ width: `${progress}%` }}
+            className="h-full rounded-full bg-gradient-to-r from-pink-400 via-purple-400 to-pink-400 splash-progress"
+            style={{ animationDuration: progressDuration }}
           />
         </div>
 
@@ -160,6 +144,24 @@ export function SplashScreen() {
       </div>
 
       <style>{`
+        .splash-fade {
+          animation: splash-fade-out ${fadeDuration} ease-out forwards;
+          pointer-events: none;
+        }
+        @keyframes splash-fade-out {
+          0% { opacity: 1; }
+          ${(HOLD_MS / TOTAL_MS) * 100}% { opacity: 1; }
+          100% { opacity: 0; }
+        }
+        .splash-progress {
+          animation-name: splash-progress;
+          animation-timing-function: linear;
+          animation-fill-mode: forwards;
+        }
+        @keyframes splash-progress {
+          from { width: 0%; }
+          to { width: 100%; }
+        }
         @keyframes splash-logo-pop {
           0% { transform: scale(0.55) rotate(-6deg); opacity: 0; }
           60% { transform: scale(1.08) rotate(0deg); opacity: 1; }
@@ -216,8 +218,9 @@ export function SplashScreen() {
           animation-delay: 3.5s;
         }
         @media (prefers-reduced-motion: reduce) {
-          .splash-logo-pop, .splash-text-rise, .splash-ring, .splash-dot, .splash-orb {
+          .splash-fade, .splash-progress, .splash-logo-pop, .splash-text-rise, .splash-ring, .splash-dot, .splash-orb {
             animation: none !important;
+            opacity: 0;
           }
         }
       `}</style>
