@@ -219,3 +219,45 @@ export function AppShell({ children, isAdmin }: { children: ReactNode; isAdmin?:
     </div>
   );
 }
+
+function HeaderIconLink({
+  to,
+  label,
+  icon,
+  active,
+  badge,
+}: {
+  to: string;
+  label: string;
+  icon: ReactNode;
+  active?: boolean;
+  badge?: number;
+}) {
+  return (
+    <Link
+      to={to}
+      aria-label={label}
+      aria-current={active ? "page" : undefined}
+      className={cn(
+        "relative inline-flex size-10 shrink-0 items-center justify-center rounded-full transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50",
+        active
+          ? "bg-primary-soft text-primary shadow-[inset_0_0_0_1px_color-mix(in_oklab,var(--primary)_28%,transparent)]"
+          : "text-foreground/75 hover:bg-primary-soft/60 hover:text-foreground",
+      )}
+    >
+      {icon}
+      {active && (
+        <span
+          aria-hidden
+          className="pointer-events-none absolute -bottom-0.5 h-1 w-1 rounded-full bg-primary shadow-[0_0_8px_color-mix(in_oklab,var(--primary)_70%,transparent)]"
+        />
+      )}
+      {typeof badge === "number" && badge > 0 && (
+        <span className="absolute -top-0.5 -right-0.5 grid min-w-[16px] h-4 px-1 place-items-center rounded-full bg-gradient-brand text-[10px] font-bold leading-none text-primary-foreground shadow-[0_2px_6px_-1px_color-mix(in_oklab,var(--primary)_60%,transparent)]">
+          {badge > 99 ? "99+" : badge}
+        </span>
+      )}
+    </Link>
+  );
+}
+
