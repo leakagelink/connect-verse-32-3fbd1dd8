@@ -1781,6 +1781,51 @@ export type Database = {
         }
         Relationships: []
       }
+      sos_events: {
+        Row: {
+          call_log_id: string | null
+          client_meta: Json | null
+          created_at: string
+          duration_ms: number | null
+          error: string | null
+          id: string
+          note: string | null
+          outcome: string
+          partner_user_id: string | null
+          reason: string
+          report_id: string | null
+          user_id: string
+        }
+        Insert: {
+          call_log_id?: string | null
+          client_meta?: Json | null
+          created_at?: string
+          duration_ms?: number | null
+          error?: string | null
+          id?: string
+          note?: string | null
+          outcome: string
+          partner_user_id?: string | null
+          reason: string
+          report_id?: string | null
+          user_id: string
+        }
+        Update: {
+          call_log_id?: string | null
+          client_meta?: Json | null
+          created_at?: string
+          duration_ms?: number | null
+          error?: string | null
+          id?: string
+          note?: string | null
+          outcome?: string
+          partner_user_id?: string | null
+          reason?: string
+          report_id?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       transactions: {
         Row: {
           coins_delta: number

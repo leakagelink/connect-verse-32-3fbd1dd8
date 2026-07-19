@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { submitReport } from "@/lib/reports.functions";
+import { logSosEvent } from "@/lib/sos.functions";
 import { Button } from "@/components/ui/button";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
@@ -49,6 +50,11 @@ export function SosButton({
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
   const reportFn = useServerFn(submitReport);
+  const logSos = useServerFn(logSosEvent);
+
+  async function logAudit(payload: any) {
+    try { await logSos({ data: payload }); } catch { /* audit best-effort */ }
+  }
 
   async function trigger() {
     setBusy(true);
@@ -61,12 +67,23 @@ export function SosButton({
           context: `[SOS triggered during call${callLogId ? ` ${callLogId.slice(0, 8)}` : ""}] ${note || ""}`.slice(0, 500),
         },
       });
+      const durationMs = Date.now() - startedAt;
       toast.success("Report filed. Call ended. Our safety team will review within 24h.", { duration: 6000 });
-      try { onTelemetry?.({ type: "confirmed", reason, durationMs: Date.now() - startedAt }); } catch {}
+      try { onTelemetry?.({ type: "confirmed", reason, durationMs }); } catch {}
+      await logAudit({
+        partnerUserId, callLogId, reason, note: note || null,
+        outcome: "report_filed", durationMs,
+      });
     } catch (e: any) {
       // even if report fails, still end the call — user safety first
-      toast.error(e?.message || "Could not file report — call still ended.");
-      try { onTelemetry?.({ type: "blocked", reason, error: e?.message || String(e), durationMs: Date.now() - startedAt }); } catch {}
+      const errMsg = e?.message || String(e);
+      const durationMs = Date.now() - startedAt;
+      toast.error(errMsg || "Could not file report — call still ended.");
+      try { onTelemetry?.({ type: "blocked", reason, error: errMsg, durationMs }); } catch {}
+      await logAudit({
+        partnerUserId, callLogId, reason, note: note || null,
+        outcome: "report_failed", error: errMsg.slice(0, 500), durationMs,
+      });
     } finally {
       setBusy(false);
       setOpen(false);
