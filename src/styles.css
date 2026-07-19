@@ -4,91 +4,218 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* ============================================================
+   TALKORA DESIGN TOKEN SYSTEM
+   ------------------------------------------------------------
+   Two tiers:
+     1. Brand ramps          — raw palette (pink / plum / ink / state)
+     2. Semantic tokens      — role-based (primary, surface, error, …)
+   Components MUST use semantic tokens (bg-primary, text-error,
+   bg-surface-elevated) — never raw ramp values or ad-hoc hex.
+   Shadcn variable names (--background, --card, --destructive)
+   are kept as aliases so upstream shadcn components keep working.
+   ============================================================ */
+
 @theme inline {
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
   --radius-2xl: calc(var(--radius) + 8px);
+
+  /* ---- Semantic color tokens (exposed to Tailwind) ---- */
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+
+  --color-surface: var(--surface);
+  --color-surface-foreground: var(--surface-foreground);
+  --color-surface-elevated: var(--surface-elevated);
+  --color-surface-sunken: var(--surface-sunken);
+
   --color-card: var(--card);
   --color-card-foreground: var(--card-foreground);
   --color-popover: var(--popover);
   --color-popover-foreground: var(--popover-foreground);
+
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
+  --color-primary-soft: var(--primary-soft);
+
   --color-secondary: var(--secondary);
   --color-secondary-foreground: var(--secondary-foreground);
-  --color-muted: var(--muted);
-  --color-muted-foreground: var(--muted-foreground);
+
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
-  --color-destructive: var(--destructive);
-  --color-destructive-foreground: var(--destructive-foreground);
+  --color-accent-soft: var(--accent-soft);
+
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+
+  --color-error: var(--error);
+  --color-error-foreground: var(--error-foreground);
+  --color-error-soft: var(--error-soft);
+  /* shadcn alias kept for existing components */
+  --color-destructive: var(--error);
+  --color-destructive-foreground: var(--error-foreground);
+
   --color-success: var(--success);
   --color-success-foreground: var(--success-foreground);
+  --color-success-soft: var(--success-soft);
+
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+
+  --color-info: var(--info);
+  --color-info-foreground: var(--info-foreground);
+
   --color-coin: var(--coin);
   --color-coin-foreground: var(--coin-foreground);
+
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
   --color-glass: var(--glass);
   --color-glass-border: var(--glass-border);
 
+  /* ---- Elevation & effect tokens ---- */
   --shadow-glow: 0 0 40px -10px var(--primary);
-  --shadow-card: 0 12px 32px -14px oklch(0.55 0.18 350 / 0.28);
+  --shadow-card: var(--elevation-2);
+  --shadow-popover: var(--elevation-3);
 }
 
-/* Blush Pink Glow — light-first premium social app.
-   bg #FFF5F7, surface #FFE0EC, primary #FF4D8D, accent #7C3AED */
+/* ============================================================
+   Tier 1 — Brand ramps (Blush Pink Glow)
+   Reference values only. Never used directly by components.
+   ============================================================ */
+:root {
+  /* Pink ramp — primary brand */
+  --pink-50:  oklch(0.985 0.008 350);   /* #FFF5F7 — canvas */
+  --pink-100: oklch(0.96  0.018 350);
+  --pink-200: oklch(0.94  0.035 350);   /* #FFE0EC — surface */
+  --pink-300: oklch(0.88  0.07  352);
+  --pink-400: oklch(0.78  0.14  355);
+  --pink-500: oklch(0.68  0.22  358);   /* #FF4D8D — primary */
+  --pink-600: oklch(0.60  0.24  358);
+  --pink-700: oklch(0.50  0.22  355);
+  --pink-800: oklch(0.38  0.16  350);
+  --pink-900: oklch(0.24  0.09  340);
+
+  /* Purple ramp — accent */
+  --purple-100: oklch(0.94 0.03  295);
+  --purple-300: oklch(0.78 0.12  295);
+  --purple-500: oklch(0.56 0.24  295);  /* #7C3AED — accent */
+  --purple-700: oklch(0.42 0.22  295);
+  --purple-900: oklch(0.24 0.12  300);
+
+  /* Ink ramp — text & neutrals (warm plum-tinted so it harmonises with pink) */
+  --ink-0:   oklch(1 0 0);
+  --ink-50:  oklch(0.98 0.006 340);
+  --ink-100: oklch(0.94 0.01  330);
+  --ink-200: oklch(0.88 0.015 330);
+  --ink-300: oklch(0.76 0.02  330);
+  --ink-400: oklch(0.62 0.03  330);
+  --ink-500: oklch(0.50 0.05  330);
+  --ink-600: oklch(0.38 0.06  325);
+  --ink-700: oklch(0.30 0.06  322);
+  --ink-800: oklch(0.22 0.04  320);
+  --ink-900: oklch(0.15 0.025 320);
+  --ink-950: oklch(0.10 0.02  320);
+
+  /* State ramps */
+  --gold-500:    oklch(0.82 0.16 85);   /* coin */
+  --green-500:   oklch(0.68 0.16 155);  /* success */
+  --amber-500:   oklch(0.80 0.16 75);   /* warning */
+  --red-500:     oklch(0.60 0.24 27);   /* error */
+  --blue-500:    oklch(0.65 0.15 240);  /* info */
+}
+
+/* ============================================================
+   Tier 2 — Semantic tokens (light default: Blush Pink Glow)
+   All components read from THESE. Change theme = change here.
+   ============================================================ */
 :root {
   --radius: 0.875rem;
 
-  --background: oklch(0.985 0.008 350);        /* #FFF5F7 */
-  --foreground: oklch(0.22 0.04 320);
+  /* Base canvas */
+  --background: var(--pink-50);
+  --foreground: var(--ink-800);
 
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.22 0.04 320);
+  /* Surfaces — layered depth */
+  --surface:          var(--ink-0);            /* default panels */
+  --surface-foreground: var(--ink-800);
+  --surface-elevated: var(--ink-0);            /* modals, popovers */
+  --surface-sunken:   var(--pink-100);         /* subtle wells */
 
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.22 0.04 320);
+  /* Shadcn aliases → surface */
+  --card:              var(--surface);
+  --card-foreground:   var(--surface-foreground);
+  --popover:           var(--surface-elevated);
+  --popover-foreground: var(--surface-foreground);
 
-  /* hot pink primary */
-  --primary: oklch(0.68 0.22 358);              /* ~#FF4D8D */
-  --primary-foreground: oklch(0.99 0.005 350);
+  /* Primary — hot pink CTAs */
+  --primary:           var(--pink-500);
+  --primary-foreground: var(--ink-50);
+  --primary-soft:      color-mix(in oklab, var(--pink-500) 14%, var(--pink-50));
 
-  --secondary: oklch(0.94 0.035 350);           /* ~#FFE0EC */
-  --secondary-foreground: oklch(0.3 0.08 340);
+  /* Secondary — soft pink chips / muted CTAs */
+  --secondary:         var(--pink-200);
+  --secondary-foreground: var(--pink-800);
 
-  --muted: oklch(0.96 0.018 350);
-  --muted-foreground: oklch(0.5 0.05 330);
+  /* Accent — vibrant purple */
+  --accent:            var(--purple-500);
+  --accent-foreground: var(--ink-50);
+  --accent-soft:       color-mix(in oklab, var(--purple-500) 14%, var(--pink-50));
 
-  /* vibrant purple accent */
-  --accent: oklch(0.56 0.24 295);               /* ~#7C3AED */
-  --accent-foreground: oklch(0.99 0.005 300);
+  /* Muted — quiet text & backgrounds */
+  --muted:             var(--pink-100);
+  --muted-foreground:  var(--ink-500);
 
-  --destructive: oklch(0.6 0.24 27);
-  --destructive-foreground: oklch(0.99 0.005 0);
+  /* State — error */
+  --error:             var(--red-500);
+  --error-foreground:  var(--ink-50);
+  --error-soft:        color-mix(in oklab, var(--red-500) 12%, var(--pink-50));
 
-  --success: oklch(0.68 0.16 155);
-  --success-foreground: oklch(0.99 0.005 155);
+  /* State — success */
+  --success:           var(--green-500);
+  --success-foreground: var(--ink-50);
+  --success-soft:      color-mix(in oklab, var(--green-500) 12%, var(--pink-50));
 
-  --coin: oklch(0.82 0.16 85);
-  --coin-foreground: oklch(0.25 0.05 80);
+  /* State — warning */
+  --warning:           var(--amber-500);
+  --warning-foreground: var(--ink-900);
 
-  --border: oklch(0.68 0.22 358 / 0.14);
-  --input: oklch(0.68 0.22 358 / 0.12);
-  --ring: oklch(0.68 0.22 358 / 0.55);
+  /* State — info */
+  --info:              var(--blue-500);
+  --info-foreground:   var(--ink-50);
 
-  --glass: oklch(1 0 0 / 0.65);
-  --glass-border: oklch(0.68 0.22 358 / 0.18);
+  /* Domain — coins */
+  --coin:              var(--gold-500);
+  --coin-foreground:   oklch(0.25 0.05 80);
+
+  /* Lines & focus */
+  --border:            color-mix(in oklab, var(--pink-500) 14%, transparent);
+  --input:             color-mix(in oklab, var(--pink-500) 12%, transparent);
+  --ring:              color-mix(in oklab, var(--pink-500) 55%, transparent);
+
+  /* Glassmorphism */
+  --glass:             color-mix(in oklab, var(--ink-0) 65%, transparent);
+  --glass-border:      color-mix(in oklab, var(--pink-500) 18%, transparent);
+
+  /* Elevation ramp */
+  --elevation-1: 0 1px 2px -1px oklch(0.55 0.18 350 / 0.14);
+  --elevation-2: 0 12px 32px -14px oklch(0.55 0.18 350 / 0.28);
+  --elevation-3: 0 24px 48px -20px oklch(0.55 0.18 350 / 0.34);
+
+  /* Gradients */
+  --gradient-brand: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%);
+  --gradient-soft:  linear-gradient(135deg, var(--primary-soft), var(--accent-soft));
 }
 
 .dark {
-  /* Keep light Blush Pink Glow palette even if .dark class applied. */
-  --background: oklch(0.985 0.008 350);
-  --foreground: oklch(0.22 0.04 320);
+  /* Blush Pink Glow is light-first; .dark keeps the same palette
+     so shadcn `dark:` variants inherit intentionally. */
+  --background: var(--pink-50);
+  --foreground: var(--ink-800);
 }
 
 @layer base {
@@ -97,9 +224,9 @@
   html, body { overflow-x: hidden; }
   body {
     background-image:
-      radial-gradient(ellipse 90% 55% at 50% -10%, oklch(0.68 0.22 358 / 0.22), transparent 60%),
-      radial-gradient(ellipse 70% 45% at 100% 100%, oklch(0.56 0.24 295 / 0.18), transparent 60%),
-      radial-gradient(ellipse 60% 40% at 0% 40%, oklch(0.94 0.035 350 / 0.9), transparent 60%);
+      radial-gradient(ellipse 90% 55% at 50% -10%, color-mix(in oklab, var(--primary) 22%, transparent), transparent 60%),
+      radial-gradient(ellipse 70% 45% at 100% 100%, color-mix(in oklab, var(--accent) 18%, transparent), transparent 60%),
+      radial-gradient(ellipse 60% 40% at 0% 40%, color-mix(in oklab, var(--secondary) 90%, transparent), transparent 60%);
     background-attachment: fixed;
     min-height: 100vh;
   }
@@ -119,18 +246,12 @@
   &::-webkit-scrollbar { display: none; }
 }
 
-
-
 @utility safe-top {
-  /* Use the OS-reported inset, but guarantee a sensible minimum so the
-     header never sits under the device status bar / notch on Android
-     OEMs that don't surface env(safe-area-inset-top). */
   padding-top: max(env(safe-area-inset-top, 0px), 1.5rem);
 }
 @utility safe-bottom {
   padding-bottom: max(env(safe-area-inset-bottom, 0px), 0.5rem);
 }
-
 
 @utility glass {
   background-color: var(--glass);
@@ -144,27 +265,21 @@
   backdrop-filter: blur(20px) saturate(160%);
   -webkit-backdrop-filter: blur(20px) saturate(160%);
   border-top: 1px solid var(--border);
-  box-shadow: 0 -8px 24px -14px oklch(0.55 0.18 350 / 0.25);
+  box-shadow: 0 -8px 24px -14px color-mix(in oklab, var(--primary) 25%, transparent);
 }
 
-
 @utility brand-gradient {
-  background-image: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%);
+  background-image: var(--gradient-brand);
 }
 
 @utility text-gradient {
-  background-image: linear-gradient(135deg, var(--primary), var(--accent));
+  background-image: var(--gradient-brand);
   background-clip: text;
   -webkit-background-clip: text;
   color: transparent;
 }
 
-/* ===== RTL support =====
- * When <html dir="rtl"> is set (Arabic/Urdu/Hebrew), mirror layout-affecting
- * properties that don't auto-flip. Most flex/grid layouts mirror automatically
- * because the writing direction changes; we just fix the icons, transforms,
- * and toast/sheet anchors that use fixed left/right offsets.
- */
+/* ===== RTL support ===== */
 [dir="rtl"] .lucide-chevron-right,
 [dir="rtl"] .lucide-arrow-right,
 [dir="rtl"] .lucide-arrow-left,
@@ -172,13 +287,10 @@
   transform: scaleX(-1);
 }
 
-/* Mirror local video preview in calls only if it isn't already mirrored
-   by the explicit -scale-x-100 class. */
 [dir="rtl"] .rtl-flip {
   transform: scaleX(-1);
 }
 
-/* Toaster / sonner anchoring: keep notifications on the leading edge. */
 [dir="rtl"] [data-sonner-toaster][data-x-position="right"] {
   right: auto;
   left: 1rem;
@@ -189,19 +301,7 @@
 }
 
 /* ============================================================
-   Call-screen pointer safeguard
-   ------------------------------------------------------------
-   Historical bug: a Vite / plugin error overlay (or any other
-   full-viewport scrim) mounted on top of the call surface and
-   silently swallowed every tap on End / Gift / Mic / Speaker /
-   Mystery, leaving the user trapped in a connected call with
-   no working controls.
-
-   While the call surface is mounted (body[data-call-active="1"])
-   we force all known dev/error overlays to ignore pointer events
-   so the controls below them stay tappable. The overlay still
-   renders so developers can see the error in DevTools, it just
-   cannot capture clicks anymore.
+   Call-screen pointer safeguard (unchanged behaviour)
    ============================================================ */
 body[data-call-active="1"] vite-error-overlay,
 body[data-call-active="1"] vite-plugin-checker-error-overlay,
@@ -214,18 +314,12 @@ body[data-call-active="1"] [data-nextjs-dialog-overlay],
 body[data-call-active="1"] [data-nextjs-toast] {
   pointer-events: none !important;
 }
-/* Re-enable pointer events on links/buttons inside the overlay so
-   the developer can still dismiss it from outside the call surface,
-   but only when the call surface is NOT in the way. */
 body[data-call-active="1"] vite-error-overlay::part(close),
 body[data-call-active="1"] vite-error-overlay::part(backdrop) {
   pointer-events: none !important;
 }
 
-/* Call surface is z-60 so it can hide app chrome during a live call. Radix
-   Sheets/Dialogs default to z-50, which made Gift, SOS, recharge and end-call
-   confirmations open *behind* the fullscreen call and look like dead buttons.
-   While a call is active, lift only open Radix portals above the call surface. */
+/* Lift Radix portals above the fullscreen call surface. */
 body[data-call-active="1"] > [data-state="open"].fixed,
 body[data-call-active="1"] > [data-state="open"][role="dialog"],
 body[data-call-active="1"] > [data-state="open"][role="alertdialog"],
@@ -236,59 +330,57 @@ body[data-call-active="1"] [data-radix-portal] > [data-state="open"][role="alert
 }
 
 /* ============================================================
-   Call screen dark palette (scoped)
-   ------------------------------------------------------------
-   App is light (Blush Pink Glow), but a live audio/video call
-   needs deep contrast: dark surface keeps remote video punchy,
-   reduces glare during long night calls, and makes control
-   chips (mute / speaker / gift / end) pop with AA+ contrast.
-   Only tokens are re-scoped — component classes stay the same.
+   Call screen — scoped semantic override (dark contrast).
+   Only re-maps the semantic tokens; brand ramps stay intact
+   and every component keeps reading the same variable names.
    ============================================================ */
 body[data-call-active="1"],
 body[data-call-active="1"] [data-radix-portal] {
-  --background: oklch(0.15 0.025 320);
-  --foreground: oklch(0.98 0.006 340);
+  --background:         var(--ink-900);
+  --foreground:         var(--ink-50);
 
-  --card: oklch(0.2 0.035 320);
-  --card-foreground: oklch(0.98 0.006 340);
+  --surface:            var(--ink-800);
+  --surface-foreground: var(--ink-50);
+  --surface-elevated:   oklch(0.24 0.04 320);
+  --surface-sunken:     var(--ink-950);
 
-  --popover: oklch(0.2 0.035 320);
-  --popover-foreground: oklch(0.98 0.006 340);
+  --card:               var(--surface);
+  --card-foreground:    var(--surface-foreground);
+  --popover:            var(--surface-elevated);
+  --popover-foreground: var(--surface-foreground);
 
-  --primary: oklch(0.74 0.2 358);
-  --primary-foreground: oklch(0.15 0.03 320);
+  --primary:            var(--pink-400);
+  --primary-foreground: var(--ink-900);
+  --primary-soft:       color-mix(in oklab, var(--pink-400) 22%, var(--ink-900));
 
-  --secondary: oklch(0.27 0.05 320);
-  --secondary-foreground: oklch(0.98 0.006 340);
+  --secondary:          oklch(0.27 0.05 320);
+  --secondary-foreground: var(--ink-50);
 
-  --muted: oklch(0.24 0.04 320);
-  --muted-foreground: oklch(0.78 0.03 330);
+  --accent:             oklch(0.7 0.2 300);
+  --accent-foreground:  var(--ink-900);
+  --accent-soft:        color-mix(in oklab, var(--accent) 22%, var(--ink-900));
 
-  --accent: oklch(0.7 0.2 300);
-  --accent-foreground: oklch(0.15 0.03 320);
+  --muted:              oklch(0.24 0.04 320);
+  --muted-foreground:   var(--ink-200);
 
-  --destructive: oklch(0.66 0.26 27);
-  --destructive-foreground: oklch(0.99 0.005 0);
+  --error:              oklch(0.66 0.26 27);
+  --error-foreground:   var(--ink-50);
+  --error-soft:         color-mix(in oklab, var(--error) 20%, var(--ink-900));
 
-  --success: oklch(0.76 0.17 155);
-  --success-foreground: oklch(0.15 0.03 320);
+  --success:            oklch(0.76 0.17 155);
+  --success-foreground: var(--ink-900);
+  --success-soft:       color-mix(in oklab, var(--success) 20%, var(--ink-900));
 
-  --coin: oklch(0.85 0.17 85);
-  --coin-foreground: oklch(0.2 0.05 80);
+  --border:             color-mix(in oklab, var(--ink-0) 12%, transparent);
+  --input:              color-mix(in oklab, var(--ink-0) 14%, transparent);
+  --ring:               color-mix(in oklab, var(--pink-400) 70%, transparent);
 
-  --border: oklch(1 0 0 / 0.12);
-  --input: oklch(1 0 0 / 0.14);
-  --ring: oklch(0.74 0.2 358 / 0.7);
-
-  --glass: oklch(0.2 0.03 320 / 0.55);
-  --glass-border: oklch(1 0 0 / 0.14);
+  --glass:              color-mix(in oklab, var(--ink-800) 55%, transparent);
+  --glass-border:       color-mix(in oklab, var(--ink-0) 14%, transparent);
 }
 
-/* Kill the pink page-glow behind the call surface so remote
-   video and dark chrome stay pure — no bleed-through halo. */
+/* Kill the pink page-glow behind the call surface. */
 body[data-call-active="1"] {
   background-image: none;
-  background-color: oklch(0.1 0.02 320);
+  background-color: var(--ink-950);
 }
-
-
