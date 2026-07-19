@@ -1,0 +1,8 @@
+/__l5e/assets-v1/*
+  cache-control: public, max-age=31536000, immutable
+
+/manifest.webmanifest
+  cache-control: public, max-age=3600
+
+/favicon.ico
+  cache-control: public, max-age=86400
