@@ -68,6 +68,63 @@ export type Database = {
         }
         Relationships: []
       }
+      ban_appeals: {
+        Row: {
+          admin_notes: string | null
+          ban_id: string | null
+          created_at: string
+          id: string
+          message: string
+          report_id: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          ban_id?: string | null
+          created_at?: string
+          id?: string
+          message: string
+          report_id?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          admin_notes?: string | null
+          ban_id?: string | null
+          created_at?: string
+          id?: string
+          message?: string
+          report_id?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ban_appeals_ban_id_fkey"
+            columns: ["ban_id"]
+            isOneToOne: false
+            referencedRelation: "bans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ban_appeals_report_id_fkey"
+            columns: ["report_id"]
+            isOneToOne: false
+            referencedRelation: "reports"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ban_signals: {
         Row: {
           created_at: string
