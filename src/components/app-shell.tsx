@@ -101,7 +101,12 @@ export function AppShell({ children, isAdmin }: { children: ReactNode; isAdmin?:
 
   return (
     <div className="min-h-screen pb-20">
-      <header className="sticky top-0 z-40 safe-top border-b border-primary/10 bg-surface/70 backdrop-blur-xl backdrop-saturate-150 shadow-[0_1px_0_0_color-mix(in_oklab,var(--primary)_10%,transparent),0_8px_24px_-18px_color-mix(in_oklab,var(--primary)_35%,transparent)]">
+      <header
+        className={cn(
+          "sticky top-0 z-40 safe-top border-b border-primary/10 bg-surface/70 backdrop-blur-xl backdrop-saturate-150 shadow-[0_1px_0_0_color-mix(in_oklab,var(--primary)_10%,transparent),0_8px_24px_-18px_color-mix(in_oklab,var(--primary)_35%,transparent)] transition-[padding] duration-200 ease-out",
+          isShrunk ? "py-1" : "py-2 sm:py-2.5"
+        )}
+      >
         {/* soft brand wash so the bar sits inside the palette, not on top of it */}
         <div
           aria-hidden
