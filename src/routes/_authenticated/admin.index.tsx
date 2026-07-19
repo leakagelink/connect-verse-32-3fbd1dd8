@@ -40,6 +40,7 @@ import { CallFullscreenE2E } from "@/components/admin/CallFullscreenE2E";
 import { CallControlsActionsE2E } from "@/components/admin/CallControlsActionsE2E";
 import { FollowPushDiagnostics } from "@/components/admin/FollowPushDiagnostics";
 import { SosAuditTab } from "@/components/admin/SosAuditTab";
+import { AppealsTab } from "@/components/admin/AppealsTab";
 
 import { adminListKyc, adminReviewKyc, adminListWithdrawals, adminProcessWithdrawal, getKycDocUrl, adminListKycPurgeLog } from "@/lib/kyc.functions";
 import {
@@ -116,6 +117,7 @@ function AdminPanel() {
             <TabsTrigger value="calling">Calling</TabsTrigger>
             <TabsTrigger value="call-audit"><Phone className="size-3.5 mr-1" />Call Audit</TabsTrigger>
             <TabsTrigger value="sos-audit"><Siren className="size-3.5 mr-1" />SOS Audit</TabsTrigger>
+            <TabsTrigger value="appeals">Appeals</TabsTrigger>
             <TabsTrigger value="broadcast">Broadcast</TabsTrigger>
             <TabsTrigger value="fcm">Push (FCM)</TabsTrigger>
             <TabsTrigger value="performance"><Activity className="size-3.5 mr-1" />Performance</TabsTrigger>
@@ -131,6 +133,11 @@ function AdminPanel() {
         <TabsContent value="sos-audit" className="space-y-3">
           <SosAuditTab />
         </TabsContent>
+
+        <TabsContent value="appeals" className="space-y-3">
+          <AppealsTab />
+        </TabsContent>
+
 
         <TabsContent value="call-audit" className="space-y-3">
 
