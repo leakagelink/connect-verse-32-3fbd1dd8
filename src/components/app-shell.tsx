@@ -116,7 +116,7 @@ export function AppShell({ children, isAdmin }: { children: ReactNode; isAdmin?:
               "radial-gradient(60% 120% at 0% 0%, color-mix(in oklab, var(--primary) 14%, transparent), transparent 60%), radial-gradient(60% 120% at 100% 0%, color-mix(in oklab, var(--accent) 12%, transparent), transparent 60%)",
           }}
         />
-        <div className="mx-auto grid max-w-3xl grid-cols-[auto_minmax(0,1fr)] items-center gap-2 px-3 py-2 sm:px-4 sm:py-2.5">
+        <div className="mx-auto grid max-w-3xl grid-cols-[auto_minmax(0,1fr)] items-center gap-2 px-3 sm:px-4">
           <Link
             to="/home"
             className="flex shrink-0 items-center gap-2 rounded-full pr-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
