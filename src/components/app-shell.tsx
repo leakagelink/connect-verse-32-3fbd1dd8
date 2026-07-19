@@ -1,5 +1,5 @@
 import { Link, useRouter, useRouterState } from "@tanstack/react-router";
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { Home, MessageCircle, Wallet, User, Shield, Coins, Sparkles, Zap, History } from "lucide-react";
@@ -29,6 +29,27 @@ export function AppShell({ children, isAdmin }: { children: ReactNode; isAdmin?:
   const unread = me?.unreadCount ?? 0;
   const admin = isAdmin ?? me?.isAdmin;
   const { t, setLocale, locale } = useT();
+  const [isShrunk, setIsShrunk] = useState(false);
+
+  useEffect(() => {
+    let raf = 0;
+    let last = 0;
+    const onScroll = () => {
+      const now = performance.now();
+      if (now - last < 80) return;
+      last = now;
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(() => {
+        setIsShrunk(window.scrollY > 16);
+      });
+    };
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      cancelAnimationFrame(raf);
+    };
+  }, []);
 
   // Phase 4 — Capacitor: status-bar colour, splash hide, push token registration.
   // Phase 10 — deep-link bridge (talkora:// → in-app route).
@@ -80,7 +101,17 @@ export function AppShell({ children, isAdmin }: { children: ReactNode; isAdmin?:
 
   return (
     <div className="min-h-screen pb-20">
-      <header className="sticky top-0 z-40 safe-top border-b border-primary/10 bg-surface/70 backdrop-blur-xl backdrop-saturate-150 shadow-[0_1px_0_0_color-mix(in_oklab,var(--primary)_10%,transparent),0_8px_24px_-18px_color-mix(in_oklab,var(--primary)_35%,transparent)]">
+      <header
+        className={cn(
+          "sticky top-0 z-40 border-b border-primary/10 bg-surface/70 backdrop-blur-xl backdrop-saturate-150 shadow-[0_1px_0_0_color-mix(in_oklab,var(--primary)_10%,transparent),0_8px_24px_-18px_color-mix(in_oklab,var(--primary)_35%,transparent)] transition-[padding] duration-200 ease-out",
+          isShrunk ? "pb-1" : "py-2 sm:py-2.5 safe-top"
+        )}
+        style={{
+          paddingTop: isShrunk
+            ? "max(env(safe-area-inset-top, 0px), 0.5rem)"
+            : "max(env(safe-area-inset-top, 0px), 1.5rem)",
+        }}
+      >
         {/* soft brand wash so the bar sits inside the palette, not on top of it */}
         <div
           aria-hidden
@@ -90,19 +121,25 @@ export function AppShell({ children, isAdmin }: { children: ReactNode; isAdmin?:
               "radial-gradient(60% 120% at 0% 0%, color-mix(in oklab, var(--primary) 14%, transparent), transparent 60%), radial-gradient(60% 120% at 100% 0%, color-mix(in oklab, var(--accent) 12%, transparent), transparent 60%)",
           }}
         />
-        <div className="mx-auto grid max-w-3xl grid-cols-[auto_minmax(0,1fr)] items-center gap-2 px-3 py-2 sm:px-4 sm:py-2.5">
+        <div className="mx-auto grid max-w-3xl grid-cols-[auto_minmax(0,1fr)] items-center gap-2 px-3 sm:px-4">
           <Link
             to="/home"
-            className="flex shrink-0 items-center gap-2 rounded-full pr-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+            className="flex shrink-0 items-center justify-center gap-2 rounded-full pr-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 min-h-11 min-w-11 sm:min-w-0"
             aria-label={`${APP_NAME} home`}
           >
-            <span className="relative grid size-9 place-items-center rounded-xl bg-gradient-brand shadow-[0_6px_16px_-6px_color-mix(in_oklab,var(--primary)_55%,transparent)]">
+            <span className={cn(
+              "relative grid place-items-center rounded-xl bg-gradient-brand shadow-[0_6px_16px_-6px_color-mix(in_oklab,var(--primary)_55%,transparent)] transition-[width,height] duration-200 ease-out",
+              isShrunk ? "size-8" : "size-9"
+            )}>
               <img
                 src={talkoraLogo.url}
                 alt=""
                 width={22}
                 height={22}
-                className="size-[22px] rounded-md"
+                className={cn(
+                  "rounded-md transition-[width,height] duration-200 ease-out",
+                  isShrunk ? "size-5" : "size-[22px]"
+                )}
               />
             </span>
             <span className="hidden bg-gradient-brand bg-clip-text text-base font-black tracking-tight text-transparent sm:inline">
@@ -115,7 +152,9 @@ export function AppShell({ children, isAdmin }: { children: ReactNode; isAdmin?:
             <Link
               to="/recharge"
               aria-label={`Available coins: ${balance.toLocaleString("en-IN")}. Recharge`}
-              className="group shimmer-sweep inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full border border-[color-mix(in_oklab,var(--coin)_45%,transparent)] bg-[linear-gradient(135deg,color-mix(in_oklab,var(--coin)_22%,var(--surface))_0%,var(--surface)_60%,color-mix(in_oklab,var(--primary)_14%,var(--surface))_100%)] pl-2 pr-1 text-xs font-bold text-foreground shadow-[0_4px_12px_-6px_color-mix(in_oklab,var(--coin)_55%,transparent)] transition hover:-translate-y-px hover:shadow-[0_8px_18px_-6px_color-mix(in_oklab,var(--coin)_65%,transparent)]"
+              className={cn(
+                "group shimmer-sweep inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full border border-[color-mix(in_oklab,var(--coin)_45%,transparent)] bg-[linear-gradient(135deg,color-mix(in_oklab,var(--coin)_22%,var(--surface))_0%,var(--surface)_60%,color-mix(in_oklab,var(--primary)_14%,var(--surface))_100%)] pl-2 pr-1 text-xs font-bold text-foreground shadow-[0_4px_12px_-6px_color-mix(in_oklab,var(--coin)_55%,transparent)] transition hover:-translate-y-px hover:shadow-[0_8px_18px_-6px_color-mix(in_oklab,var(--coin)_65%,transparent)]"
+              )}
             >
               <Coins className="relative z-10 size-3.5 text-coin" />
               <span className="relative z-10 truncate max-w-[70px] tabular-nums sm:max-w-none">
@@ -239,7 +278,7 @@ function HeaderIconLink({
       aria-label={label}
       aria-current={active ? "page" : undefined}
       className={cn(
-        "relative inline-flex size-10 shrink-0 items-center justify-center rounded-full transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50",
+        "relative inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-full transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50",
         active
           ? "bg-primary-soft text-primary shadow-[inset_0_0_0_1px_color-mix(in_oklab,var(--primary)_28%,transparent)]"
           : "text-foreground/75 hover:bg-primary-soft/60 hover:text-foreground",
