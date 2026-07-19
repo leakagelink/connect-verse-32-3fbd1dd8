@@ -274,7 +274,7 @@ function HeaderIconLink({
       aria-label={label}
       aria-current={active ? "page" : undefined}
       className={cn(
-        "relative inline-flex size-10 shrink-0 items-center justify-center rounded-full transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50",
+        "relative inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-full transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50",
         active
           ? "bg-primary-soft text-primary shadow-[inset_0_0_0_1px_color-mix(in_oklab,var(--primary)_28%,transparent)]"
           : "text-foreground/75 hover:bg-primary-soft/60 hover:text-foreground",
