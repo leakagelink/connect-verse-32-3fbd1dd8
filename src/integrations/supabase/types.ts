@@ -2177,6 +2177,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_room_member: {
+        Args: { _room: string; _user: string }
+        Returns: boolean
+      }
       is_signal_banned: {
         Args: { _type: string; _value: string }
         Returns: boolean
