@@ -17,6 +17,8 @@ import { APP_LANGUAGES } from "@/lib/constants";
 import { CreatorSafetyCard } from "@/components/creator-safety-card";
 import { SpokenLanguagesCard } from "@/components/spoken-languages-card";
 import { NotificationPrefsCard } from "@/components/notification-prefs-card";
+import { AccessibilitySettingsCard } from "@/components/accessibility-settings-card";
+
 import { CallSoundReadinessCard } from "@/components/call-sound-readiness-card";
 import { PermissionDebugPanel } from "@/components/permission-debug-panel";
 import { AvatarUploadCard } from "@/components/avatar-upload-card";
@@ -195,6 +197,11 @@ function Settings() {
 
       {/* Notification preferences */}
       <NotificationPrefsCard />
+
+      {/* Accessibility: high-contrast theme, text scale, reduced motion */}
+      <AccessibilitySettingsCard />
+
+
 
       {/* Ringtone volume / DND / channel-bypass readiness */}
       <CallSoundReadinessCard />
