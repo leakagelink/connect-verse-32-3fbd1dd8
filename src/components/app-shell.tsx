@@ -124,7 +124,7 @@ export function AppShell({ children, isAdmin }: { children: ReactNode; isAdmin?:
         <div className="mx-auto grid max-w-3xl grid-cols-[auto_minmax(0,1fr)] items-center gap-2 px-3 sm:px-4">
           <Link
             to="/home"
-            className="flex shrink-0 items-center gap-2 rounded-full pr-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+            className="flex shrink-0 items-center justify-center gap-2 rounded-full pr-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 min-h-11 min-w-11 sm:min-w-0"
             aria-label={`${APP_NAME} home`}
           >
             <span className={cn(
