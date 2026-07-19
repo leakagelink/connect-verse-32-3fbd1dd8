@@ -52,7 +52,7 @@ export function SosButton({
   const reportFn = useServerFn(submitReport);
   const logSos = useServerFn(logSosEvent);
 
-  async function logAudit(payload: Parameters<typeof logSos>[0]["data"]) {
+  async function logAudit(payload: any) {
     try { await logSos({ data: payload }); } catch { /* audit best-effort */ }
   }
 
