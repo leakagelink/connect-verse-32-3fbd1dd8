@@ -1469,6 +1469,54 @@ export type Database = {
         }
         Relationships: []
       }
+      privacy_requests: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          download_expires_at: string | null
+          download_path: string | null
+          error: string | null
+          id: string
+          kind: Database["public"]["Enums"]["privacy_request_kind"]
+          notes: string | null
+          scheduled_for: string | null
+          size_bytes: number | null
+          status: Database["public"]["Enums"]["privacy_request_status"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          download_expires_at?: string | null
+          download_path?: string | null
+          error?: string | null
+          id?: string
+          kind: Database["public"]["Enums"]["privacy_request_kind"]
+          notes?: string | null
+          scheduled_for?: string | null
+          size_bytes?: number | null
+          status?: Database["public"]["Enums"]["privacy_request_status"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          download_expires_at?: string | null
+          download_path?: string | null
+          error?: string | null
+          id?: string
+          kind?: Database["public"]["Enums"]["privacy_request_kind"]
+          notes?: string | null
+          scheduled_for?: string | null
+          size_bytes?: number | null
+          status?: Database["public"]["Enums"]["privacy_request_status"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           ai_avatar_style: string | null
@@ -2173,6 +2221,14 @@ export type Database = {
       ban_type: "temp" | "perm"
       follow_status: "pending" | "accepted"
       gender_type: "male" | "female" | "other"
+      privacy_request_kind: "export" | "deletion"
+      privacy_request_status:
+        | "pending"
+        | "processing"
+        | "ready"
+        | "completed"
+        | "cancelled"
+        | "failed"
       report_reason:
         | "harassment"
         | "nudity"
@@ -2334,6 +2390,15 @@ export const Constants = {
       ban_type: ["temp", "perm"],
       follow_status: ["pending", "accepted"],
       gender_type: ["male", "female", "other"],
+      privacy_request_kind: ["export", "deletion"],
+      privacy_request_status: [
+        "pending",
+        "processing",
+        "ready",
+        "completed",
+        "cancelled",
+        "failed",
+      ],
       report_reason: [
         "harassment",
         "nudity",
