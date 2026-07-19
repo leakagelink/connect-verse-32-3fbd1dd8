@@ -43,13 +43,15 @@ export function NotificationsBell({ active }: { active?: boolean }) {
   return (
     <Link
       to="/notifications"
+      aria-label="Notifications"
+      aria-current={active ? "page" : undefined}
       className={cn(
-        "relative inline-flex size-9 items-center justify-center rounded-full transition",
+        "relative inline-flex min-h-11 min-w-11 items-center justify-center rounded-full transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50",
         active ? "bg-primary/15 text-primary" : "hover:bg-muted text-foreground/80",
       )}
       title="Notifications"
     >
-      <Bell className="size-4.5" />
+      <Bell className="size-5" />
       {unread > 0 && (
         <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 px-1 rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold flex items-center justify-center">
           {unread > 99 ? "99+" : unread}
