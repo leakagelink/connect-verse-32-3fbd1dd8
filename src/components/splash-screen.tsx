@@ -66,6 +66,9 @@ export function SplashScreen() {
 
   useEffect(() => {
     if (typeof window === "undefined") return;
+    if (typeof window !== "undefined") {
+      (window as any).__splashEffectCount = ((window as any).__splashEffectCount || 0) + 1;
+    }
     if (sessionStorage.getItem(SEEN_KEY)) {
       setStage("gone");
       return;
