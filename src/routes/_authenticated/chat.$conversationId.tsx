@@ -17,7 +17,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { CoinBadge } from "@/components/coin-badge";
 import { ReportDialog } from "@/components/report-dialog";
-import { ArrowLeft, Send, Sparkles, UserPlus, UserCheck, UserX, Check, X } from "lucide-react";
+import { ArrowLeft, Send, Sparkles, UserPlus, UserCheck, UserX, Check, X, Phone, Smile } from "lucide-react";
 import { toast } from "sonner";
 import { CHAT_COINS_PER_MINUTE, MESSAGE_COIN_COST_MALE, detectContactShare, contactShareWarning } from "@/lib/constants";
 
