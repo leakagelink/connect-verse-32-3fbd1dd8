@@ -156,6 +156,12 @@ function Recharge() {
 
 
   async function buy(planId: string, planLabel: string) {
+    if (PAYMENTS_MAINTENANCE) {
+      toast.info("Payments temporarily unavailable", {
+        description: "Our payment gateway is under maintenance. Please try again soon.",
+      });
+      return;
+    }
     setBusy(planId);
     try {
       if (isTest) {
