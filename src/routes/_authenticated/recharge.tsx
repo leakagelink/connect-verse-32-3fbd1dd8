@@ -347,7 +347,7 @@ function Recharge() {
         </Card>
       )}
 
-      {pending && (
+      {!PAYMENTS_MAINTENANCE && pending && (
         <Card className="glass mt-4 p-3 border-warning/50 bg-warning/5">
           <div className="flex items-start gap-2">
             <AlertTriangle className="size-4 text-warning shrink-0 mt-0.5" />
