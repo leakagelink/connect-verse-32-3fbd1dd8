@@ -419,11 +419,11 @@ function Recharge() {
               {bonus > 0 && <p className="mt-1 text-xs text-accent">+ {bonus.toLocaleString("en-IN")} bonus</p>}
               <Button
                 size="sm"
-                disabled={busy === p.id}
+                disabled={busy === p.id || PAYMENTS_MAINTENANCE}
                 onClick={() => buy(p.id, p.label ?? "Coin pack")}
                 className="mt-3 w-full brand-gradient text-primary-foreground"
               >
-                {busy === p.id ? "…" : useExternalCheckout ? "Buy in browser" : "Buy"}
+                {PAYMENTS_MAINTENANCE ? "Unavailable" : busy === p.id ? "…" : useExternalCheckout ? "Buy in browser" : "Buy"}
               </Button>
             </Card>
           );
