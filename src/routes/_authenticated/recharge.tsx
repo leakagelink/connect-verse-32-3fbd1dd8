@@ -337,7 +337,7 @@ function Recharge() {
         </Card>
       )}
 
-      {useExternalCheckout && (
+      {!PAYMENTS_MAINTENANCE && useExternalCheckout && (
         <Card className="glass mt-4 p-3 flex items-center gap-2 border-primary/40 bg-primary/5">
           <ExternalLink className="size-4 text-primary shrink-0" />
           <div className="flex-1 text-xs">
