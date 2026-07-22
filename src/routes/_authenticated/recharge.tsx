@@ -307,7 +307,27 @@ function Recharge() {
         </Button>
       </div>
 
-      {isTest && (
+      {PAYMENTS_MAINTENANCE && (
+        <Card className="glass mt-4 p-4 border-warning/50 bg-warning/5">
+          <div className="flex items-start gap-3">
+            <div className="size-9 rounded-xl bg-warning/15 flex items-center justify-center shrink-0">
+              <Wrench className="size-5 text-warning" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold">Payment gateway under maintenance</p>
+              <p className="text-xs text-muted-foreground mt-1">
+                Coin recharges are temporarily unavailable while we finish setting up our
+                secure payment gateway. We'll be back very soon — thanks for your patience!
+              </p>
+              <p className="text-[11px] text-muted-foreground/80 mt-2">
+                Coming soon: UPI, Cards, NetBanking &amp; Wallets.
+              </p>
+            </div>
+          </div>
+        </Card>
+      )}
+
+      {!PAYMENTS_MAINTENANCE && isTest && (
         <Card className="glass mt-4 p-3 flex items-center gap-2 border-warning/40 bg-warning/5">
           <FlaskConical className="size-4 text-warning" />
           <div className="flex-1 text-xs">
