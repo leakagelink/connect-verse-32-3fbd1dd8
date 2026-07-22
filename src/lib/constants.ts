@@ -1,4 +1,12 @@
 export const APP_NAME = "Talkora";
+
+/**
+ * When true, the Recharge screen shows a "Payment gateway under maintenance"
+ * gate and blocks all buy actions (buttons disabled, deep-link auto-buy
+ * skipped, retry-resume disabled). Flip to `false` once the live payment
+ * gateway (Razorpay) is approved and ready to accept real payments.
+ */
+export const PAYMENTS_MAINTENANCE = true;
 export const APP_TAGLINE = "Voice Chat & Live Rooms";
 export const APP_FULL_NAME = "Talkora — Voice Chat & Live Rooms";
 export const CHAT_COINS_PER_MINUTE = 2;
