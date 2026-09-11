@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { APP_NAME } from "@/lib/constants";
 
-const LAST_UPDATED = "June 27, 2026";
+const LAST_UPDATED = "September 11, 2026";
 const CONTACT_EMAIL = "support@talkora.app"; // TODO: replace with your verified support email
 const COMPANY_NAME = `${APP_NAME}`; // TODO: replace with your registered legal entity if different
 const JURISDICTION = "India"; // TODO: replace if you operate from a different jurisdiction
@@ -86,7 +86,7 @@ function TermsPage() {
           </ul>
         </Section>
 
-        <Section title="7. Reports & moderation">
+        <Section title="5. Reports & moderation">
           <p className="text-muted-foreground">
             You can report any user or content. We review reports and take action at
             our discretion, including content removal, account suspension or
@@ -94,7 +94,7 @@ function TermsPage() {
           </p>
         </Section>
 
-        <Section title="8. Intellectual property">
+        <Section title="6. Intellectual property">
           <p className="text-muted-foreground">
             All software, branding, designs and content of the Service are owned by
             {" "}{COMPANY_NAME} or its licensors. You retain ownership of content you
@@ -103,7 +103,7 @@ function TermsPage() {
           </p>
         </Section>
 
-        <Section title="9. Termination">
+        <Section title="7. Termination">
           <p className="text-muted-foreground">
             You may delete your account at any time from the app settings. We may
             suspend or terminate your access without notice if you violate these
@@ -112,7 +112,7 @@ function TermsPage() {
           </p>
         </Section>
 
-        <Section title="10. Disclaimers">
+        <Section title="8. Disclaimers">
           <p className="text-muted-foreground">
             The Service is provided “AS IS” without warranties of any kind, express
             or implied. We do not guarantee uninterrupted, error-free or secure
@@ -120,7 +120,7 @@ function TermsPage() {
           </p>
         </Section>
 
-        <Section title="11. Limitation of liability">
+        <Section title="9. Limitation of liability">
           <p className="text-muted-foreground">
             To the maximum extent permitted by law, {COMPANY_NAME} shall not be
             liable for indirect, incidental, special, consequential or punitive
@@ -130,7 +130,7 @@ function TermsPage() {
           </p>
         </Section>
 
-        <Section title="12. Governing law & disputes">
+        <Section title="10. Governing law & disputes">
           <p className="text-muted-foreground">
             These Terms are governed by the laws of {JURISDICTION}. Any dispute
             shall be subject to the exclusive jurisdiction of the competent courts
@@ -138,7 +138,7 @@ function TermsPage() {
           </p>
         </Section>
 
-        <Section title="13. Changes to these Terms">
+        <Section title="11. Changes to these Terms">
           <p className="text-muted-foreground">
             We may update these Terms from time to time. Material changes will be
             announced inside the app. Continued use after changes constitutes
@@ -146,7 +146,7 @@ function TermsPage() {
           </p>
         </Section>
 
-        <Section title="14. Contact">
+        <Section title="12. Contact">
           <p className="text-muted-foreground">
             For any questions about these Terms, email{" "}
             <a href={`mailto:${CONTACT_EMAIL}`} className="text-primary underline">{CONTACT_EMAIL}</a>.
