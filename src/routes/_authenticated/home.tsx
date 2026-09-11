@@ -1,3 +1,4 @@
+import { CALLING_ENABLED, REWARDS_ENABLED } from "@/lib/constants";
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -162,6 +163,10 @@ function Home() {
   }
 
   function startCall(uid: string, kind: "voice" | "video") {
+    if (!CALLING_ENABLED) {
+      toast.info("Voice & video calling coming soon. Abhi free chat karein.");
+      return;
+    }
     setPreview({ userId: uid, kind });
   }
 
@@ -188,13 +193,15 @@ function Home() {
       <div className="mb-4 flex items-end justify-between">
         <div>
           <h1 className="text-2xl font-bold">Discover</h1>
-          <p className="text-sm text-muted-foreground">Live creators · calls · rooms</p>
+          <p className="text-sm text-muted-foreground">
+            {CALLING_ENABLED ? "Live creators · calls · rooms" : "Live members · free chat"}
+          </p>
         </div>
         <Button size="sm" variant="outline" onClick={() => { refetchOnline(); refetchCreators(); }}>Refresh</Button>
       </div>
 
       {/* Free Minutes Hero Banner — sticky, top priority */}
-      {(me?.profile?.free_seconds_remaining ?? 0) > 0 && (
+      {CALLING_ENABLED && (me?.profile?.free_seconds_remaining ?? 0) > 0 && (
         <Card className="relative overflow-hidden mb-4 p-4 border-emerald-500/40 bg-gradient-to-br from-emerald-500/20 via-teal-500/10 to-transparent">
           <div className="absolute -right-8 -top-8 size-28 rounded-full bg-emerald-400/15 blur-3xl" />
           <div className="relative flex items-center gap-3">
@@ -228,7 +235,9 @@ function Home() {
               <span className="text-[10px] text-amber-500 font-medium">Reconnecting…</span>
             )}
           </div>
-          <Link to="/connect" className="text-xs text-primary font-medium">See all →</Link>
+          {CALLING_ENABLED && (
+            <Link to="/connect" className="text-xs text-primary font-medium">See all →</Link>
+          )}
         </div>
         <LiveCreatorsStrip users={liveCreators} loading={loadingCreators} onCall={startCall} />
       </div>
@@ -243,9 +252,11 @@ function Home() {
       </div>
 
       {/* Recharge Offer — only if user still has a bonus tier */}
-      <div className="mb-5">
-        <RechargeOfferCard depositCount={walletData?.depositCount ?? 0} />
-      </div>
+      {REWARDS_ENABLED && (
+        <div className="mb-5">
+          <RechargeOfferCard depositCount={walletData?.depositCount ?? 0} />
+        </div>
+      )}
 
       {/* Matchmaker Rooms */}
       <MatchmakerRoomsSection canHost={me?.profile?.gender === "female"} />
@@ -264,10 +275,10 @@ function Home() {
 
 
       {/* Engagement (daily check-in streak) */}
-      <EngagementStrip />
+      {REWARDS_ENABLED && <EngagementStrip />}
 
       {/* Creator dashboard shortcut for female users */}
-      {me?.profile?.gender === "female" && (
+      {REWARDS_ENABLED && me?.profile?.gender === "female" && (
         <Link to="/creator-dashboard" className="block mb-4">
           <Card className="glass p-3 flex items-center gap-3 border-coin/40 hover:border-coin transition">
             <div className="size-10 rounded-xl bg-coin/15 flex items-center justify-center">
@@ -326,7 +337,7 @@ function Home() {
             users={liveOnlineUsers}
             loading={loadingOnline}
             renderActions={(u) => (
-              <Button size="sm" className="brand-gradient" onClick={() => setPreview({ userId: u.id, kind: "video" })}>
+              <Button size="sm" className="brand-gradient" onClick={() => startCall(u.id, "video")}>
                 <Video className="size-4 mr-1" /> Video
               </Button>
             )}
@@ -334,6 +345,15 @@ function Home() {
         </TabsContent>
 
         <TabsContent value="rooms" className="mt-4">
+          {!CALLING_ENABLED ? (
+            <Card className="glass p-8 text-center">
+              <p className="text-sm font-semibold">Live rooms coming soon</p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Abhi aap members ke saath free 1-on-1 chat kar sakte hain.
+              </p>
+            </Card>
+          ) : (
+          <>
           <div className="mb-3 flex items-center justify-between">
             <p className="text-xs text-muted-foreground">Live rooms — voice, video, games & live shows.</p>
             <Link to="/rooms/new">
