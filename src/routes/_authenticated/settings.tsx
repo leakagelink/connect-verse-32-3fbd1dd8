@@ -1,3 +1,4 @@
+import { REWARDS_ENABLED } from "@/lib/constants";
 import { useEffect } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -123,7 +124,7 @@ function Settings() {
 
 
         {/* Followers / Following / Coins */}
-        <div className="mt-5 grid grid-cols-3 gap-2 text-center">
+        <div className={`mt-5 grid gap-2 text-center ${REWARDS_ENABLED ? "grid-cols-3" : "grid-cols-2"}`}>
           <div className="rounded-lg bg-muted/40 py-3">
             <p className="text-lg font-bold">{me?.followerCount ?? 0}</p>
             <p className="text-[11px] text-muted-foreground uppercase tracking-wide">{t("settings.followers")}</p>
@@ -132,13 +133,15 @@ function Settings() {
             <p className="text-lg font-bold">{me?.followingCount ?? 0}</p>
             <p className="text-[11px] text-muted-foreground uppercase tracking-wide">{t("settings.following")}</p>
           </div>
-          <div className="rounded-lg bg-coin/10 py-3">
-            <p className="text-lg font-bold text-coin flex items-center justify-center gap-1">
-              <Coins className="size-4" />
-              {(me?.walletBalance ?? 0).toLocaleString("en-IN")}
-            </p>
-            <p className="text-[11px] text-muted-foreground uppercase tracking-wide">{t("settings.coins")}</p>
-          </div>
+          {REWARDS_ENABLED && (
+            <div className="rounded-lg bg-coin/10 py-3">
+              <p className="text-lg font-bold text-coin flex items-center justify-center gap-1">
+                <Coins className="size-4" />
+                {(me?.walletBalance ?? 0).toLocaleString("en-IN")}
+              </p>
+              <p className="text-[11px] text-muted-foreground uppercase tracking-wide">{t("settings.coins")}</p>
+            </div>
+          )}
         </div>
       </Card>
 
