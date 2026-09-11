@@ -95,7 +95,7 @@ export function AppShell({ children, isAdmin }: { children: ReactNode; isAdmin?:
   const nav = [
     { to: "/home", label: t("nav.discover"), icon: Home },
     { to: "/chat", label: t("nav.chats"), icon: MessageCircle },
-    { to: "/wallet", label: t("nav.wallet"), icon: Wallet },
+    ...(REWARDS_ENABLED ? [{ to: "/wallet" as const, label: t("nav.wallet"), icon: Wallet }] : []),
     { to: "/settings", label: t("nav.profile"), icon: User },
   ] as const;
 
