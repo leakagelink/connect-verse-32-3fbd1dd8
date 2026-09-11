@@ -1,3 +1,5 @@
+import { ComingSoonPage } from "@/components/coming-soon";
+import { REWARDS_ENABLED } from "@/lib/constants";
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
@@ -12,7 +14,15 @@ import { Gift, Copy, Share2, Users, Coins, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/refer")({
-  component: ReferPage,
+  component: () =>
+    REWARDS_ENABLED ? (
+      <ReferPage />
+    ) : (
+      <ComingSoonPage
+        title="Refer & earn"
+        description="Referral rewards jaldi launch honge."
+      />
+    ),
 });
 
 function ReferPage() {
