@@ -389,6 +389,8 @@ function Home() {
               ))}
             </div>
           )}
+          </>
+          )}
         </TabsContent>
       </Tabs>
 
