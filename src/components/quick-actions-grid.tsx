@@ -1,3 +1,4 @@
+import { CALLING_ENABLED } from "@/lib/constants";
 import { Link } from "@tanstack/react-router";
 import { Card } from "@/components/ui/card";
 import { Phone, Video, Gamepad2, Radio } from "lucide-react";
@@ -38,6 +39,16 @@ const ACTIONS = [
 ];
 
 export function QuickActionsGrid() {
+  if (!CALLING_ENABLED) {
+    return (
+      <Card className="glass p-5 text-center">
+        <p className="text-sm font-semibold">Voice calls, video calls & live rooms</p>
+        <p className="mt-1 text-xs text-muted-foreground">
+          Coming soon. Talkora v1 me free chat ka maza lein.
+        </p>
+      </Card>
+    );
+  }
   return (
     <div className="grid grid-cols-2 gap-3">
       {ACTIONS.map((a) => (

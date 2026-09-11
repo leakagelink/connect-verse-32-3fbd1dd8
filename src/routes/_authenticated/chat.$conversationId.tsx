@@ -1,3 +1,4 @@
+import { CALLING_ENABLED, REWARDS_ENABLED, V1_FREE_MODE } from "@/lib/constants";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -243,15 +244,16 @@ function ChatRoom() {
             <p className="text-xs text-success font-medium">Online</p>
           </div>
 
-          <CoinBadge value={coinBal} />
+          {REWARDS_ENABLED && <CoinBadge value={coinBal} />}
           {otherUserId && <ReportDialog targetUserId={otherUserId} conversationId={conversationId} />}
         </div>
 
         {/* Follow / meta row */}
         <div className="mx-auto max-w-3xl flex items-center justify-between gap-2 px-3 pb-2">
           <p className="text-[11px] text-muted-foreground truncate">
-            {freeSec > 0 ? `${Math.floor(freeSec/60)}m free · ` : ""}
-            {CHAT_COINS_PER_MINUTE} coins/min{messageCost > 0 ? ` · ${messageCost} coin/msg` : " · msgs free"}
+            {V1_FREE_MODE
+              ? "Free chat · no coins needed"
+              : `${freeSec > 0 ? `${Math.floor(freeSec / 60)}m free · ` : ""}${CHAT_COINS_PER_MINUTE} coins/min${messageCost > 0 ? ` · ${messageCost} coin/msg` : " · msgs free"}`}
           </p>
           <div className="flex items-center gap-2">
             {partner?.incoming === "pending" ? (
@@ -283,7 +285,7 @@ function ChatRoom() {
       {/* Messages */}
       <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-5 mx-auto w-full max-w-3xl">
         {/* Free 5-min call promo banner */}
-        {freeSec > 0 && otherUserId && (
+        {CALLING_ENABLED && freeSec > 0 && otherUserId && (
           <Link
             to="/call/$kind/$userId"
             params={{ kind: "audio", userId: otherUserId }}
@@ -357,11 +359,13 @@ function ChatRoom() {
           <div className="mx-auto max-w-xs rounded-2xl bg-background border border-primary/20 p-4 text-center mt-6 shadow-md">
             <Sparkles className="mx-auto size-5 text-primary" />
             <p className="mt-2 text-sm font-medium">Chat session ended.</p>
-            <Link to="/recharge">
-              <Button size="sm" className="mt-2 bg-gradient-to-r from-primary to-accent text-primary-foreground rounded-full">
-                Recharge coins
-              </Button>
-            </Link>
+            {REWARDS_ENABLED && (
+              <Link to="/recharge">
+                <Button size="sm" className="mt-2 bg-gradient-to-r from-primary to-accent text-primary-foreground rounded-full">
+                  Recharge coins
+                </Button>
+              </Link>
+            )}
           </div>
         )}
       </div>
