@@ -390,7 +390,7 @@ function ChatRoom() {
                 : null;
         const disabled = sessionEnded || !!blockReason;
         const placeholder = sessionEnded
-          ? "Recharge to continue"
+          ? "Chat session ended"
           : blockReason
             ? "Send a request to start messaging"
             : "Message likho...";
