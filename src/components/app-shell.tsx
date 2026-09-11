@@ -219,7 +219,7 @@ export function AppShell({ children, isAdmin }: { children: ReactNode; isAdmin?:
 
           {/* Highlighted Connect CTA */}
           <Link
-            to="/connect"
+            to={CALLING_ENABLED ? "/connect" : "/chat"}
             className="flex flex-1 min-w-0 flex-col items-center justify-end py-1 text-[10px] sm:text-xs"
           >
             <div className={cn(

@@ -337,7 +337,7 @@ function Home() {
             users={liveOnlineUsers}
             loading={loadingOnline}
             renderActions={(u) => (
-              <Button size="sm" className="brand-gradient" onClick={() => setPreview({ userId: u.id, kind: "video" })}>
+              <Button size="sm" className="brand-gradient" onClick={() => startCall(u.id, "video")}>
                 <Video className="size-4 mr-1" /> Video
               </Button>
             )}
@@ -345,6 +345,15 @@ function Home() {
         </TabsContent>
 
         <TabsContent value="rooms" className="mt-4">
+          {!CALLING_ENABLED ? (
+            <Card className="glass p-8 text-center">
+              <p className="text-sm font-semibold">Live rooms coming soon</p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Abhi aap members ke saath free 1-on-1 chat kar sakte hain.
+              </p>
+            </Card>
+          ) : (
+          <>
           <div className="mb-3 flex items-center justify-between">
             <p className="text-xs text-muted-foreground">Live rooms — voice, video, games & live shows.</p>
             <Link to="/rooms/new">
