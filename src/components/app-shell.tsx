@@ -1,3 +1,4 @@
+import { CALLING_ENABLED, REWARDS_ENABLED } from "@/lib/constants";
 import { Link, useRouter, useRouterState } from "@tanstack/react-router";
 import { useEffect, useState, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -149,6 +150,7 @@ export function AppShell({ children, isAdmin }: { children: ReactNode; isAdmin?:
 
           <div className="flex min-w-0 items-center justify-end gap-1 sm:gap-1.5">
             {/* Coin pill — gold gradient, matches palette accent */}
+            {REWARDS_ENABLED && (
             <Link
               to="/recharge"
               aria-label={`Available coins: ${balance.toLocaleString("en-IN")}. Recharge`}
@@ -164,6 +166,7 @@ export function AppShell({ children, isAdmin }: { children: ReactNode; isAdmin?:
                 +
               </span>
             </Link>
+            )}
 
             <HeaderIconLink
               to="/chat"
@@ -194,7 +197,7 @@ export function AppShell({ children, isAdmin }: { children: ReactNode; isAdmin?:
       {me?.profile?.id && <BackgroundReliabilityGate />}
       <main className="mx-auto max-w-3xl px-4 pt-4 pb-[calc(env(safe-area-inset-bottom,0px)+5.5rem)]">{children}</main>
       <SafetySignalsProbe />
-      <IncomingCallDialog disabled={pathname.startsWith("/call/")} />
+      {CALLING_ENABLED && <IncomingCallDialog disabled={pathname.startsWith("/call/")} />}
 
       <nav className="fixed inset-x-0 bottom-0 z-50 nav-surface safe-bottom">
 
