@@ -43,8 +43,8 @@ function PrivacyPage() {
         <Section title="1. Information we collect">
           <ul className="list-disc pl-5 space-y-2 text-muted-foreground">
             <li><strong className="text-foreground">Account data:</strong> email, username, gender, date of birth, country, state, language, profile photo.</li>
-            <li><strong className="text-foreground">Communication data:</strong> chat messages, voice / video call metadata (start time, duration, participants), gifts sent, reports filed.</li>
-            <li><strong className="text-foreground">Wallet & transactions:</strong> coin balance, recharge history, bonus credits, in-app spends.</li>
+            <li><strong className="text-foreground">Communication data:</strong> chat messages and reports filed.</li>
+            <li><strong className="text-foreground">Payments:</strong> the current version is completely free — we do not collect payment, card, UPI or billing information.</li>
             <li><strong className="text-foreground">Device & usage data:</strong> device model, OS version, IP address, app version, crash logs, basic analytics events.</li>
             <li><strong className="text-foreground">Optional verification data:</strong> if you opt in to creator verification, we may collect identity documents.</li>
           </ul>
@@ -52,8 +52,7 @@ function PrivacyPage() {
 
         <Section title="2. How we use your information">
           <ul className="list-disc pl-5 space-y-2 text-muted-foreground">
-            <li>Provide chat, voice, video and live-room features.</li>
-            <li>Process coin recharges, bonuses, gifts and creator earnings.</li>
+            <li>Provide free one-to-one text chat features.</li>
             <li>Detect and prevent fraud, abuse, harassment and policy violations.</li>
             <li>Respond to reports and enforce community guidelines (warnings, bans).</li>
             <li>Send service announcements and support responses.</li>
@@ -72,7 +71,7 @@ function PrivacyPage() {
         <Section title="4. Sharing of information">
           <p className="text-muted-foreground">We do not sell your personal data. We share limited data only with:</p>
           <ul className="list-disc pl-5 space-y-2 mt-2 text-muted-foreground">
-            <li><strong className="text-foreground">Service providers</strong> who help us operate (hosting, database, authentication, analytics, payment gateways) under strict contractual obligations.</li>
+            <li><strong className="text-foreground">Service providers</strong> who help us operate (hosting, database, authentication, analytics) under strict contractual obligations.</li>
             <li><strong className="text-foreground">Law enforcement</strong> when required by valid legal process in {JURISDICTION}.</li>
             <li><strong className="text-foreground">Other users</strong> — only your public profile fields (username, gender, country, state, follower / following counts). Your DOB is never shown.</li>
           </ul>
