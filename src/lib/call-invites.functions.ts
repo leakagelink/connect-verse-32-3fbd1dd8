@@ -411,6 +411,9 @@ export const createCallInvite = createServerFn({ method: "POST" })
       .parse(d),
   )
   .handler(async ({ data, context }) => {
+    if (!CALLING_ENABLED) {
+      throw new Error("Voice and video calling is coming soon.");
+    }
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const db = supabaseAdmin as any;
     const callerId = context.userId;
