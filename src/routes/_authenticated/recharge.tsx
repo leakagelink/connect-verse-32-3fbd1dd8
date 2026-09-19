@@ -131,7 +131,7 @@ function Recharge() {
     if (!purchasesEnabled) return;
     setBusy(productId);
     try {
-      const res = await startPlayPurchase(productId, me?.id ?? undefined);
+      const res = await startPlayPurchase(productId, me?.profile?.id ?? undefined);
       if (res.status === "cancelled") {
         toast.info("Purchase cancelled");
         return;
