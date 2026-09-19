@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { RAZORPAY_ENABLED } from "@/lib/billing-config";
 
 // Server-side reconciliation for Razorpay orders.
 // Runs periodically (pg_cron) and:
@@ -14,6 +15,9 @@ export const Route = createFileRoute("/api/public/hooks/reconcile-razorpay")({
   server: {
     handlers: {
       POST: async ({ request }) => {
+        if (!RAZORPAY_ENABLED) {
+          return new Response("Disabled", { status: 503 });
+        }
         const apikey = request.headers.get("apikey");
         const expected = process.env.SUPABASE_PUBLISHABLE_KEY;
         if (!apikey || !expected || apikey !== expected) {
