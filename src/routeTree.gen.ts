@@ -16,6 +16,7 @@ import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as ManifestDotwebmanifestRouteImport } from './routes/manifest[.]webmanifest'
 import { Route as DeleteAccountRouteImport } from './routes/delete-account'
 import { Route as CommunityGuidelinesRouteImport } from './routes/community-guidelines'
+import { Route as ChildSafetyRouteImport } from './routes/child-safety'
 import { Route as BannedRouteImport } from './routes/banned'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
@@ -99,6 +100,11 @@ const DeleteAccountRoute = DeleteAccountRouteImport.update({
 const CommunityGuidelinesRoute = CommunityGuidelinesRouteImport.update({
   id: '/community-guidelines',
   path: '/community-guidelines',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ChildSafetyRoute = ChildSafetyRouteImport.update({
+  id: '/child-safety',
+  path: '/child-safety',
   getParentRoute: () => rootRouteImport,
 } as any)
 const BannedRoute = BannedRouteImport.update({
@@ -368,6 +374,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/banned': typeof BannedRoute
+  '/child-safety': typeof ChildSafetyRoute
   '/community-guidelines': typeof CommunityGuidelinesRoute
   '/delete-account': typeof DeleteAccountRoute
   '/manifest.webmanifest': typeof ManifestDotwebmanifestRoute
@@ -425,6 +432,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/banned': typeof BannedRoute
+  '/child-safety': typeof ChildSafetyRoute
   '/community-guidelines': typeof CommunityGuidelinesRoute
   '/delete-account': typeof DeleteAccountRoute
   '/manifest.webmanifest': typeof ManifestDotwebmanifestRoute
@@ -482,6 +490,7 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
   '/banned': typeof BannedRoute
+  '/child-safety': typeof ChildSafetyRoute
   '/community-guidelines': typeof CommunityGuidelinesRoute
   '/delete-account': typeof DeleteAccountRoute
   '/manifest.webmanifest': typeof ManifestDotwebmanifestRoute
@@ -541,6 +550,7 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/banned'
+    | '/child-safety'
     | '/community-guidelines'
     | '/delete-account'
     | '/manifest.webmanifest'
@@ -598,6 +608,7 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/banned'
+    | '/child-safety'
     | '/community-guidelines'
     | '/delete-account'
     | '/manifest.webmanifest'
@@ -654,6 +665,7 @@ export interface FileRouteTypes {
     | '/_authenticated'
     | '/auth'
     | '/banned'
+    | '/child-safety'
     | '/community-guidelines'
     | '/delete-account'
     | '/manifest.webmanifest'
@@ -713,6 +725,7 @@ export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
   BannedRoute: typeof BannedRoute
+  ChildSafetyRoute: typeof ChildSafetyRoute
   CommunityGuidelinesRoute: typeof CommunityGuidelinesRoute
   DeleteAccountRoute: typeof DeleteAccountRoute
   ManifestDotwebmanifestRoute: typeof ManifestDotwebmanifestRoute
@@ -783,6 +796,13 @@ declare module '@tanstack/react-router' {
       path: '/community-guidelines'
       fullPath: '/community-guidelines'
       preLoaderRoute: typeof CommunityGuidelinesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/child-safety': {
+      id: '/child-safety'
+      path: '/child-safety'
+      fullPath: '/child-safety'
+      preLoaderRoute: typeof ChildSafetyRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/banned': {
@@ -1241,6 +1261,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
   BannedRoute: BannedRoute,
+  ChildSafetyRoute: ChildSafetyRoute,
   CommunityGuidelinesRoute: CommunityGuidelinesRoute,
   DeleteAccountRoute: DeleteAccountRoute,
   ManifestDotwebmanifestRoute: ManifestDotwebmanifestRoute,
