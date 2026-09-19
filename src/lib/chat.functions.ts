@@ -1,7 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { CHAT_COINS_PER_MINUTE, MESSAGE_COIN_COST_MALE, V1_FREE_MODE, containsBlockedContent, detectContactShare, contactShareWarning } from "./constants";
+import { CHAT_COINS_PER_MINUTE, MESSAGE_COIN_COST_MALE, containsBlockedContent, detectContactShare, contactShareWarning } from "./constants";
 import { withAiAvatars } from "./ai-avatar";
 
 async function assertNotBanned(supabase: any, userId: string) {
@@ -149,7 +149,7 @@ export const sendMessage = createServerFn({ method: "POST" })
     const isMale = senderProfile?.gender === "male";
     let charged = 0;
 
-    if (!V1_FREE_MODE && isMale && MESSAGE_COIN_COST_MALE > 0) {
+    if (isMale && MESSAGE_COIN_COST_MALE > 0) {
       const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
       const { data: wallet } = await supabaseAdmin
         .from("wallets").select("coin_balance").eq("user_id", userId).single();
@@ -264,11 +264,6 @@ export const tickChatBilling = createServerFn({ method: "POST" })
       .maybeSingle();
     if (!session || !session.is_active) {
       return { ok: false, ended: true, reason: "Session not active" };
-    }
-
-    // v1: chat is free — never bill, never end a session for coins.
-    if (V1_FREE_MODE) {
-      return { ok: true, ended: false, reason: null, balance: 0, freeSeconds: 0 };
     }
 
     const { data: profile } = await supabaseAdmin

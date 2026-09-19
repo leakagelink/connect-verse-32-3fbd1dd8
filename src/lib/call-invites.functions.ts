@@ -3,7 +3,7 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { withAiAvatar, withAiAvatars } from "./ai-avatar";
 import { notifyUser, notifyIncomingCall, notifyCallEnded } from "./push.functions";
-import { VOICE_CALL_COINS_PER_MINUTE, VIDEO_CALL_COINS_PER_MINUTE, CALLING_ENABLED } from "./constants";
+import { VOICE_CALL_COINS_PER_MINUTE, VIDEO_CALL_COINS_PER_MINUTE } from "./constants";
 import { logCallEvent } from "./call-telemetry.server";
 
 const KindSchema = z.enum(["voice", "video"]);
@@ -411,9 +411,6 @@ export const createCallInvite = createServerFn({ method: "POST" })
       .parse(d),
   )
   .handler(async ({ data, context }) => {
-    if (!CALLING_ENABLED) {
-      throw new Error("Voice and video calling is coming soon.");
-    }
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const db = supabaseAdmin as any;
     const callerId = context.userId;

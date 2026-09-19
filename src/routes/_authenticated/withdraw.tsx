@@ -1,5 +1,3 @@
-import { ComingSoonPage } from "@/components/coming-soon";
-import { REWARDS_ENABLED } from "@/lib/constants";
 import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -22,15 +20,7 @@ import { useScreenPrivacy } from "@/hooks/use-screen-privacy";
 
 
 export const Route = createFileRoute("/_authenticated/withdraw")({
-  component: () =>
-    REWARDS_ENABLED ? (
-      <WithdrawPage />
-    ) : (
-      <ComingSoonPage
-        title="Withdrawals"
-        description="Creator earnings aur withdrawal jaldi aa rahe hain."
-      />
-    ),
+  component: WithdrawPage,
 });
 
 const MIN_COINS = 10000;

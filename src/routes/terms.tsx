@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { APP_NAME } from "@/lib/constants";
 
-const LAST_UPDATED = "September 11, 2026";
+const LAST_UPDATED = "June 27, 2026";
 const CONTACT_EMAIL = "support@talkora.app"; // TODO: replace with your verified support email
 const COMPANY_NAME = `${APP_NAME}`; // TODO: replace with your registered legal entity if different
 const JURISDICTION = "India"; // TODO: replace if you operate from a different jurisdiction
@@ -66,27 +66,43 @@ function TermsPage() {
             <li>Impersonation, fake profiles or misleading information.</li>
             <li>Sharing other users’ personal information without consent.</li>
             <li>Sharing off-platform contact details (WhatsApp, Telegram, Instagram, phone numbers) to bypass safety controls.</li>
-            <li>Fraud or any attempt to manipulate the Service.</li>
+            <li>Fraud, chargeback abuse, exploitation of bonuses, or any attempt to manipulate the coin economy.</li>
             <li>Spam, advertising, scams, malware or links to harmful content.</li>
             <li>Any illegal activity under the laws of {JURISDICTION}.</li>
           </ul>
           <p className="mt-3 text-muted-foreground">
             Violations may result in warnings, temporary suspension, permanent ban,
-            and / or reporting to law enforcement.
+            forfeiture of coin balance, and / or reporting to law enforcement.
           </p>
         </Section>
 
-        <Section title="4. Current version (v1) — free text chat only">
+        <Section title="4. Coins & virtual items">
           <ul className="list-disc pl-5 space-y-2 text-muted-foreground">
-            <li>In this version {APP_NAME} offers <strong className="text-foreground">free one-to-one text chat</strong> only.</li>
-            <li>There are no purchases, coins, wallet, subscriptions or payments of any kind.</li>
-            <li>Voice calls, video calls, live rooms, games, gifts and rewards are marked “Coming soon” and are not available.</li>
-            <li>There are no creator earnings, withdrawals or payouts in this version.</li>
-            <li>If paid features are introduced later, these Terms will be updated and you will be notified in-app before any charge.</li>
+            <li>Coins are a non-refundable virtual item used inside the Service.</li>
+            <li>Coins have no real-world monetary value and cannot be transferred between accounts.</li>
+            <li>Bonus coins are promotional and may have expiry or usage conditions.</li>
+            <li>We may modify coin pricing, plans and bonus rates at any time.</li>
+            <li>Coin balances of suspended or banned accounts may be forfeited.</li>
           </ul>
         </Section>
 
-        <Section title="5. Reports & moderation">
+        <Section title="5. Free minutes">
+          <p className="text-muted-foreground">
+            New accounts receive 5 free minutes of call time as a one-time welcome
+            benefit. Free minutes are non-transferable and have no cash value.
+          </p>
+        </Section>
+
+        <Section title="6. Creator earnings & withdrawals">
+          <p className="text-muted-foreground">
+            Eligible verified creators may earn coins from chats, calls and gifts.
+            Withdrawal is subject to KYC verification, minimum payout thresholds,
+            applicable taxes, and our anti-fraud review. We may withhold or reverse
+            payouts linked to policy violations.
+          </p>
+        </Section>
+
+        <Section title="7. Reports & moderation">
           <p className="text-muted-foreground">
             You can report any user or content. We review reports and take action at
             our discretion, including content removal, account suspension or
@@ -94,7 +110,7 @@ function TermsPage() {
           </p>
         </Section>
 
-        <Section title="6. Intellectual property">
+        <Section title="8. Intellectual property">
           <p className="text-muted-foreground">
             All software, branding, designs and content of the Service are owned by
             {" "}{COMPANY_NAME} or its licensors. You retain ownership of content you
@@ -103,7 +119,7 @@ function TermsPage() {
           </p>
         </Section>
 
-        <Section title="7. Termination">
+        <Section title="9. Termination">
           <p className="text-muted-foreground">
             You may delete your account at any time from the app settings. We may
             suspend or terminate your access without notice if you violate these
@@ -112,7 +128,7 @@ function TermsPage() {
           </p>
         </Section>
 
-        <Section title="8. Disclaimers">
+        <Section title="10. Disclaimers">
           <p className="text-muted-foreground">
             The Service is provided “AS IS” without warranties of any kind, express
             or implied. We do not guarantee uninterrupted, error-free or secure
@@ -120,7 +136,7 @@ function TermsPage() {
           </p>
         </Section>
 
-        <Section title="9. Limitation of liability">
+        <Section title="11. Limitation of liability">
           <p className="text-muted-foreground">
             To the maximum extent permitted by law, {COMPANY_NAME} shall not be
             liable for indirect, incidental, special, consequential or punitive
@@ -130,7 +146,7 @@ function TermsPage() {
           </p>
         </Section>
 
-        <Section title="10. Governing law & disputes">
+        <Section title="12. Governing law & disputes">
           <p className="text-muted-foreground">
             These Terms are governed by the laws of {JURISDICTION}. Any dispute
             shall be subject to the exclusive jurisdiction of the competent courts
@@ -138,7 +154,7 @@ function TermsPage() {
           </p>
         </Section>
 
-        <Section title="11. Changes to these Terms">
+        <Section title="13. Changes to these Terms">
           <p className="text-muted-foreground">
             We may update these Terms from time to time. Material changes will be
             announced inside the app. Continued use after changes constitutes
@@ -146,7 +162,7 @@ function TermsPage() {
           </p>
         </Section>
 
-        <Section title="12. Contact">
+        <Section title="14. Contact">
           <p className="text-muted-foreground">
             For any questions about these Terms, email{" "}
             <a href={`mailto:${CONTACT_EMAIL}`} className="text-primary underline">{CONTACT_EMAIL}</a>.

@@ -1,5 +1,3 @@
-import { ComingSoonPage } from "@/components/coming-soon";
-import { REWARDS_ENABLED } from "@/lib/constants";
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -28,15 +26,7 @@ import {
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/creator-dashboard")({
-  component: () =>
-    REWARDS_ENABLED ? (
-      <CreatorDashboard />
-    ) : (
-      <ComingSoonPage
-        title="Creator earnings"
-        description="Earnings dashboard jaldi aa raha hai. Abhi aap free chat kar sakte hain."
-      />
-    ),
+  component: CreatorDashboard,
 });
 
 const DOW_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];

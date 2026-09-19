@@ -30,7 +30,7 @@ export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
       { title: `${APP_NAME} — Voice Chat & Live Rooms` },
-      { name: "description", content: "Talkora — free 1-on-1 chat with verified members. Safe, moderated and 18+ only." },
+      { name: "description", content: "Talkora — join voice rooms, chat with friends and meet new people safely. Get 5 free minutes on signup." },
       { property: "og:title", content: `${APP_NAME} — Voice Chat & Live Rooms` },
       { property: "og:description", content: "Join voice rooms, chat & meet new friends safely on Talkora." },
     ],
@@ -78,10 +78,10 @@ function Landing() {
           <Heart className="size-3 text-primary" /> Safe · Verified · 18+
         </span>
         <h1 className="mt-6 text-5xl md:text-7xl font-bold tracking-tight">
-          Free chat.<br /><span className="text-gradient">Real conversations.</span>
+          Voice rooms.<br /><span className="text-gradient">Real conversations.</span>
         </h1>
         <p className="mt-6 text-lg text-muted-foreground max-w-2xl mx-auto">
-          {APP_NAME} is a safe community where verified members chat 1-on-1 and make new friends. <strong className="text-foreground">Completely free</strong> to join and chat.
+          {APP_NAME} is a premium voice-first community where verified members chat, host live rooms and meet new friends — safely. Get <strong className="text-foreground">5 free minutes</strong> on signup.
         </p>
         <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
           <Link to="/auth"><Button size="lg" className="brand-gradient text-primary-foreground">Get started — free</Button></Link>
@@ -92,11 +92,11 @@ function Landing() {
       <section id="how" className="mx-auto max-w-6xl px-6 pb-24 grid gap-4 md:grid-cols-3">
         {[
           { icon: MessageCircle, t: "Realtime chat", d: "1-on-1 messaging with verified members across the world." },
-          { icon: Coins, t: "Free to use", d: "No coins, no payments. Every chat in this version is free." },
+          { icon: Coins, t: "Coin economy", d: "Recharge once and chat freely. Up to 50% bonus on your first deposit." },
           { icon: Shield, t: "Strong safety", d: "18+ only. One-tap block & report. Active human moderation." },
-          { icon: Users, t: "Verified members", d: "Friend requests keep your inbox free from strangers." },
-          { icon: Sparkles, t: "Coming soon", d: "Voice & video calls, live rooms, games and rewards." },
-          { icon: Heart, t: "Made for everyone", d: "Free signup and free chat for every member." },
+          { icon: Users, t: "Creator program", d: "Eligible members can earn coins from chats. KYC required to withdraw." },
+          { icon: Sparkles, t: "Coming soon", d: "HD voice & video calls, live rooms and mini games." },
+          { icon: Heart, t: "Made for everyone", d: "Free signup for all. Girls always join free." },
         ].map((f) => (
           <Card key={f.t} className="glass p-6">
             <f.icon className="size-6 text-primary" />

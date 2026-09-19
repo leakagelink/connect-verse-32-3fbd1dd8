@@ -1,5 +1,3 @@
-import { ComingSoonPage } from "@/components/coming-soon";
-import { CALLING_ENABLED } from "@/lib/constants";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -43,15 +41,7 @@ import { CallInviteDialog } from "@/components/call-invite-dialog";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/connect")({
-  component: () =>
-    CALLING_ENABLED ? (
-      <ConnectScreen />
-    ) : (
-      <ComingSoonPage
-        title="Voice & video calling"
-        description="Live audio and video matching is on the way. Abhi aap chat ka maza le sakte hain."
-      />
-    ),
+  component: ConnectScreen,
 });
 
 type Creator = {

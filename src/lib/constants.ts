@@ -7,18 +7,6 @@ export const APP_NAME = "Talkora";
  * gateway (Razorpay) is approved and ready to accept real payments.
  */
 export const PAYMENTS_MAINTENANCE = true;
-
-/**
- * ---- v1 launch flags ----
- * v1 ships as a FREE chat-only app.
- * Flip any of these to re-enable the feature; no other code changes needed.
- */
-/** true = nothing costs coins (chat, messages are free). */
-export const V1_FREE_MODE = true;
-/** false = voice/video calling is "Coming Soon" (UI hidden + server refuses). */
-export const CALLING_ENABLED = false;
-/** false = coins/wallet/recharge/withdraw/earnings/referral are "Coming Soon". */
-export const REWARDS_ENABLED = false;
 export const APP_TAGLINE = "Voice Chat & Live Rooms";
 export const APP_FULL_NAME = "Talkora — Voice Chat & Live Rooms";
 export const CHAT_COINS_PER_MINUTE = 2;

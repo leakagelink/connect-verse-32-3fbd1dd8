@@ -1,5 +1,3 @@
-import { ComingSoonPage } from "@/components/coming-soon";
-import { REWARDS_ENABLED } from "@/lib/constants";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { z } from "zod";
@@ -36,15 +34,7 @@ const SearchSchema = z.object({
 
 export const Route = createFileRoute("/_authenticated/recharge")({
   validateSearch: (s) => SearchSchema.parse(s ?? {}),
-  component: () =>
-    REWARDS_ENABLED ? (
-      <Recharge />
-    ) : (
-      <ComingSoonPage
-        title="Recharge"
-        description="Abhi sab kuch free hai, isliye recharge ki zaroorat nahi."
-      />
-    ),
+  component: Recharge,
 });
 
 // Pending-recharge storage helpers (see `src/lib/recharge-pending.ts`) live

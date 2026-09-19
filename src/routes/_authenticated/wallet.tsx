@@ -1,5 +1,3 @@
-import { ComingSoonPage } from "@/components/coming-soon";
-import { REWARDS_ENABLED } from "@/lib/constants";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -14,15 +12,7 @@ import { format } from "date-fns";
 import { useT } from "@/lib/i18n";
 
 export const Route = createFileRoute("/_authenticated/wallet")({
-  component: () =>
-    REWARDS_ENABLED ? (
-      <Wallet />
-    ) : (
-      <ComingSoonPage
-        title="Wallet & coins"
-        description="Talkora v1 puri tarah free hai — koi coins ki zaroorat nahi."
-      />
-    ),
+  component: Wallet,
 });
 
 function Wallet() {

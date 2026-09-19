@@ -1,5 +1,3 @@
-import { ComingSoonPage } from "@/components/coming-soon";
-import { REWARDS_ENABLED } from "@/lib/constants";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -35,15 +33,7 @@ export const Route = createFileRoute("/_authenticated/receipts")({
       },
     ],
   }),
-  component: () =>
-    REWARDS_ENABLED ? (
-      <ReceiptsPage />
-    ) : (
-      <ComingSoonPage
-        title="Receipts"
-        description="Payments abhi band hain, isliye koi receipt nahi hai."
-      />
-    ),
+  component: ReceiptsPage,
 });
 
 type Status = "created" | "paid" | "credited" | "failed" | "expired" | "refunded";

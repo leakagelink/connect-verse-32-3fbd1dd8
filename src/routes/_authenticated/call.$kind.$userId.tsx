@@ -1,5 +1,3 @@
-import { ComingSoonPage } from "@/components/coming-soon";
-import { CALLING_ENABLED } from "@/lib/constants";
 import { createFileRoute, useNavigate, useParams } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
@@ -54,15 +52,7 @@ export const Route = createFileRoute("/_authenticated/call/$kind/$userId")({
     autoAccept: search.autoAccept === "1" || search.autoAccept === 1 || search.autoAccept === true ? true : undefined,
     e2e: search.e2e === "ui" ? "ui" : undefined,
   }),
-  component: () =>
-    CALLING_ENABLED ? (
-      <CallScreenWithE2E />
-    ) : (
-      <ComingSoonPage
-        title="Voice & video calling"
-        description="Calling feature abhi taiyaar ho raha hai. Tab tak chat par baat karein."
-      />
-    ),
+  component: CallScreenWithE2E,
 });
 
 function CallScreenWithE2E() {
