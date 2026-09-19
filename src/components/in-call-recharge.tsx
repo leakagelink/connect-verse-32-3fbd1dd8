@@ -7,11 +7,21 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Coins, Gift, Sparkles } from "lucide-react";
 import { toast } from "sonner";
-import { listPlans, mockRecharge, getWallet } from "@/lib/wallet.functions";
+import { getWallet } from "@/lib/wallet.functions";
+import { listPlayPlans, verifyPlayPurchase } from "@/lib/billing.functions";
 import { bonusForDeposit } from "@/lib/constants";
+import { PLAY_BILLING_READY } from "@/lib/billing-config";
+import {
+  playBillingSupported,
+  queryPlayProducts,
+  startPlayPurchase,
+  consumePlayPurchase,
+  type PlayProduct,
+} from "@/lib/play-billing";
 import { parseRechargeError, type ParsedRechargeError } from "@/lib/recharge-errors";
 import { RechargeHelpDialog } from "./recharge-help-dialog";
 import { HelpCircle } from "lucide-react";
+import { useEffect } from "react";
 
 type Props = {
   open: boolean;
