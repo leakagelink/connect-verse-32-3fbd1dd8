@@ -45,6 +45,10 @@ dependencies {
     // incoming-call wake-up. The BoM keeps all Firebase libs version-aligned.
     implementation platform('com.google.firebase:firebase-bom:33.7.0')
     implementation 'com.google.firebase:firebase-messaging'
+
+    // Google Play Billing — the ONLY allowed payment rail for coin packs in the
+    // Play build (see src/lib/billing-config.ts).
+    implementation 'com.android.billingclient:billing:7.1.1'
 }
 
 apply from: 'capacitor.build.gradle'
