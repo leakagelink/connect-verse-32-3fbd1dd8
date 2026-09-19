@@ -23,7 +23,7 @@ export const mockRecharge = createServerFn({ method: "POST" })
     });
     if (!isAdmin) {
       throw makeRechargeError(
-        "GATEWAY_UNAVAILABLE",
+        "UNAUTHORIZED",
         "Coin packs are purchased through Google Play.",
       );
     }
