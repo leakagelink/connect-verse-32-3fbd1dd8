@@ -283,7 +283,10 @@ export function InCallRecharge({ open, onOpenChange, requiredCoins, onRecharged 
         onOpenChange={setHelpOpen}
         error={helpError}
         planId={helpPlanId}
-        onRetry={(pid) => void buy(pid)}
+        onRetry={(pid) => {
+          const pl = (plans ?? []).find((x) => x.id === pid);
+          void buy(pid, pl?.play_product_id);
+        }}
         onRefreshBalance={() => void refreshBalance()}
         onPickAnotherPlan={() => {
           /* sheet is already open with plan grid; just close dialog */
