@@ -214,10 +214,19 @@ export function InCallRecharge({ open, onOpenChange, requiredCoins, onRecharged 
           </Card>
         )}
 
+        {!canBuy && (
+          <p className="mt-3 rounded-lg border border-warning/40 bg-warning/5 p-3 text-xs text-muted-foreground">
+            Coin purchases are handled by Google Play in the Talkora Android app and are
+            temporarily unavailable. Your call stays connected.
+          </p>
+        )}
+
         <div className="mt-4 grid grid-cols-2 gap-3 pb-4">
           {(plans ?? []).map((p) => {
             const bonus = Math.floor(Number(p.coins) * bonusPct);
             const covers = requiredCoins == null ? false : balance + Number(p.coins) + bonus >= requiredCoins;
+            const productId = p.play_product_id;
+            const store = productId ? storePrices[productId] : undefined;
             return (
               <Card
                 key={p.id}
@@ -226,9 +235,7 @@ export function InCallRecharge({ open, onOpenChange, requiredCoins, onRecharged 
                 }`}
               >
                 <div className="text-[10px] uppercase tracking-wide text-muted-foreground">{p.label}</div>
-                <div className="mt-1 text-xl font-bold">
-                  ₹{Number(p.price_inr).toLocaleString("en-IN")}
-                </div>
+                <div className="mt-1 text-xl font-bold">{store?.price ?? "—"}</div>
                 <div className="mt-1 flex items-center justify-center gap-1 text-coin text-sm font-semibold">
                   <Coins className="size-3.5" /> {Number(p.coins).toLocaleString("en-IN")}
                 </div>
@@ -237,11 +244,11 @@ export function InCallRecharge({ open, onOpenChange, requiredCoins, onRecharged 
                 )}
                 <Button
                   size="sm"
-                  disabled={busy === p.id}
-                  onClick={() => buy(p.id)}
+                  disabled={!canBuy || busy === p.id}
+                  onClick={() => buy(p.id, productId)}
                   className="mt-2 w-full brand-gradient text-primary-foreground"
                 >
-                  {busy === p.id ? "…" : "Buy"}
+                  {!canBuy ? "Unavailable" : busy === p.id ? "…" : "Buy"}
                 </Button>
               </Card>
             );
@@ -249,7 +256,7 @@ export function InCallRecharge({ open, onOpenChange, requiredCoins, onRecharged 
         </div>
 
         <p className="pb-4 text-[11px] text-muted-foreground flex items-center gap-1">
-          <Sparkles className="size-3" /> Mock recharge — real payments in Phase 3.
+          <Sparkles className="size-3" /> Billed by Google Play.
           <button
             type="button"
             className="ml-auto inline-flex items-center gap-1 text-primary underline-offset-2 hover:underline"
