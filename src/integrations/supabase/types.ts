@@ -648,6 +648,7 @@ export type Database = {
           id: string
           is_active: boolean
           label: string | null
+          play_product_id: string | null
           price_inr: number
           sort_order: number
         }
@@ -657,6 +658,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           label?: string | null
+          play_product_id?: string | null
           price_inr: number
           sort_order?: number
         }
@@ -666,6 +668,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           label?: string | null
+          play_product_id?: string | null
           price_inr?: number
           sort_order?: number
         }
@@ -1469,6 +1472,74 @@ export type Database = {
         }
         Relationships: []
       }
+      play_purchases: {
+        Row: {
+          acknowledged: boolean
+          bonus_coins: number
+          coins: number
+          created_at: string
+          id: string
+          order_id: string | null
+          plan_id: string | null
+          platform: string
+          processed_at: string | null
+          product_id: string
+          purchase_state: number | null
+          purchase_time: string | null
+          purchase_token: string
+          raw: Json
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          acknowledged?: boolean
+          bonus_coins?: number
+          coins?: number
+          created_at?: string
+          id?: string
+          order_id?: string | null
+          plan_id?: string | null
+          platform?: string
+          processed_at?: string | null
+          product_id: string
+          purchase_state?: number | null
+          purchase_time?: string | null
+          purchase_token: string
+          raw?: Json
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          acknowledged?: boolean
+          bonus_coins?: number
+          coins?: number
+          created_at?: string
+          id?: string
+          order_id?: string | null
+          plan_id?: string | null
+          platform?: string
+          processed_at?: string | null
+          product_id?: string
+          purchase_state?: number | null
+          purchase_time?: string | null
+          purchase_token?: string
+          raw?: Json
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "play_purchases_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "coin_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       privacy_requests: {
         Row: {
           completed_at: string | null
@@ -1529,6 +1600,8 @@ export type Database = {
           blocked_states: string[]
           country: string | null
           created_at: string
+          creator_status: string
+          creator_verified: boolean
           deleted_at: string | null
           device_fp: string | null
           dob: string | null
@@ -1544,6 +1617,7 @@ export type Database = {
           last_online_notified_at: string | null
           last_seen_at: string | null
           onboarded: boolean
+          payout_enabled: boolean
           push_platform: string | null
           push_token: string | null
           referral_code: string | null
@@ -1565,6 +1639,8 @@ export type Database = {
           blocked_states?: string[]
           country?: string | null
           created_at?: string
+          creator_status?: string
+          creator_verified?: boolean
           deleted_at?: string | null
           device_fp?: string | null
           dob?: string | null
@@ -1580,6 +1656,7 @@ export type Database = {
           last_online_notified_at?: string | null
           last_seen_at?: string | null
           onboarded?: boolean
+          payout_enabled?: boolean
           push_platform?: string | null
           push_token?: string | null
           referral_code?: string | null
@@ -1601,6 +1678,8 @@ export type Database = {
           blocked_states?: string[]
           country?: string | null
           created_at?: string
+          creator_status?: string
+          creator_verified?: boolean
           deleted_at?: string | null
           device_fp?: string | null
           dob?: string | null
@@ -1616,6 +1695,7 @@ export type Database = {
           last_online_notified_at?: string | null
           last_seen_at?: string | null
           onboarded?: boolean
+          payout_enabled?: boolean
           push_platform?: string | null
           push_token?: string | null
           referral_code?: string | null
@@ -2165,6 +2245,18 @@ export type Database = {
         Args: { _id: string; _minutes: number }
         Returns: undefined
       }
+      credit_play_purchase: {
+        Args: {
+          _acknowledged: boolean
+          _order_id: string
+          _payload: Json
+          _product_id: string
+          _purchase_time: string
+          _purchase_token: string
+          _user_id: string
+        }
+        Returns: Json
+      }
       credit_razorpay_payment: {
         Args: { _order_id: string; _payload: Json; _payment_id: string }
         Returns: Json
@@ -2177,6 +2269,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_blocked_between: { Args: { _a: string; _b: string }; Returns: boolean }
       is_room_member: {
         Args: { _room: string; _user: string }
         Returns: boolean
@@ -2219,6 +2312,10 @@ export type Database = {
         Returns: undefined
       }
       report_credential_success: { Args: { _id: string }; Returns: undefined }
+      revoke_play_purchase: {
+        Args: { _purchase_token: string; _reason: string }
+        Returns: Json
+      }
     }
     Enums: {
       app_role: "admin" | "moderator" | "user" | "creator"
