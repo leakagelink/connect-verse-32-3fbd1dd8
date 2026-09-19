@@ -29,6 +29,8 @@ export function TrustBadgesFooter() {
           <span>·</span>
           <Link to="/safety" className="hover:text-foreground">Safety Center</Link>
           <span>·</span>
+          <Link to="/child-safety" className="hover:text-foreground">Child Safety</Link>
+          <span>·</span>
           <Link to="/account-delete" className="hover:text-foreground">Delete Account</Link>
         </div>
         <p className="mt-2 text-[10px] text-muted-foreground/80">
