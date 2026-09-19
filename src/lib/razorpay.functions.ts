@@ -2,6 +2,19 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { getPaymentSettings } from "./payments.functions";
+import { RAZORPAY_ENABLED } from "./billing-config";
+
+/**
+ * Razorpay is fully disabled. Coin packs are sold exclusively through Google
+ * Play Billing (Play policy on digital goods). These functions stay in the repo
+ * for a future, separately launched web store, but they refuse to run while
+ * RAZORPAY_ENABLED is false.
+ */
+function assertRazorpayEnabled(): void {
+  if (!RAZORPAY_ENABLED) {
+    throw new Error("Card/UPI checkout is disabled. Coin packs are sold through Google Play.");
+  }
+}
 
 const CreateOrderInput = z.object({
   planId: z.string().uuid(),
