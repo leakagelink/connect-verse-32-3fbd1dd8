@@ -1,76 +1,72 @@
+# Talkora — Google Play compliance pass (no rebuild)
 
-# Background incoming-call wake-up (WhatsApp style)
+Everything below modifies the existing app. Chat, calls, creators, coins, gifts, earnings, withdrawals, KYC, moderation, reports, blocking, notifications and account deletion all stay.
 
-Goal: jab koi user/creator app close/background me ho aur koi unhe call kare, to phone ki lock screen pe full-screen incoming-call UI khule with Accept/Reject, aur Accept pe app khulkar call connect ho jaye.
+## What I found in the audit (the important parts)
 
-## Aapko Firebase me ek-baar ka setup karna hoga
+1. **The Android app is a shell that loads the live website.** Coin purchases today open Razorpay inside that shell. For Google Play this is the single biggest risk: digital coins sold outside Play billing.
+2. **Razorpay is wired into many screens** (recharge, wallet, in-call top-up, receipts, deep links, webhook, admin payment settings). It is currently behind a "maintenance" flag, so no real payments flow today.
+3. Coin spending, call billing and gift sending are already server-side, but some rates live in a frontend constants file and are passed around in places that deserve tightening.
+4. Blocking exists but is only enforced on some paths (chat, reports). Calls, gifts and follow requests need the same enforcement in the backend.
+5. Creator "verified" state is derived from a single flag; identity approval, payout permission and suspension are not separated.
+6. Legal pages exist for privacy, terms, guidelines, refunds and account deletion. **Child safety page is missing** (Play now requires it for social apps).
+7. The Android permission list includes items Play will question: battery-optimisation exemption, boot-completed, bluetooth, full-screen intent.
 
-Mere paas `FCM_SERVICE_ACCOUNT_JSON` already saved hai (server-side push send karne ke liye), lekin Android app ke liye `google-services.json` aapko Firebase Console se download karke project me daalna hoga. Steps:
+## What I will do
 
-1. https://console.firebase.google.com par jao → **Add project** → naam: `Talkora` (ya jo aap chahein).
-2. Project ke andar **Add app → Android** select karo.
-3. **Android package name** dalo exactly: `app.lovable.1f2f31124f554d2fa8de269e271b47a3` (ya jo bhi aapke `capacitor.config.ts` me `appId` hai — main verify karunga).
-4. App nickname: `Talkora`, SHA-1 optional (release signing ke time chahiye).
-5. **Download `google-services.json`** — mujhe is file ka content chat me paste kar do (ya upload karo), main `android/app/google-services.json` me daal dunga.
-6. Firebase console me **Project Settings → Service Accounts → Generate new private key** se JSON download karo — agar pehle wala `FCM_SERVICE_ACCOUNT_JSON` is naye project ka nahi hai, to mujhe bata dena, main update kar dunga. Warna skip.
+### 1. Coins on Android move to Google Play Billing
+- Add a native billing bridge to the Android project using the current Play Billing library, exposing product listing and purchase to the app.
+- Coin packs become configurable Play products (`talkora_coins_100`, `_500`, `_1000`, `_5000`, extendable). **Prices are never hardcoded** — the screen shows the price Google returns, in the user's local currency.
+- Purchase flow: Play purchase → purchase token sent to our server → server verifies with Google's Play Developer API (package, product, token, purchase state, acknowledgement) → coins credited → purchase acknowledged. Coins are never credited from the app itself.
+- New purchase table keyed uniquely on the purchase token, so the same purchase can never credit twice. Refunds and revocations reverse the credit; pending purchases wait.
+- Deposit bonus tiers (50/40/30%) are preserved, applied server-side.
 
-Bas itna manual kaam hai. Baaki sab main code karunga.
+### 2. Razorpay removed from the product
+Per your answer, Razorpay is switched off everywhere and isolated behind a payment-provider switch fixed to Google Play. The Razorpay code and webhook stay in the repository, unreachable, in case you ever sell coins on the web again. No external checkout, no browser redirect, no deep link can reach it.
 
-## Implementation (mera kaam)
+### 3. Money and coin safety
+- All rates (chat per minute, call per minute, message cost, gift cost) move to trusted server/database configuration; the app only displays them.
+- Every deduction, gift, call settlement and earning becomes a single atomic server operation with a ledger entry, so no double charge, negative balance or replay is possible.
+- Creator earnings get a proper ledger (source transaction, gross, platform fee, creator amount) with duplicate protection.
+- Withdrawals: amounts calculated server-side, one payout per request, no cross-user access, bank details never returned to the app beyond a masked form.
 
-### 1. Device token registration
-- `@capacitor/push-notifications` plugin install.
-- `src/lib/push-register.ts`: app boot pe permission maango, FCM token lo, `device_tokens` table me upsert karo (token + platform + user_id + last_seen).
-- Sign-out pe token delete.
+### 4. Creator status, split properly
+Separate flags for creator, identity approval (pending / approved / rejected / suspended) and payout permission. "Verified" only shows after real approval. Suspended creators cannot receive paid calls, paid chats or gifts, cannot earn and cannot withdraw.
 
-### 2. Server-side push trigger
-- `src/lib/call-push.functions.ts` me `sendCallInvitePush` server fn — `requireSupabaseAuth`, inside handler `supabaseAdmin` se receiver ke active tokens lo, FCM HTTP v1 API ko **high-priority data-only** message bhejo (Google access token Service Account JSON se mint).
-- Payload: `{ type: "incoming_call", invite_id, caller_id, caller_name, caller_avatar, kind: "voice"|"video", agora_channel }`.
-- `createCallInvite` me, invite insert ke turant baad, fire-and-forget `sendCallInvitePush` call.
-- Hang-up / cancel / no-answer pe ek `cancelCallInvitePush` bhi bhejo (`type: "cancel_call"`) taaki dusri side ka full-screen UI auto-dismiss ho.
+### 5. Safety, blocking and reporting
+- Backend enforcement of blocking on messages, call invites, calls, gifts, follows and notifications — not just hidden buttons.
+- Report and block reachable from every profile, chat and call screen, with the existing report categories (harassment, scams, threats, sexual content, exploitation, underage, CSAM, impersonation, spam, other) plus bullying.
+- Reports stay immutable and visible to moderators; the reported person cannot erase them.
 
-### 3. Android native — full-screen incoming call
-Naye files `android/app/src/main/java/.../`:
-- **`TalkoraMessagingService.java`** (extends `FirebaseMessagingService`):
-  - `onMessageReceived` me `type=="incoming_call"` → `IncomingCallActivity` launch karo via `PendingIntent` with `FLAG_ACTIVITY_NEW_TASK`.
-  - `type=="cancel_call"` → notification cancel + broadcast bhejo.
-  - `onNewToken` → WebView ke through JS bridge se naya token sync.
-- **`IncomingCallActivity.java`**:
-  - `setShowWhenLocked(true)` + `setTurnScreenOn(true)` + `KeyguardManager.requestDismissKeyguard`.
-  - Custom layout: caller avatar, name, "Incoming voice/video call", **Accept** (green) + **Reject** (red).
-  - Ringtone (`RingtoneManager.TYPE_RINGTONE`) + vibration pattern.
-  - Accept → MainActivity ko deep link intent (`talkora://call/<kind>/<callerId>?invite=<id>&action=accept`).
-  - Reject → server fn call via broadcast → activity finish.
-- **High-priority notification channel** `incoming_calls` with `IMPORTANCE_HIGH`, `setBypassDnd(true)`, full-screen intent attached (Android 10+ fallback agar activity directly launch na ho).
-- **`CallForegroundService.java`** with `FOREGROUND_SERVICE_PHONE_CALL` — call connect hone ke baad start ho, ongoing notification rakhe (Play Store policy compliant).
+### 6. Child safety and 18+
+- New public **/child-safety** page: our standards, zero tolerance for child sexual abuse material, grooming ban, how to report, how we enforce, cooperation with law enforcement, and a child safety contact address (you confirm the address to use).
+- Server-side age check on every signup path including Google sign-in; under-18 accounts cannot reach chat, calls or discovery.
+- Terms, Privacy and Community Guidelines acceptance recorded with version and timestamp before a profile becomes usable.
 
-### 4. `AndroidManifest.xml` updates
-- Permissions: `USE_FULL_SCREEN_INTENT`, `POST_NOTIFICATIONS`, `WAKE_LOCK`, `VIBRATE`, `FOREGROUND_SERVICE`, `FOREGROUND_SERVICE_PHONE_CALL`, `DISABLE_KEYGUARD`.
-- Register `TalkoraMessagingService` (FCM intent-filter), `IncomingCallActivity` (`showWhenLocked`, `turnScreenOn`, `launchMode=singleInstance`), `CallForegroundService` (`foregroundServiceType=phoneCall`).
-- Deep link intent-filter on `MainActivity` for `talkora://call/*`.
+### 7. KYC hardening
+Documents stay private, admin-only, never in logs, exports, analytics or the app's local storage; only the minimum fields collected; retention and deletion documented on-page.
 
-### 5. `build.gradle` + plugins
-- `android/build.gradle`: `com.google.gms:google-services` classpath.
-- `android/app/build.gradle`: `apply plugin: 'com.google.gms.google-services'`, `firebase-bom`, `firebase-messaging`.
+### 8. Privacy policy rewritten to match the code
+Every data type the app actually collects, why, who receives it (including the AI moderation provider and calling provider), how long it is kept, and how it is deleted. No claims that contradict the implementation.
 
-### 6. Deep-link handling in React app
-- `src/router.tsx` ya root pe Capacitor `App.addListener('appUrlOpen')` → parse `talkora://call/<kind>/<callerId>?invite=<id>&action=accept` → router.navigate to existing `/call/$kind/$userId` route with `?autoAccept=1`.
-- Call route me `autoAccept` flag dekhe to invite ko turant `accepted` mark kare + Agora join start kare (existing flow reuse).
+### 9. Android manifest and permissions cleanup
+Keep only what the calling experience needs, with camera and microphone requested at call time, never at signup. Drop battery-optimisation exemption, boot-completed and legacy bluetooth unless a feature truly needs them. Foreground service declared with the correct call type.
 
-### 7. Play Store policy compliance
-- Privacy Policy me FCM + microphone/camera background use mention (already exists, sirf line add).
-- `USE_FULL_SCREEN_INTENT` Android 14+ pe sirf "calling apps" ko default-granted; in-app prompt rakhenge agar permission revoked.
-- Foreground service ki notification clearly "Ongoing call with X" dikhayega.
+### 10. Store listing copy
+Neutral positioning: "Talkora — Social Chat & Calls", short description "Chat, connect and call with people and creators on Talkora." No dating, gender-targeted or companionship language anywhere in the app or listing. Existing screenshots reviewed and the coins screenshot regenerated to show Play pricing honestly.
 
-## Test plan (mere taraf se)
-1. Server fn ko `invoke-server-function` se trigger karke FCM payload format verify.
-2. APK build → ek device pe app band karke, dusre device se call → lock screen pe full-screen UI verify.
-3. Accept → app open → Agora connect verify.
-4. Caller cancel → receiver ka UI auto-dismiss verify.
+### 11. Reviewer access
+A normal 18+ test account with a filled profile and written reviewer instructions, using Play's own licence-tester purchases. No reviewer-only behaviour, no fake test coins, nothing hidden from review.
 
-## Aage kya chahiye aapse
+### 12. Build and verification
+Type check, lint and a production build; Android Gradle configuration checked. I will fix everything my changes touch.
 
-1. **`google-services.json`** Firebase console se download karke share karo (steps upar).
-2. Confirm karo: agar `FCM_SERVICE_ACCOUNT_JSON` secret purane Firebase project ka hai to naya JSON bhi share karo — warna main yahi use kar lunga.
+## What I will need from you (not blockers to starting)
 
-Confirmation aate hi main turant implementation start karunga (estimated ~12-15 file changes).
+- A Google Play **service account key** so the server can verify purchases. Until it is saved, verification stays in a strict "cannot credit" state rather than a fake success.
+- The four coin products created in Play Console with your chosen prices.
+- Your child safety contact email and the legal entity details already used in your existing pages.
+
+## Final report
+
+At the end you get a written report split into: done in code, needs Play Console setup, needs your legal/business confirmation, needs manual testing on a device, and awaiting Google review. I will not claim full compliance because a build passes.
