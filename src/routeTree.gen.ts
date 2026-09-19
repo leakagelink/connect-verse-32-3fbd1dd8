@@ -62,6 +62,7 @@ import { Route as AuthenticatedChatConversationIdRouteImport } from './routes/_a
 import { Route as ApiPublicHooksResetCallingQuotasRouteImport } from './routes/api/public/hooks/reset-calling-quotas'
 import { Route as ApiPublicHooksReconcileRazorpayRouteImport } from './routes/api/public/hooks/reconcile-razorpay'
 import { Route as ApiPublicHooksProcessPrivacyDeletionsRouteImport } from './routes/api/public/hooks/process-privacy-deletions'
+import { Route as ApiPublicHooksPlayRtdnRouteImport } from './routes/api/public/hooks/play-rtdn'
 import { Route as ApiPublicHooksKycCleanupRouteImport } from './routes/api/public/hooks/kyc-cleanup'
 import { Route as AuthenticatedCallKindUserIdRouteImport } from './routes/_authenticated/call.$kind.$userId'
 
@@ -345,6 +346,11 @@ const ApiPublicHooksProcessPrivacyDeletionsRoute =
     path: '/api/public/hooks/process-privacy-deletions',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicHooksPlayRtdnRoute = ApiPublicHooksPlayRtdnRouteImport.update({
+  id: '/api/public/hooks/play-rtdn',
+  path: '/api/public/hooks/play-rtdn',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicHooksKycCleanupRoute =
   ApiPublicHooksKycCleanupRouteImport.update({
     id: '/api/public/hooks/kyc-cleanup',
@@ -410,6 +416,7 @@ export interface FileRoutesByFullPath {
   '/chat/': typeof AuthenticatedChatIndexRoute
   '/call/$kind/$userId': typeof AuthenticatedCallKindUserIdRoute
   '/api/public/hooks/kyc-cleanup': typeof ApiPublicHooksKycCleanupRoute
+  '/api/public/hooks/play-rtdn': typeof ApiPublicHooksPlayRtdnRoute
   '/api/public/hooks/process-privacy-deletions': typeof ApiPublicHooksProcessPrivacyDeletionsRoute
   '/api/public/hooks/reconcile-razorpay': typeof ApiPublicHooksReconcileRazorpayRoute
   '/api/public/hooks/reset-calling-quotas': typeof ApiPublicHooksResetCallingQuotasRoute
@@ -464,6 +471,7 @@ export interface FileRoutesByTo {
   '/chat': typeof AuthenticatedChatIndexRoute
   '/call/$kind/$userId': typeof AuthenticatedCallKindUserIdRoute
   '/api/public/hooks/kyc-cleanup': typeof ApiPublicHooksKycCleanupRoute
+  '/api/public/hooks/play-rtdn': typeof ApiPublicHooksPlayRtdnRoute
   '/api/public/hooks/process-privacy-deletions': typeof ApiPublicHooksProcessPrivacyDeletionsRoute
   '/api/public/hooks/reconcile-razorpay': typeof ApiPublicHooksReconcileRazorpayRoute
   '/api/public/hooks/reset-calling-quotas': typeof ApiPublicHooksResetCallingQuotasRoute
@@ -522,6 +530,7 @@ export interface FileRoutesById {
   '/_authenticated/chat/': typeof AuthenticatedChatIndexRoute
   '/_authenticated/call/$kind/$userId': typeof AuthenticatedCallKindUserIdRoute
   '/api/public/hooks/kyc-cleanup': typeof ApiPublicHooksKycCleanupRoute
+  '/api/public/hooks/play-rtdn': typeof ApiPublicHooksPlayRtdnRoute
   '/api/public/hooks/process-privacy-deletions': typeof ApiPublicHooksProcessPrivacyDeletionsRoute
   '/api/public/hooks/reconcile-razorpay': typeof ApiPublicHooksReconcileRazorpayRoute
   '/api/public/hooks/reset-calling-quotas': typeof ApiPublicHooksResetCallingQuotasRoute
@@ -580,6 +589,7 @@ export interface FileRouteTypes {
     | '/chat/'
     | '/call/$kind/$userId'
     | '/api/public/hooks/kyc-cleanup'
+    | '/api/public/hooks/play-rtdn'
     | '/api/public/hooks/process-privacy-deletions'
     | '/api/public/hooks/reconcile-razorpay'
     | '/api/public/hooks/reset-calling-quotas'
@@ -634,6 +644,7 @@ export interface FileRouteTypes {
     | '/chat'
     | '/call/$kind/$userId'
     | '/api/public/hooks/kyc-cleanup'
+    | '/api/public/hooks/play-rtdn'
     | '/api/public/hooks/process-privacy-deletions'
     | '/api/public/hooks/reconcile-razorpay'
     | '/api/public/hooks/reset-calling-quotas'
@@ -691,6 +702,7 @@ export interface FileRouteTypes {
     | '/_authenticated/chat/'
     | '/_authenticated/call/$kind/$userId'
     | '/api/public/hooks/kyc-cleanup'
+    | '/api/public/hooks/play-rtdn'
     | '/api/public/hooks/process-privacy-deletions'
     | '/api/public/hooks/reconcile-razorpay'
     | '/api/public/hooks/reset-calling-quotas'
@@ -716,6 +728,7 @@ export interface RootRouteChildren {
   ApiPublicRazorpayWebhookRoute: typeof ApiPublicRazorpayWebhookRoute
   Call_e2ePeerSheetBannerRoute: typeof Call_e2ePeerSheetBannerRoute
   ApiPublicHooksKycCleanupRoute: typeof ApiPublicHooksKycCleanupRoute
+  ApiPublicHooksPlayRtdnRoute: typeof ApiPublicHooksPlayRtdnRoute
   ApiPublicHooksProcessPrivacyDeletionsRoute: typeof ApiPublicHooksProcessPrivacyDeletionsRoute
   ApiPublicHooksReconcileRazorpayRoute: typeof ApiPublicHooksReconcileRazorpayRoute
   ApiPublicHooksResetCallingQuotasRoute: typeof ApiPublicHooksResetCallingQuotasRoute
@@ -1094,6 +1107,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicHooksProcessPrivacyDeletionsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/hooks/play-rtdn': {
+      id: '/api/public/hooks/play-rtdn'
+      path: '/api/public/hooks/play-rtdn'
+      fullPath: '/api/public/hooks/play-rtdn'
+      preLoaderRoute: typeof ApiPublicHooksPlayRtdnRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/hooks/kyc-cleanup': {
       id: '/api/public/hooks/kyc-cleanup'
       path: '/api/public/hooks/kyc-cleanup'
@@ -1236,6 +1256,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicRazorpayWebhookRoute: ApiPublicRazorpayWebhookRoute,
   Call_e2ePeerSheetBannerRoute: Call_e2ePeerSheetBannerRoute,
   ApiPublicHooksKycCleanupRoute: ApiPublicHooksKycCleanupRoute,
+  ApiPublicHooksPlayRtdnRoute: ApiPublicHooksPlayRtdnRoute,
   ApiPublicHooksProcessPrivacyDeletionsRoute:
     ApiPublicHooksProcessPrivacyDeletionsRoute,
   ApiPublicHooksReconcileRazorpayRoute: ApiPublicHooksReconcileRazorpayRoute,
