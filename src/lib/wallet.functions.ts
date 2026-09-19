@@ -6,11 +6,28 @@ import { makeRechargeError } from "./recharge-errors";
 
 const RechargeInput = z.object({ planId: z.string().uuid() });
 
+/**
+ * Test-only coin credit. This never runs for ordinary users: it is restricted
+ * to admin accounts so the production build has no way to mint coins outside
+ * Google Play Billing (a Play policy + fraud requirement).
+ */
 export const mockRecharge = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((d: unknown) => RechargeInput.parse(d))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
+
+    const { data: isAdmin } = await supabase.rpc("has_role", {
+      _user_id: userId,
+      _role: "admin",
+    });
+    if (!isAdmin) {
+      throw makeRechargeError(
+        "GATEWAY_UNAVAILABLE",
+        "Coin packs are purchased through Google Play.",
+      );
+    }
+
 
     const { data: plan, error: planErr } = await supabase
       .from("coin_plans")
