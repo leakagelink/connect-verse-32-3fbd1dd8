@@ -79,14 +79,54 @@ export function InCallRecharge({ open, onOpenChange, requiredCoins, onRecharged 
     setHelpOpen(true);
   }
 
+  // Google's localised prices for the coin packs, fetched when the sheet opens.
+  useEffect(() => {
+    if (!open || !playBillingSupported()) return;
+    let cancelled = false;
+    (async () => {
+      const ids = (plans ?? [])
+        .map((p) => p.play_product_id)
+        .filter((v): v is string => !!v);
+      if (ids.length === 0) return;
+      const products = await queryPlayProducts(ids);
+      if (cancelled) return;
+      const map: Record<string, PlayProduct> = {};
+      for (const pr of products) map[pr.productId] = pr;
+      setStorePrices(map);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [open, plans]);
 
-  async function buy(planId: string) {
+  /** planId is the coin pack; productId is its Google Play product. */
+  async function buy(planId: string, productId?: string | null) {
+    if (!canBuy || !productId) return;
     setBusy(planId);
     const requestedAt = Date.now();
     try {
-      const r = await rechargeFn({ data: { planId } });
+      const purchase = await startPlayPurchase(productId);
+      if (purchase.status === "cancelled") {
+        toast.info("Purchase cancelled — your call is still connected.");
+        return;
+      }
+      if (purchase.status === "unavailable" || !purchase.purchase?.purchaseToken) {
+        toast.error("Google Play is not available on this device.");
+        return;
+      }
+      const token = purchase.purchase.purchaseToken;
+      const r = await verifyFn({ data: { productId, purchaseToken: token } });
       const serverRespondedAt = Date.now();
-      toast.success(`+${r.added.toLocaleString("en-IN")} coins${r.bonus > 0 ? ` (+${r.bonus} bonus)` : ""}`);
+      if (r.status === "pending") {
+        toast.info("Payment pending with Google Play", {
+          description: "Coins are added as soon as Google confirms the payment.",
+        });
+        return;
+      }
+      await consumePlayPurchase(token);
+      toast.success(
+        `+${r.coins.toLocaleString("en-IN")} coins${r.bonus > 0 ? ` (+${r.bonus} bonus)` : ""}`,
+      );
       // Refresh everything that depends on balance
       await Promise.all([
         qc.invalidateQueries({ queryKey: ["wallet"] }),
@@ -96,11 +136,12 @@ export function InCallRecharge({ open, onOpenChange, requiredCoins, onRecharged 
       const uiRefreshedAt = Date.now();
       onRecharged?.(fresh?.balance ?? 0, {
         planId,
-        source: "mock",
+        orderId: purchase.purchase.orderId,
+        source: "google_play",
         requestedAt,
         serverRespondedAt,
         uiRefreshedAt,
-        added: r.added,
+        added: r.coins,
         bonus: r.bonus,
         newBalance: fresh?.balance ?? 0,
       });
