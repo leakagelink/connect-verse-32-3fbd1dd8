@@ -34,10 +34,10 @@ type Props = {
 
 export type RechargeMeta = {
   planId: string;
-  /** Mock has no order_id; Razorpay path passes the real one. */
+  /** Google Play order id, when Google returned one. */
   orderId?: string;
   paymentId?: string;
-  source: "mock" | "razorpay";
+  source: "mock" | "razorpay" | "google_play";
   /** Client clock — request fired. */
   requestedAt: number;
   /** Client clock — server responded with credited balance. */
@@ -51,12 +51,14 @@ export type RechargeMeta = {
 
 export function InCallRecharge({ open, onOpenChange, requiredCoins, onRecharged }: Props) {
   const qc = useQueryClient();
-  const plansFn = useServerFn(listPlans);
+  const plansFn = useServerFn(listPlayPlans);
   const walletFn = useServerFn(getWallet);
-  const rechargeFn = useServerFn(mockRecharge);
+  const verifyFn = useServerFn(verifyPlayPurchase);
 
-  const { data: plans } = useQuery({ queryKey: ["plans"], queryFn: () => plansFn(), enabled: open });
+  const { data: plans } = useQuery({ queryKey: ["play-plans"], queryFn: () => plansFn(), enabled: open });
   const { data: wallet } = useQuery({ queryKey: ["wallet"], queryFn: () => walletFn(), enabled: open });
+  const [storePrices, setStorePrices] = useState<Record<string, PlayProduct>>({});
+  const canBuy = PLAY_BILLING_READY && playBillingSupported();
   const [busy, setBusy] = useState<string | null>(null);
   const [helpOpen, setHelpOpen] = useState(false);
   const [helpError, setHelpError] = useState<ParsedRechargeError | null>(null);
