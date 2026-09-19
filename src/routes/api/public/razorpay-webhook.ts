@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { RAZORPAY_ENABLED } from "@/lib/billing-config";
 
 async function hmacSha256Hex(secret: string, body: string): Promise<string> {
   const enc = new TextEncoder();
@@ -26,6 +27,9 @@ export const Route = createFileRoute("/api/public/razorpay-webhook")({
   server: {
     handlers: {
       POST: async ({ request }) => {
+        if (!RAZORPAY_ENABLED) {
+          return new Response("Disabled", { status: 503 });
+        }
         const { getPaymentSettings } = await import("@/lib/payments.functions");
         const settings = await getPaymentSettings();
         const secret = settings.webhook_secret;

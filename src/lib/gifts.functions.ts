@@ -43,6 +43,9 @@ export const sendGift = createServerFn({ method: "POST" })
       throw new Error("Cannot send a gift to yourself");
     }
 
+    const { assertNotBlocked } = await import("./blocks.server");
+    await assertNotBlocked(supabase, userId, data.receiverId, "You can't send gifts to this person.");
+
     const { data: gift, error: giftErr } = await supabase
       .from("gifts")
       .select("id, name, emoji, coin_cost, is_active")

@@ -2,6 +2,19 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { getPaymentSettings } from "./payments.functions";
+import { RAZORPAY_ENABLED } from "./billing-config";
+
+/**
+ * Razorpay is fully disabled. Coin packs are sold exclusively through Google
+ * Play Billing (Play policy on digital goods). These functions stay in the repo
+ * for a future, separately launched web store, but they refuse to run while
+ * RAZORPAY_ENABLED is false.
+ */
+function assertRazorpayEnabled(): void {
+  if (!RAZORPAY_ENABLED) {
+    throw new Error("Card/UPI checkout is disabled. Coin packs are sold through Google Play.");
+  }
+}
 
 const CreateOrderInput = z.object({
   planId: z.string().uuid(),
@@ -15,6 +28,7 @@ export const createRazorpayOrder = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((d: unknown) => CreateOrderInput.parse(d))
   .handler(async ({ data, context }) => {
+    assertRazorpayEnabled();
     const { supabase, userId } = context;
     const settings = await getPaymentSettings();
     const keyId = settings.key_id;
@@ -168,6 +182,7 @@ export const verifyRazorpayPayment = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((d: unknown) => VerifyInput.parse(d))
   .handler(async ({ data, context }) => {
+    assertRazorpayEnabled();
     const settings = await getPaymentSettings();
     const keySecret = settings.key_secret;
     if (!keySecret) throw new Error("Gateway not configured");

@@ -416,6 +416,9 @@ export const createCallInvite = createServerFn({ method: "POST" })
     const callerId = context.userId;
     if (callerId === data.calleeId) throw new Error("You cannot call yourself.");
 
+    const { assertNotBlocked } = await import("./blocks.server");
+    await assertNotBlocked(db, callerId, data.calleeId, "You can't call this person.");
+
     // ---------- Idempotent short-circuit ----------
     // If the caller already created an invite for this attemptId, return it as-is.
     // This makes retries from flaky networks / double-clicks / reconnect storms safe.

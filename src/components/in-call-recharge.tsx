@@ -7,11 +7,21 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Coins, Gift, Sparkles } from "lucide-react";
 import { toast } from "sonner";
-import { listPlans, mockRecharge, getWallet } from "@/lib/wallet.functions";
+import { getWallet } from "@/lib/wallet.functions";
+import { listPlayPlans, verifyPlayPurchase } from "@/lib/billing.functions";
 import { bonusForDeposit } from "@/lib/constants";
+import { PLAY_BILLING_READY } from "@/lib/billing-config";
+import {
+  playBillingSupported,
+  queryPlayProducts,
+  startPlayPurchase,
+  consumePlayPurchase,
+  type PlayProduct,
+} from "@/lib/play-billing";
 import { parseRechargeError, type ParsedRechargeError } from "@/lib/recharge-errors";
 import { RechargeHelpDialog } from "./recharge-help-dialog";
 import { HelpCircle } from "lucide-react";
+import { useEffect } from "react";
 
 type Props = {
   open: boolean;
@@ -24,10 +34,10 @@ type Props = {
 
 export type RechargeMeta = {
   planId: string;
-  /** Mock has no order_id; Razorpay path passes the real one. */
+  /** Google Play order id, when Google returned one. */
   orderId?: string;
   paymentId?: string;
-  source: "mock" | "razorpay";
+  source: "mock" | "razorpay" | "google_play";
   /** Client clock — request fired. */
   requestedAt: number;
   /** Client clock — server responded with credited balance. */
@@ -41,12 +51,14 @@ export type RechargeMeta = {
 
 export function InCallRecharge({ open, onOpenChange, requiredCoins, onRecharged }: Props) {
   const qc = useQueryClient();
-  const plansFn = useServerFn(listPlans);
+  const plansFn = useServerFn(listPlayPlans);
   const walletFn = useServerFn(getWallet);
-  const rechargeFn = useServerFn(mockRecharge);
+  const verifyFn = useServerFn(verifyPlayPurchase);
 
-  const { data: plans } = useQuery({ queryKey: ["plans"], queryFn: () => plansFn(), enabled: open });
+  const { data: plans } = useQuery({ queryKey: ["play-plans"], queryFn: () => plansFn(), enabled: open });
   const { data: wallet } = useQuery({ queryKey: ["wallet"], queryFn: () => walletFn(), enabled: open });
+  const [storePrices, setStorePrices] = useState<Record<string, PlayProduct>>({});
+  const canBuy = PLAY_BILLING_READY && playBillingSupported();
   const [busy, setBusy] = useState<string | null>(null);
   const [helpOpen, setHelpOpen] = useState(false);
   const [helpError, setHelpError] = useState<ParsedRechargeError | null>(null);
@@ -67,14 +79,54 @@ export function InCallRecharge({ open, onOpenChange, requiredCoins, onRecharged 
     setHelpOpen(true);
   }
 
+  // Google's localised prices for the coin packs, fetched when the sheet opens.
+  useEffect(() => {
+    if (!open || !playBillingSupported()) return;
+    let cancelled = false;
+    (async () => {
+      const ids = (plans ?? [])
+        .map((p) => p.play_product_id)
+        .filter((v): v is string => !!v);
+      if (ids.length === 0) return;
+      const products = await queryPlayProducts(ids);
+      if (cancelled) return;
+      const map: Record<string, PlayProduct> = {};
+      for (const pr of products) map[pr.productId] = pr;
+      setStorePrices(map);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [open, plans]);
 
-  async function buy(planId: string) {
+  /** planId is the coin pack; productId is its Google Play product. */
+  async function buy(planId: string, productId?: string | null) {
+    if (!canBuy || !productId) return;
     setBusy(planId);
     const requestedAt = Date.now();
     try {
-      const r = await rechargeFn({ data: { planId } });
+      const purchase = await startPlayPurchase(productId);
+      if (purchase.status === "cancelled") {
+        toast.info("Purchase cancelled — your call is still connected.");
+        return;
+      }
+      if (purchase.status === "unavailable" || !purchase.purchase?.purchaseToken) {
+        toast.error("Google Play is not available on this device.");
+        return;
+      }
+      const token = purchase.purchase.purchaseToken;
+      const r = await verifyFn({ data: { productId, purchaseToken: token } });
       const serverRespondedAt = Date.now();
-      toast.success(`+${r.added.toLocaleString("en-IN")} coins${r.bonus > 0 ? ` (+${r.bonus} bonus)` : ""}`);
+      if (r.status === "pending") {
+        toast.info("Payment pending with Google Play", {
+          description: "Coins are added as soon as Google confirms the payment.",
+        });
+        return;
+      }
+      await consumePlayPurchase(token);
+      toast.success(
+        `+${r.coins.toLocaleString("en-IN")} coins${r.bonus > 0 ? ` (+${r.bonus} bonus)` : ""}`,
+      );
       // Refresh everything that depends on balance
       await Promise.all([
         qc.invalidateQueries({ queryKey: ["wallet"] }),
@@ -84,11 +136,12 @@ export function InCallRecharge({ open, onOpenChange, requiredCoins, onRecharged 
       const uiRefreshedAt = Date.now();
       onRecharged?.(fresh?.balance ?? 0, {
         planId,
-        source: "mock",
+        orderId: purchase.purchase.orderId,
+        source: "google_play",
         requestedAt,
         serverRespondedAt,
         uiRefreshedAt,
-        added: r.added,
+        added: r.coins,
         bonus: r.bonus,
         newBalance: fresh?.balance ?? 0,
       });
@@ -161,10 +214,19 @@ export function InCallRecharge({ open, onOpenChange, requiredCoins, onRecharged 
           </Card>
         )}
 
+        {!canBuy && (
+          <p className="mt-3 rounded-lg border border-warning/40 bg-warning/5 p-3 text-xs text-muted-foreground">
+            Coin purchases are handled by Google Play in the Talkora Android app and are
+            temporarily unavailable. Your call stays connected.
+          </p>
+        )}
+
         <div className="mt-4 grid grid-cols-2 gap-3 pb-4">
           {(plans ?? []).map((p) => {
             const bonus = Math.floor(Number(p.coins) * bonusPct);
             const covers = requiredCoins == null ? false : balance + Number(p.coins) + bonus >= requiredCoins;
+            const productId = p.play_product_id;
+            const store = productId ? storePrices[productId] : undefined;
             return (
               <Card
                 key={p.id}
@@ -173,9 +235,7 @@ export function InCallRecharge({ open, onOpenChange, requiredCoins, onRecharged 
                 }`}
               >
                 <div className="text-[10px] uppercase tracking-wide text-muted-foreground">{p.label}</div>
-                <div className="mt-1 text-xl font-bold">
-                  ₹{Number(p.price_inr).toLocaleString("en-IN")}
-                </div>
+                <div className="mt-1 text-xl font-bold">{store?.price ?? "—"}</div>
                 <div className="mt-1 flex items-center justify-center gap-1 text-coin text-sm font-semibold">
                   <Coins className="size-3.5" /> {Number(p.coins).toLocaleString("en-IN")}
                 </div>
@@ -184,11 +244,11 @@ export function InCallRecharge({ open, onOpenChange, requiredCoins, onRecharged 
                 )}
                 <Button
                   size="sm"
-                  disabled={busy === p.id}
-                  onClick={() => buy(p.id)}
+                  disabled={!canBuy || busy === p.id}
+                  onClick={() => buy(p.id, productId)}
                   className="mt-2 w-full brand-gradient text-primary-foreground"
                 >
-                  {busy === p.id ? "…" : "Buy"}
+                  {!canBuy ? "Unavailable" : busy === p.id ? "…" : "Buy"}
                 </Button>
               </Card>
             );
@@ -196,7 +256,7 @@ export function InCallRecharge({ open, onOpenChange, requiredCoins, onRecharged 
         </div>
 
         <p className="pb-4 text-[11px] text-muted-foreground flex items-center gap-1">
-          <Sparkles className="size-3" /> Mock recharge — real payments in Phase 3.
+          <Sparkles className="size-3" /> Billed by Google Play.
           <button
             type="button"
             className="ml-auto inline-flex items-center gap-1 text-primary underline-offset-2 hover:underline"
@@ -223,7 +283,10 @@ export function InCallRecharge({ open, onOpenChange, requiredCoins, onRecharged 
         onOpenChange={setHelpOpen}
         error={helpError}
         planId={helpPlanId}
-        onRetry={(pid) => void buy(pid)}
+        onRetry={(pid) => {
+          const pl = (plans ?? []).find((x) => x.id === pid);
+          void buy(pid, pl?.play_product_id);
+        }}
         onRefreshBalance={() => void refreshBalance()}
         onPickAnotherPlan={() => {
           /* sheet is already open with plan grid; just close dialog */

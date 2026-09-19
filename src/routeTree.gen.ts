@@ -16,6 +16,7 @@ import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as ManifestDotwebmanifestRouteImport } from './routes/manifest[.]webmanifest'
 import { Route as DeleteAccountRouteImport } from './routes/delete-account'
 import { Route as CommunityGuidelinesRouteImport } from './routes/community-guidelines'
+import { Route as ChildSafetyRouteImport } from './routes/child-safety'
 import { Route as BannedRouteImport } from './routes/banned'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
@@ -62,6 +63,7 @@ import { Route as AuthenticatedChatConversationIdRouteImport } from './routes/_a
 import { Route as ApiPublicHooksResetCallingQuotasRouteImport } from './routes/api/public/hooks/reset-calling-quotas'
 import { Route as ApiPublicHooksReconcileRazorpayRouteImport } from './routes/api/public/hooks/reconcile-razorpay'
 import { Route as ApiPublicHooksProcessPrivacyDeletionsRouteImport } from './routes/api/public/hooks/process-privacy-deletions'
+import { Route as ApiPublicHooksPlayRtdnRouteImport } from './routes/api/public/hooks/play-rtdn'
 import { Route as ApiPublicHooksKycCleanupRouteImport } from './routes/api/public/hooks/kyc-cleanup'
 import { Route as AuthenticatedCallKindUserIdRouteImport } from './routes/_authenticated/call.$kind.$userId'
 
@@ -98,6 +100,11 @@ const DeleteAccountRoute = DeleteAccountRouteImport.update({
 const CommunityGuidelinesRoute = CommunityGuidelinesRouteImport.update({
   id: '/community-guidelines',
   path: '/community-guidelines',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ChildSafetyRoute = ChildSafetyRouteImport.update({
+  id: '/child-safety',
+  path: '/child-safety',
   getParentRoute: () => rootRouteImport,
 } as any)
 const BannedRoute = BannedRouteImport.update({
@@ -345,6 +352,11 @@ const ApiPublicHooksProcessPrivacyDeletionsRoute =
     path: '/api/public/hooks/process-privacy-deletions',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicHooksPlayRtdnRoute = ApiPublicHooksPlayRtdnRouteImport.update({
+  id: '/api/public/hooks/play-rtdn',
+  path: '/api/public/hooks/play-rtdn',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicHooksKycCleanupRoute =
   ApiPublicHooksKycCleanupRouteImport.update({
     id: '/api/public/hooks/kyc-cleanup',
@@ -362,6 +374,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/banned': typeof BannedRoute
+  '/child-safety': typeof ChildSafetyRoute
   '/community-guidelines': typeof CommunityGuidelinesRoute
   '/delete-account': typeof DeleteAccountRoute
   '/manifest.webmanifest': typeof ManifestDotwebmanifestRoute
@@ -410,6 +423,7 @@ export interface FileRoutesByFullPath {
   '/chat/': typeof AuthenticatedChatIndexRoute
   '/call/$kind/$userId': typeof AuthenticatedCallKindUserIdRoute
   '/api/public/hooks/kyc-cleanup': typeof ApiPublicHooksKycCleanupRoute
+  '/api/public/hooks/play-rtdn': typeof ApiPublicHooksPlayRtdnRoute
   '/api/public/hooks/process-privacy-deletions': typeof ApiPublicHooksProcessPrivacyDeletionsRoute
   '/api/public/hooks/reconcile-razorpay': typeof ApiPublicHooksReconcileRazorpayRoute
   '/api/public/hooks/reset-calling-quotas': typeof ApiPublicHooksResetCallingQuotasRoute
@@ -418,6 +432,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/banned': typeof BannedRoute
+  '/child-safety': typeof ChildSafetyRoute
   '/community-guidelines': typeof CommunityGuidelinesRoute
   '/delete-account': typeof DeleteAccountRoute
   '/manifest.webmanifest': typeof ManifestDotwebmanifestRoute
@@ -464,6 +479,7 @@ export interface FileRoutesByTo {
   '/chat': typeof AuthenticatedChatIndexRoute
   '/call/$kind/$userId': typeof AuthenticatedCallKindUserIdRoute
   '/api/public/hooks/kyc-cleanup': typeof ApiPublicHooksKycCleanupRoute
+  '/api/public/hooks/play-rtdn': typeof ApiPublicHooksPlayRtdnRoute
   '/api/public/hooks/process-privacy-deletions': typeof ApiPublicHooksProcessPrivacyDeletionsRoute
   '/api/public/hooks/reconcile-razorpay': typeof ApiPublicHooksReconcileRazorpayRoute
   '/api/public/hooks/reset-calling-quotas': typeof ApiPublicHooksResetCallingQuotasRoute
@@ -474,6 +490,7 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
   '/banned': typeof BannedRoute
+  '/child-safety': typeof ChildSafetyRoute
   '/community-guidelines': typeof CommunityGuidelinesRoute
   '/delete-account': typeof DeleteAccountRoute
   '/manifest.webmanifest': typeof ManifestDotwebmanifestRoute
@@ -522,6 +539,7 @@ export interface FileRoutesById {
   '/_authenticated/chat/': typeof AuthenticatedChatIndexRoute
   '/_authenticated/call/$kind/$userId': typeof AuthenticatedCallKindUserIdRoute
   '/api/public/hooks/kyc-cleanup': typeof ApiPublicHooksKycCleanupRoute
+  '/api/public/hooks/play-rtdn': typeof ApiPublicHooksPlayRtdnRoute
   '/api/public/hooks/process-privacy-deletions': typeof ApiPublicHooksProcessPrivacyDeletionsRoute
   '/api/public/hooks/reconcile-razorpay': typeof ApiPublicHooksReconcileRazorpayRoute
   '/api/public/hooks/reset-calling-quotas': typeof ApiPublicHooksResetCallingQuotasRoute
@@ -532,6 +550,7 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/banned'
+    | '/child-safety'
     | '/community-guidelines'
     | '/delete-account'
     | '/manifest.webmanifest'
@@ -580,6 +599,7 @@ export interface FileRouteTypes {
     | '/chat/'
     | '/call/$kind/$userId'
     | '/api/public/hooks/kyc-cleanup'
+    | '/api/public/hooks/play-rtdn'
     | '/api/public/hooks/process-privacy-deletions'
     | '/api/public/hooks/reconcile-razorpay'
     | '/api/public/hooks/reset-calling-quotas'
@@ -588,6 +608,7 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/banned'
+    | '/child-safety'
     | '/community-guidelines'
     | '/delete-account'
     | '/manifest.webmanifest'
@@ -634,6 +655,7 @@ export interface FileRouteTypes {
     | '/chat'
     | '/call/$kind/$userId'
     | '/api/public/hooks/kyc-cleanup'
+    | '/api/public/hooks/play-rtdn'
     | '/api/public/hooks/process-privacy-deletions'
     | '/api/public/hooks/reconcile-razorpay'
     | '/api/public/hooks/reset-calling-quotas'
@@ -643,6 +665,7 @@ export interface FileRouteTypes {
     | '/_authenticated'
     | '/auth'
     | '/banned'
+    | '/child-safety'
     | '/community-guidelines'
     | '/delete-account'
     | '/manifest.webmanifest'
@@ -691,6 +714,7 @@ export interface FileRouteTypes {
     | '/_authenticated/chat/'
     | '/_authenticated/call/$kind/$userId'
     | '/api/public/hooks/kyc-cleanup'
+    | '/api/public/hooks/play-rtdn'
     | '/api/public/hooks/process-privacy-deletions'
     | '/api/public/hooks/reconcile-razorpay'
     | '/api/public/hooks/reset-calling-quotas'
@@ -701,6 +725,7 @@ export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
   BannedRoute: typeof BannedRoute
+  ChildSafetyRoute: typeof ChildSafetyRoute
   CommunityGuidelinesRoute: typeof CommunityGuidelinesRoute
   DeleteAccountRoute: typeof DeleteAccountRoute
   ManifestDotwebmanifestRoute: typeof ManifestDotwebmanifestRoute
@@ -716,6 +741,7 @@ export interface RootRouteChildren {
   ApiPublicRazorpayWebhookRoute: typeof ApiPublicRazorpayWebhookRoute
   Call_e2ePeerSheetBannerRoute: typeof Call_e2ePeerSheetBannerRoute
   ApiPublicHooksKycCleanupRoute: typeof ApiPublicHooksKycCleanupRoute
+  ApiPublicHooksPlayRtdnRoute: typeof ApiPublicHooksPlayRtdnRoute
   ApiPublicHooksProcessPrivacyDeletionsRoute: typeof ApiPublicHooksProcessPrivacyDeletionsRoute
   ApiPublicHooksReconcileRazorpayRoute: typeof ApiPublicHooksReconcileRazorpayRoute
   ApiPublicHooksResetCallingQuotasRoute: typeof ApiPublicHooksResetCallingQuotasRoute
@@ -770,6 +796,13 @@ declare module '@tanstack/react-router' {
       path: '/community-guidelines'
       fullPath: '/community-guidelines'
       preLoaderRoute: typeof CommunityGuidelinesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/child-safety': {
+      id: '/child-safety'
+      path: '/child-safety'
+      fullPath: '/child-safety'
+      preLoaderRoute: typeof ChildSafetyRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/banned': {
@@ -1094,6 +1127,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicHooksProcessPrivacyDeletionsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/hooks/play-rtdn': {
+      id: '/api/public/hooks/play-rtdn'
+      path: '/api/public/hooks/play-rtdn'
+      fullPath: '/api/public/hooks/play-rtdn'
+      preLoaderRoute: typeof ApiPublicHooksPlayRtdnRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/hooks/kyc-cleanup': {
       id: '/api/public/hooks/kyc-cleanup'
       path: '/api/public/hooks/kyc-cleanup'
@@ -1221,6 +1261,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
   BannedRoute: BannedRoute,
+  ChildSafetyRoute: ChildSafetyRoute,
   CommunityGuidelinesRoute: CommunityGuidelinesRoute,
   DeleteAccountRoute: DeleteAccountRoute,
   ManifestDotwebmanifestRoute: ManifestDotwebmanifestRoute,
@@ -1236,6 +1277,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicRazorpayWebhookRoute: ApiPublicRazorpayWebhookRoute,
   Call_e2ePeerSheetBannerRoute: Call_e2ePeerSheetBannerRoute,
   ApiPublicHooksKycCleanupRoute: ApiPublicHooksKycCleanupRoute,
+  ApiPublicHooksPlayRtdnRoute: ApiPublicHooksPlayRtdnRoute,
   ApiPublicHooksProcessPrivacyDeletionsRoute:
     ApiPublicHooksProcessPrivacyDeletionsRoute,
   ApiPublicHooksReconcileRazorpayRoute: ApiPublicHooksReconcileRazorpayRoute,

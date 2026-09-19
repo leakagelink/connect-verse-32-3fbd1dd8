@@ -66,6 +66,8 @@ export const sendFollowRequest = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
     if (data.userId === userId) throw new Error("Cannot follow yourself");
+    const { assertNotBlocked } = await import("./blocks.server");
+    await assertNotBlocked(supabase, userId, data.userId, "You can't send a request to this person.");
     const nowMs = Date.now();
     const freshExpiry = new Date(nowMs + 14 * 24 * 60 * 60 * 1000).toISOString();
     const { error } = await supabase
