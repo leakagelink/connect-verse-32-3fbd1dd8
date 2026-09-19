@@ -28,6 +28,7 @@ export const createRazorpayOrder = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((d: unknown) => CreateOrderInput.parse(d))
   .handler(async ({ data, context }) => {
+    assertRazorpayEnabled();
     const { supabase, userId } = context;
     const settings = await getPaymentSettings();
     const keyId = settings.key_id;
@@ -181,6 +182,7 @@ export const verifyRazorpayPayment = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((d: unknown) => VerifyInput.parse(d))
   .handler(async ({ data, context }) => {
+    assertRazorpayEnabled();
     const settings = await getPaymentSettings();
     const keySecret = settings.key_secret;
     if (!keySecret) throw new Error("Gateway not configured");
