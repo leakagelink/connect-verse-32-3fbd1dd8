@@ -27,6 +27,9 @@ export const startCallLog = createServerFn({ method: "POST" })
     const { userId } = context;
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
+    const { assertNotBlocked } = await import("./blocks.server");
+    await assertNotBlocked(supabaseAdmin, userId, data.calleeId, "You can't call this person.");
+
     // ---- Pre-flight safety checks ----
     const [{ data: caller }, { data: callee }] = await Promise.all([
       supabaseAdmin
