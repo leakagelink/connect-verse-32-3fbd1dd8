@@ -13,6 +13,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { LogOut, Shield, Languages, MapPin, Globe, UserCircle, Coins, ShieldAlert, FileText, HeartHandshake, BadgeIndianRupee, ChevronRight, UserX, Trash2, Download } from "lucide-react";
+import { COINS_ENABLED } from "@/lib/feature-flags";
 import { APP_LANGUAGES } from "@/lib/constants";
 import { CreatorSafetyCard } from "@/components/creator-safety-card";
 import { SpokenLanguagesCard } from "@/components/spoken-languages-card";
