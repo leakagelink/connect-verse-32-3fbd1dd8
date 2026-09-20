@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { GIFTS_ENABLED, FEATURE_OFF_MESSAGES, assertFeatureEnabled } from "./feature-flags";
 
 export const listGifts = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
@@ -25,6 +26,9 @@ export const sendGift = createServerFn({ method: "POST" })
   .validator((d: unknown) => SendInput.parse(d))
   .handler(async ({ data, context }) => {
     const t0 = Date.now();
+    // Gifts are a coin feature — rejected server-side while disabled, so a
+    // direct API call can't move coins either.
+    assertFeatureEnabled(GIFTS_ENABLED, FEATURE_OFF_MESSAGES.gifts);
     const { supabase, userId } = context;
     const log = (stage: string, extra: Record<string, unknown> = {}) => {
       // Structured server-side trace for end-to-end gift testing.

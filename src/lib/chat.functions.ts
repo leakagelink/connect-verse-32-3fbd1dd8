@@ -256,6 +256,11 @@ export const tickChatBilling = createServerFn({ method: "POST" })
   }).parse(d))
   .handler(async ({ data, context }) => {
     const { userId } = context;
+    // FREE MODE: chat time is not billed. No wallet or free-second deduction,
+    // no chat_spend ledger entry, no creator earning.
+    if (!PAID_CHAT_ENABLED) {
+      return { ok: true, ended: false, reason: null, balance: null, freeSeconds: null };
+    }
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
     const { data: session } = await supabaseAdmin

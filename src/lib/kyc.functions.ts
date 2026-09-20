@@ -1,6 +1,12 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import {
+  KYC_FOR_PAYOUTS_ENABLED,
+  WITHDRAWALS_ENABLED,
+  FEATURE_OFF_MESSAGES,
+  assertFeatureEnabled,
+} from "./feature-flags";
 
 const PAN_RE = /^[A-Z]{5}[0-9]{4}[A-Z]$/;
 const IFSC_RE = /^[A-Z]{4}0[A-Z0-9]{6}$/;
