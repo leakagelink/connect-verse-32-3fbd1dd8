@@ -6,6 +6,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { Button } from "@/components/ui/button";
 import { Coins, Gift as GiftIcon, Loader2 } from "lucide-react";
 import { listGifts, sendGift } from "@/lib/gifts.functions";
+import { GIFTS_ENABLED } from "@/lib/feature-flags";
 
 export type GiftSendEvent = {
   giftId: string;
@@ -35,7 +36,13 @@ type Props = {
   onEvent?: (event: GiftSendEvent) => void;
 };
 
-export function GiftPanel({ open, onOpenChange, receiverId, callLogId, balance, onSent, onLowBalance, onEvent }: Props) {
+export function GiftPanel(props: Props) {
+  // Gifts cost coins — not available in the free release.
+  if (!GIFTS_ENABLED) return null;
+  return <GiftPanelInner {...props} />;
+}
+
+function GiftPanelInner({ open, onOpenChange, receiverId, callLogId, balance, onSent, onLowBalance, onEvent }: Props) {
   const listFn = useServerFn(listGifts);
   const sendFn = useServerFn(sendGift);
   const qc = useQueryClient();

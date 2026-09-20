@@ -6,8 +6,15 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Flame, Trophy, UserPlus, Coins, Check } from "lucide-react";
 import { toast } from "sonner";
+import { COIN_REWARDS_ENABLED } from "@/lib/feature-flags";
 
 export function EngagementStrip() {
+  // Daily check-in pays coin rewards, so it is hidden in the free release.
+  if (!COIN_REWARDS_ENABLED) return null;
+  return <EngagementStripInner />;
+}
+
+function EngagementStripInner() {
   const qc = useQueryClient();
   const statusFn = useServerFn(getCheckinStatus);
   const claimFn = useServerFn(claimDailyCheckin);
