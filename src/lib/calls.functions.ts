@@ -347,6 +347,11 @@ export const applyCallUsage = createServerFn({ method: "POST" })
   }) => input)
   .handler(async ({ data, context }) => {
     const { userId } = context;
+    // FREE MODE: calls are not billed. No wallet debit, no free-second
+    // consumption, no creator earning, no spend ledger entries.
+    if (!CALL_BILLING_ENABLED) {
+      return { ok: true, freeSeconds: null, balance: null, reason: "billing-disabled" };
+    }
     const sentFree = Math.max(0, Math.floor(data.totalFreeSeconds || 0));
     const sentCoins = Math.max(0, Math.floor(data.totalCoins || 0));
     const sentElapsed = Math.max(0, Math.floor(data.elapsedSeconds || 0));
