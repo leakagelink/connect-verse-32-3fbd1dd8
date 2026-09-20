@@ -40,6 +40,9 @@ export const listPlayPlans = createServerFn({ method: "GET" })
 export const getBillingStatus = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
+    if (!GOOGLE_PLAY_BILLING_ENABLED) {
+      return { verificationConfigured: false, mappedProducts: 0 };
+    }
     const { isPlayVerificationConfigured } = await import("./billing.server");
     const { count } = await context.supabase
       .from("coin_plans")
@@ -65,6 +68,9 @@ export const verifyPlayPurchase = createServerFn({ method: "POST" })
   .validator((d: unknown) => VerifyInput.parse(d))
   .middleware([requireSupabaseAuth])
   .handler(async ({ data, context }) => {
+    // Hard stop: Google Play Billing is not active in this release, so no
+    // purchase token can ever be credited.
+    assertFeatureEnabled(COIN_PURCHASES_ENABLED, FEATURE_OFF_MESSAGES.purchases);
     const { userId, supabase } = context;
 
     const { data: profile } = await supabase
