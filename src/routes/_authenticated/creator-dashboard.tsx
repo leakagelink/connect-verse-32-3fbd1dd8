@@ -25,6 +25,7 @@ import {
 
 } from "lucide-react";
 import { toast } from "sonner";
+import { CREATOR_EARNINGS_ENABLED } from "@/lib/feature-flags";
 
 export const Route = createFileRoute("/_authenticated/creator-dashboard")({
   component: CreatorDashboard,
