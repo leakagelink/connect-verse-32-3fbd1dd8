@@ -1899,13 +1899,19 @@ function CallScreen() {
               >
                 <UserCircle2 className="size-3.5" /> Profile
               </button>
-              <div className="px-2.5 py-1 rounded-full bg-coin/80 text-xs font-semibold flex items-center gap-1">
-                <Coins className="size-3" /> {perMin} / min
-              </div>
+              {CALL_BILLING_ENABLED ? (
+                <div className="px-2.5 py-1 rounded-full bg-coin/80 text-xs font-semibold flex items-center gap-1">
+                  <Coins className="size-3" /> {perMin} / min
+                </div>
+              ) : (
+                <div className="px-2.5 py-1 rounded-full bg-emerald-500/80 text-xs font-semibold">
+                  Free call
+                </div>
+              )}
             </div>
           </div>
           {/* Low-time warning — escalates in last 60s */}
-          {isPayer && perMin > 0 && totalSecondsLeft > 0 && totalSecondsLeft <= 180 && (
+          {CALL_BILLING_ENABLED && isPayer && perMin > 0 && totalSecondsLeft > 0 && totalSecondsLeft <= 180 && (
             (() => {
               const critical = totalSecondsLeft <= 60;
               const mm = String(Math.floor(totalSecondsLeft / 60)).padStart(2, "0");
@@ -1966,7 +1972,7 @@ function CallScreen() {
             })()
           )}
           {/* Live free-time / coin-balance HUD — visible from call start */}
-          {freeStart !== null && (
+          {CALL_BILLING_ENABLED && freeStart !== null && (
             <div className="absolute bottom-12 left-3 right-3 flex items-center justify-between gap-2 text-white">
               <div
                 className={`px-2.5 py-1 rounded-full text-[11px] font-semibold backdrop-blur transition-colors ${
