@@ -197,7 +197,13 @@ function CallScreen() {
 
 
 
-  const perMin = kind === "video" ? VIDEO_CALL_COINS_PER_MINUTE : VOICE_CALL_COINS_PER_MINUTE;
+  // Free release: calls cost nothing per minute, so the whole coin ledger
+  // below collapses to "no limit" and the paid HUD/warnings stay hidden.
+  const perMin = !CALL_BILLING_ENABLED
+    ? 0
+    : kind === "video"
+      ? VIDEO_CALL_COINS_PER_MINUTE
+      : VOICE_CALL_COINS_PER_MINUTE;
   const endLogFn = useServerFn(endCallLog);
   const applyUsageFn = useServerFn(applyCallUsage);
   const inviteStatusFn = useServerFn(getCallInviteStatus);
@@ -694,14 +700,15 @@ function CallScreen() {
   const coinsConsumed = Math.ceil((coinSecondsUsed * perMin) / 60);
   const coinsLeft = Math.max(0, coinsAvail - coinsConsumed);
   // Seconds the remaining coin balance can still buy after free time ends.
-  const coinSecondsLeft = Math.floor((coinsLeft * 60) / perMin);
+  const coinSecondsLeft = perMin > 0 ? Math.floor((coinsLeft * 60) / perMin) : Number.MAX_SAFE_INTEGER;
   const totalSecondsLeft = freeLeftSec + coinSecondsLeft;
   const usingFree = freeLeftSec > 0;
   // Server-resolved billing: a creator calling a regular user means the
   // CALLEE is the payer. We honour amPayerState whenever it has loaded.
   const isPayer = amPayerState ?? (callRoleRef.current !== "callee");
-  const outOfFunds = connected && isPayer && totalSecondsLeft <= 0;
-  const criticalTime = isPayer && perMin > 0 && totalSecondsLeft > 0 && totalSecondsLeft <= 60;
+  const outOfFunds = CALL_BILLING_ENABLED && connected && isPayer && totalSecondsLeft <= 0;
+  const criticalTime =
+    CALL_BILLING_ENABLED && isPayer && perMin > 0 && totalSecondsLeft > 0 && totalSecondsLeft <= 60;
 
   // Seed live ledger snapshots the moment the profile is available — so the
   // "5:00 free" countdown is visible from the very start of the call screen.
