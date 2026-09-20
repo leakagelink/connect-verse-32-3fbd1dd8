@@ -22,6 +22,7 @@ import { Badge } from "@/components/ui/badge";
 import {
   ArrowLeft, Coins, Phone, Gift, Users, Trophy, Clock, Plus, X,
   Wallet, TrendingUp,
+
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -77,8 +78,8 @@ function CreatorDashboard() {
         </div>
 
 
-        {/* Quick stats */}
-        <div className="grid grid-cols-2 gap-3 mb-4">
+        {/* Quick stats — earnings figures only exist when monetization is on */}
+        <div className={CREATOR_EARNINGS_ENABLED ? "grid grid-cols-2 gap-3 mb-4" : "hidden"}>
           <StatCard
             icon={<Wallet className="size-4 text-coin" />}
             label="Available coins"
@@ -110,7 +111,7 @@ function CreatorDashboard() {
         </div>
 
         {/* Sparkline */}
-        <Card className="glass p-4 mb-4">
+        <Card className={CREATOR_EARNINGS_ENABLED ? "glass p-4 mb-4" : "hidden"}>
           <div className="flex items-center justify-between mb-2">
             <p className="text-sm font-semibold">Gift coins · last 30 days</p>
             <Badge variant="secondary" className="text-[10px]">
