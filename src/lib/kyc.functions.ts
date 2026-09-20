@@ -55,6 +55,9 @@ export const submitKyc = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((d: unknown) => KycInput.parse(d))
   .handler(async ({ data, context }) => {
+    // Payouts are off in this release, so no new payout KYC (PAN/Aadhaar/bank)
+    // is collected. Existing records are left untouched for retention rules.
+    assertFeatureEnabled(KYC_FOR_PAYOUTS_ENABLED, FEATURE_OFF_MESSAGES.kyc);
     const { supabase, userId } = context;
     // Block resubmission if an approved or pending one exists
     const { data: existing } = await supabase
@@ -96,6 +99,7 @@ export const requestWithdrawal = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((d: unknown) => WithdrawInput.parse(d))
   .handler(async ({ data, context }) => {
+    assertFeatureEnabled(WITHDRAWALS_ENABLED, FEATURE_OFF_MESSAGES.withdrawals);
     const { supabase, userId } = context;
 
     // 1) KYC must be approved
