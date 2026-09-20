@@ -20,6 +20,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { MysteryPanel } from "@/components/mystery-panel";
 import { InCallRecharge } from "@/components/in-call-recharge";
 import { GiftPanel } from "@/components/gift-panel";
+import { CALL_BILLING_ENABLED, GIFTS_ENABLED, PAID_EXTRAS_ENABLED } from "@/lib/feature-flags";
 import { listGifts, sendGift } from "@/lib/gifts.functions";
 import { getWallet } from "@/lib/wallet.functions";
 
