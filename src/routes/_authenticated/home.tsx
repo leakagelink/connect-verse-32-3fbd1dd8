@@ -308,7 +308,7 @@ function Home() {
         </TabsContent>
 
         <TabsContent value="voice" className="mt-4">
-          <p className="text-xs text-muted-foreground mb-3">Tap to start a voice call. Coins are deducted per minute.</p>
+          <p className="text-xs text-muted-foreground mb-3">Tap to start a voice call — calls are free.</p>
           <OnlineList
             users={liveOnlineUsers}
             loading={loadingOnline}
