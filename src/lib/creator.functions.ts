@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { PAID_EXTRAS_ENABLED, FEATURE_OFF_MESSAGES, assertFeatureEnabled } from "./feature-flags";
 
 // ============================================================
 // AVAILABILITY
