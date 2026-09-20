@@ -10,6 +10,7 @@ import { CoinBadge } from "@/components/coin-badge";
 import { Coins, Sparkles, ArrowUpRight, ArrowDownRight, Receipt } from "lucide-react";
 import { format } from "date-fns";
 import { useT } from "@/lib/i18n";
+import { COINS_ENABLED } from "@/lib/feature-flags";
 
 export const Route = createFileRoute("/_authenticated/wallet")({
   component: Wallet,
@@ -19,8 +20,32 @@ function Wallet() {
   const walletFn = useServerFn(getWallet);
   const profileFn = useServerFn(getMyProfile);
   const { data: me } = useQuery({ queryKey: ["me"], queryFn: () => profileFn() });
-  const { data, isLoading } = useQuery({ queryKey: ["wallet"], queryFn: () => walletFn() });
+  const { data, isLoading } = useQuery({
+    queryKey: ["wallet"],
+    queryFn: () => walletFn(),
+    enabled: COINS_ENABLED,
+  });
   const { t } = useT();
+
+  // Free release: there is no balance, no top-up and no payout.
+  if (!COINS_ENABLED) {
+    return (
+      <AppShell isAdmin={me?.isAdmin}>
+        <h1 className="text-2xl font-bold">Talkora is free</h1>
+        <Card className="glass mt-4 border-primary/40 bg-primary/5 p-5">
+          <Sparkles className="size-5 text-primary" />
+          <p className="mt-2 text-sm font-semibold">No wallet needed</p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Chat and voice or video calls are free and unlimited in this version, so there is no
+            balance to manage and nothing to buy.
+          </p>
+          <Link to="/home" className="mt-4 inline-block">
+            <Button size="sm" variant="outline">Back to discover</Button>
+          </Link>
+        </Card>
+      </AppShell>
+    );
+  }
 
   return (
     <AppShell isAdmin={me?.isAdmin}>

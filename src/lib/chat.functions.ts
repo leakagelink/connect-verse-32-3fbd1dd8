@@ -3,6 +3,7 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { CHAT_COINS_PER_MINUTE, MESSAGE_COIN_COST_MALE, containsBlockedContent, detectContactShare, contactShareWarning } from "./constants";
 import { withAiAvatars } from "./ai-avatar";
+import { PAID_CHAT_ENABLED } from "./feature-flags";
 
 async function assertNotBanned(supabase: any, userId: string) {
   const { data } = await supabase.from("profiles").select("is_banned, onboarded").eq("id", userId).maybeSingle();
@@ -143,13 +144,14 @@ export const sendMessage = createServerFn({ method: "POST" })
     }
 
 
-    // Male senders pay coins per message; females are free
+    // Paid chat (male senders pay coins per message) is disabled while
+    // PAID_CHAT_ENABLED is false — messaging is free for everyone.
     const { data: senderProfile } = await supabase
       .from("profiles").select("gender").eq("id", userId).maybeSingle();
     const isMale = senderProfile?.gender === "male";
     let charged = 0;
 
-    if (isMale && MESSAGE_COIN_COST_MALE > 0) {
+    if (PAID_CHAT_ENABLED && isMale && MESSAGE_COIN_COST_MALE > 0) {
       const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
       const { data: wallet } = await supabaseAdmin
         .from("wallets").select("coin_balance").eq("user_id", userId).single();
@@ -254,6 +256,11 @@ export const tickChatBilling = createServerFn({ method: "POST" })
   }).parse(d))
   .handler(async ({ data, context }) => {
     const { userId } = context;
+    // FREE MODE: chat time is not billed. No wallet or free-second deduction,
+    // no chat_spend ledger entry, no creator earning.
+    if (!PAID_CHAT_ENABLED) {
+      return { ok: true, ended: false, reason: null, balance: null, freeSeconds: null };
+    }
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
     const { data: session } = await supabaseAdmin

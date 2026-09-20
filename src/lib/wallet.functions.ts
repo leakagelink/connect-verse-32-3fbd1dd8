@@ -3,6 +3,7 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { bonusForDeposit } from "./constants";
 import { makeRechargeError } from "./recharge-errors";
+import { COINS_ENABLED, FEATURE_OFF_MESSAGES, assertFeatureEnabled } from "./feature-flags";
 
 const RechargeInput = z.object({ planId: z.string().uuid() });
 
@@ -15,6 +16,9 @@ export const mockRecharge = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((d: unknown) => RechargeInput.parse(d))
   .handler(async ({ data, context }) => {
+    // FREE MODE: no coin crediting path exists at all — not for users, not
+    // for admins. There is deliberately no manual coin-grant backdoor.
+    assertFeatureEnabled(COINS_ENABLED, FEATURE_OFF_MESSAGES.purchases);
     const { supabase, userId } = context;
 
     const { data: isAdmin } = await supabase.rpc("has_role", {

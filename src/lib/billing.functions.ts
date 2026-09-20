@@ -1,6 +1,12 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import {
+  COIN_PURCHASES_ENABLED,
+  GOOGLE_PLAY_BILLING_ENABLED,
+  FEATURE_OFF_MESSAGES,
+  assertFeatureEnabled,
+} from "./feature-flags";
 
 /**
  * Google Play Billing — server side.
@@ -19,6 +25,8 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 export const listPlayPlans = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
+    // Free release: no purchasable packs are exposed to any client.
+    if (!COIN_PURCHASES_ENABLED) return [];
     const { data } = await context.supabase
       .from("coin_plans")
       .select("id, label, coins, price_inr, play_product_id, sort_order")
@@ -32,6 +40,9 @@ export const listPlayPlans = createServerFn({ method: "GET" })
 export const getBillingStatus = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
+    if (!GOOGLE_PLAY_BILLING_ENABLED) {
+      return { verificationConfigured: false, mappedProducts: 0 };
+    }
     const { isPlayVerificationConfigured } = await import("./billing.server");
     const { count } = await context.supabase
       .from("coin_plans")
@@ -57,6 +68,9 @@ export const verifyPlayPurchase = createServerFn({ method: "POST" })
   .validator((d: unknown) => VerifyInput.parse(d))
   .middleware([requireSupabaseAuth])
   .handler(async ({ data, context }) => {
+    // Hard stop: Google Play Billing is not active in this release, so no
+    // purchase token can ever be credited.
+    assertFeatureEnabled(COIN_PURCHASES_ENABLED, FEATURE_OFF_MESSAGES.purchases);
     const { userId, supabase } = context;
 
     const { data: profile } = await supabase

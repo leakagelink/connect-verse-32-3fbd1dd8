@@ -9,8 +9,15 @@ import { listFeaturedFanClubs } from "@/lib/discovery.functions";
 import { joinFanClub } from "@/lib/creator.functions";
 import { toast } from "sonner";
 import { useState } from "react";
+import { PAID_EXTRAS_ENABLED } from "@/lib/feature-flags";
 
 export function FanClubSpotlight() {
+  // Fan clubs are coin-priced memberships — hidden while coins are off.
+  if (!PAID_EXTRAS_ENABLED) return null;
+  return <FanClubSpotlightInner />;
+}
+
+function FanClubSpotlightInner() {
   const fn = useServerFn(listFeaturedFanClubs);
   const join = useServerFn(joinFanClub);
   const qc = useQueryClient();

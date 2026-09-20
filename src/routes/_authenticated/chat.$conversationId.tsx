@@ -16,6 +16,7 @@ import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { CoinBadge } from "@/components/coin-badge";
+import { COINS_ENABLED, PAID_CHAT_ENABLED } from "@/lib/feature-flags";
 import { ReportDialog } from "@/components/report-dialog";
 import { ArrowLeft, Send, Sparkles, UserPlus, UserCheck, UserX, Check, X, Phone, Smile } from "lucide-react";
 import { toast } from "sonner";
@@ -243,15 +244,22 @@ function ChatRoom() {
             <p className="text-xs text-success font-medium">Online</p>
           </div>
 
-          <CoinBadge value={coinBal} />
+          {COINS_ENABLED && <CoinBadge value={coinBal} />}
           {otherUserId && <ReportDialog targetUserId={otherUserId} conversationId={conversationId} />}
         </div>
 
         {/* Follow / meta row */}
         <div className="mx-auto max-w-3xl flex items-center justify-between gap-2 px-3 pb-2">
           <p className="text-[11px] text-muted-foreground truncate">
-            {freeSec > 0 ? `${Math.floor(freeSec/60)}m free · ` : ""}
-            {CHAT_COINS_PER_MINUTE} coins/min{messageCost > 0 ? ` · ${messageCost} coin/msg` : " · msgs free"}
+            {PAID_CHAT_ENABLED ? (
+              <>
+                {freeSec > 0 ? `${Math.floor(freeSec / 60)}m free · ` : ""}
+                {CHAT_COINS_PER_MINUTE} coins/min
+                {messageCost > 0 ? ` · ${messageCost} coin/msg` : " · msgs free"}
+              </>
+            ) : (
+              "Chatting is free · unlimited messages"
+            )}
           </p>
           <div className="flex items-center gap-2">
             {partner?.incoming === "pending" ? (
@@ -357,11 +365,13 @@ function ChatRoom() {
           <div className="mx-auto max-w-xs rounded-2xl bg-background border border-primary/20 p-4 text-center mt-6 shadow-md">
             <Sparkles className="mx-auto size-5 text-primary" />
             <p className="mt-2 text-sm font-medium">Chat session ended.</p>
-            <Link to="/recharge">
-              <Button size="sm" className="mt-2 bg-gradient-to-r from-primary to-accent text-primary-foreground rounded-full">
-                Recharge coins
-              </Button>
-            </Link>
+            {PAID_CHAT_ENABLED && (
+              <Link to="/recharge">
+                <Button size="sm" className="mt-2 bg-gradient-to-r from-primary to-accent text-primary-foreground rounded-full">
+                  Recharge coins
+                </Button>
+              </Link>
+            )}
           </div>
         )}
       </div>

@@ -20,6 +20,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { MysteryPanel } from "@/components/mystery-panel";
 import { InCallRecharge } from "@/components/in-call-recharge";
 import { GiftPanel } from "@/components/gift-panel";
+import { CALL_BILLING_ENABLED, GIFTS_ENABLED, PAID_EXTRAS_ENABLED } from "@/lib/feature-flags";
 import { listGifts, sendGift } from "@/lib/gifts.functions";
 import { getWallet } from "@/lib/wallet.functions";
 
@@ -197,7 +198,13 @@ function CallScreen() {
 
 
 
-  const perMin = kind === "video" ? VIDEO_CALL_COINS_PER_MINUTE : VOICE_CALL_COINS_PER_MINUTE;
+  // Free release: calls cost nothing per minute, so the whole coin ledger
+  // below collapses to "no limit" and the paid HUD/warnings stay hidden.
+  const perMin = !CALL_BILLING_ENABLED
+    ? 0
+    : kind === "video"
+      ? VIDEO_CALL_COINS_PER_MINUTE
+      : VOICE_CALL_COINS_PER_MINUTE;
   const endLogFn = useServerFn(endCallLog);
   const applyUsageFn = useServerFn(applyCallUsage);
   const inviteStatusFn = useServerFn(getCallInviteStatus);
@@ -694,14 +701,15 @@ function CallScreen() {
   const coinsConsumed = Math.ceil((coinSecondsUsed * perMin) / 60);
   const coinsLeft = Math.max(0, coinsAvail - coinsConsumed);
   // Seconds the remaining coin balance can still buy after free time ends.
-  const coinSecondsLeft = Math.floor((coinsLeft * 60) / perMin);
+  const coinSecondsLeft = perMin > 0 ? Math.floor((coinsLeft * 60) / perMin) : Number.MAX_SAFE_INTEGER;
   const totalSecondsLeft = freeLeftSec + coinSecondsLeft;
   const usingFree = freeLeftSec > 0;
   // Server-resolved billing: a creator calling a regular user means the
   // CALLEE is the payer. We honour amPayerState whenever it has loaded.
   const isPayer = amPayerState ?? (callRoleRef.current !== "callee");
-  const outOfFunds = connected && isPayer && totalSecondsLeft <= 0;
-  const criticalTime = isPayer && perMin > 0 && totalSecondsLeft > 0 && totalSecondsLeft <= 60;
+  const outOfFunds = CALL_BILLING_ENABLED && connected && isPayer && totalSecondsLeft <= 0;
+  const criticalTime =
+    CALL_BILLING_ENABLED && isPayer && perMin > 0 && totalSecondsLeft > 0 && totalSecondsLeft <= 60;
 
   // Seed live ledger snapshots the moment the profile is available — so the
   // "5:00 free" countdown is visible from the very start of the call screen.
@@ -1899,13 +1907,19 @@ function CallScreen() {
               >
                 <UserCircle2 className="size-3.5" /> Profile
               </button>
-              <div className="px-2.5 py-1 rounded-full bg-coin/80 text-xs font-semibold flex items-center gap-1">
-                <Coins className="size-3" /> {perMin} / min
-              </div>
+              {CALL_BILLING_ENABLED ? (
+                <div className="px-2.5 py-1 rounded-full bg-coin/80 text-xs font-semibold flex items-center gap-1">
+                  <Coins className="size-3" /> {perMin} / min
+                </div>
+              ) : (
+                <div className="px-2.5 py-1 rounded-full bg-emerald-500/80 text-xs font-semibold">
+                  Free call
+                </div>
+              )}
             </div>
           </div>
           {/* Low-time warning — escalates in last 60s */}
-          {isPayer && perMin > 0 && totalSecondsLeft > 0 && totalSecondsLeft <= 180 && (
+          {CALL_BILLING_ENABLED && isPayer && perMin > 0 && totalSecondsLeft > 0 && totalSecondsLeft <= 180 && (
             (() => {
               const critical = totalSecondsLeft <= 60;
               const mm = String(Math.floor(totalSecondsLeft / 60)).padStart(2, "0");
@@ -1966,7 +1980,7 @@ function CallScreen() {
             })()
           )}
           {/* Live free-time / coin-balance HUD — visible from call start */}
-          {freeStart !== null && (
+          {CALL_BILLING_ENABLED && freeStart !== null && (
             <div className="absolute bottom-12 left-3 right-3 flex items-center justify-between gap-2 text-white">
               <div
                 className={`px-2.5 py-1 rounded-full text-[11px] font-semibold backdrop-blur transition-colors ${
@@ -2039,27 +2053,29 @@ function CallScreen() {
           >
             {speakerOn ? <Volume2 className="size-5" /> : <VolumeX className="size-5" />}
           </Button>
-          <Button
-            size="icon"
-            variant="secondary"
-            onClick={() => {
-              setGiftOpen(true);
-              recordCallUiEvent({
-                eventType: "ui_gift_open",
-                callLogId: callLogIdRef.current,
-                partnerUserId: userId,
-                kind,
-                ok: true,
-                meta: { connected, criticalTime },
-              });
-            }}
-            disabled={!connected || criticalTime}
-            aria-label="Send gift"
-            title={criticalTime ? "Disabled — last 60 seconds" : undefined}
-            className="relative"
-          >
-            <Gift className="size-5 text-pink-500" />
-          </Button>
+          {GIFTS_ENABLED && (
+            <Button
+              size="icon"
+              variant="secondary"
+              onClick={() => {
+                setGiftOpen(true);
+                recordCallUiEvent({
+                  eventType: "ui_gift_open",
+                  callLogId: callLogIdRef.current,
+                  partnerUserId: userId,
+                  kind,
+                  ok: true,
+                  meta: { connected, criticalTime },
+                });
+              }}
+              disabled={!connected || criticalTime}
+              aria-label="Send gift"
+              title={criticalTime ? "Disabled — last 60 seconds" : undefined}
+              className="relative"
+            >
+              <Gift className="size-5 text-pink-500" />
+            </Button>
+          )}
           <Button
             data-testid="end-call-btn"
             size="icon"
@@ -2144,8 +2160,8 @@ function CallScreen() {
         </div>
 
 
-        {/* Mystery game controls */}
-        <div className="px-4 pb-3">
+        {/* Mystery game controls — coin-priced, hidden in the free release */}
+        <div className={PAID_EXTRAS_ENABLED ? "px-4 pb-3" : "hidden"}>
           {isMale ? (
             <>
               <Button

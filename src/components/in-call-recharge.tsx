@@ -22,6 +22,7 @@ import { parseRechargeError, type ParsedRechargeError } from "@/lib/recharge-err
 import { RechargeHelpDialog } from "./recharge-help-dialog";
 import { HelpCircle } from "lucide-react";
 import { useEffect } from "react";
+import { COIN_PURCHASES_ENABLED } from "@/lib/feature-flags";
 
 type Props = {
   open: boolean;
@@ -49,7 +50,13 @@ export type RechargeMeta = {
   newBalance: number;
 };
 
-export function InCallRecharge({ open, onOpenChange, requiredCoins, onRecharged }: Props) {
+export function InCallRecharge(props: Props) {
+  // Calls are free in this release, so there is nothing to recharge.
+  if (!COIN_PURCHASES_ENABLED) return null;
+  return <InCallRechargeInner {...props} />;
+}
+
+function InCallRechargeInner({ open, onOpenChange, requiredCoins, onRecharged }: Props) {
   const qc = useQueryClient();
   const plansFn = useServerFn(listPlayPlans);
   const walletFn = useServerFn(getWallet);

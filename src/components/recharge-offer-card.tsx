@@ -2,8 +2,11 @@ import { Link } from "@tanstack/react-router";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Gift, ChevronRight } from "lucide-react";
+import { COIN_PURCHASES_ENABLED } from "@/lib/feature-flags";
 
 export function RechargeOfferCard({ depositCount }: { depositCount: number }) {
+  // No purchases exist in the free release, so never advertise a bonus.
+  if (!COIN_PURCHASES_ENABLED) return null;
   // Only show if user still has a bonus tier remaining (0, 1, or 2 deposits done)
   if (depositCount >= 3) return null;
 

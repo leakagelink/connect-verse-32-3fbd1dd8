@@ -5,6 +5,7 @@ import { withAiAvatar, withAiAvatars } from "./ai-avatar";
 import { notifyUser, notifyIncomingCall, notifyCallEnded } from "./push.functions";
 import { VOICE_CALL_COINS_PER_MINUTE, VIDEO_CALL_COINS_PER_MINUTE } from "./constants";
 import { logCallEvent } from "./call-telemetry.server";
+import { CALL_BILLING_ENABLED } from "./feature-flags";
 
 const KindSchema = z.enum(["voice", "video"]);
 const InviteIdSchema = z.object({ inviteId: z.string().uuid() });
@@ -699,11 +700,10 @@ export const acceptCallInvite = createServerFn({ method: "POST" })
     await refreshStaleBusy(db, invite.caller_id).catch(() => false);
 
     // ---------- Payer-balance gate ----------
-    // If the accepting user IS the payer (i.e., a creator initiated the call
-    // to them), make sure they can afford at least one minute of talk time.
-    // Otherwise show a recharge prompt instead of connecting a call that
-    // would instantly run dry.
-    if (context.userId === parties.payerId) {
+    // Only applies when call billing is on. In the free release calls cost
+    // nothing, so this affordability check is skipped — every other check
+    // (ban, block, busy, callable) still runs above.
+    if (CALL_BILLING_ENABLED && context.userId === parties.payerId) {
       const perMin = invite.kind === "video" ? VIDEO_CALL_COINS_PER_MINUTE : VOICE_CALL_COINS_PER_MINUTE;
       const [{ data: payerProf }, { data: payerWallet }] = await Promise.all([
         db.from("profiles").select("free_seconds_remaining").eq("id", parties.payerId).maybeSingle(),
