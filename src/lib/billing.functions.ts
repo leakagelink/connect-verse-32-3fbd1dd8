@@ -1,6 +1,12 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import {
+  COIN_PURCHASES_ENABLED,
+  GOOGLE_PLAY_BILLING_ENABLED,
+  FEATURE_OFF_MESSAGES,
+  assertFeatureEnabled,
+} from "./feature-flags";
 
 /**
  * Google Play Billing — server side.
@@ -19,6 +25,8 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 export const listPlayPlans = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
+    // Free release: no purchasable packs are exposed to any client.
+    if (!COIN_PURCHASES_ENABLED) return [];
     const { data } = await context.supabase
       .from("coin_plans")
       .select("id, label, coins, price_inr, play_product_id, sort_order")
