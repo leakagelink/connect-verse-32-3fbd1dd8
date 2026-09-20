@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { PAID_EXTRAS_ENABLED, FEATURE_OFF_MESSAGES, assertFeatureEnabled } from "./feature-flags";
 
 export const CASE_GENERATION_COIN_COST = 50;
 
@@ -140,6 +141,9 @@ export const generateMysteryCase = createServerFn({ method: "POST" })
     if (profile.gender !== "male") {
       throw new Error("Only male players can host a mystery case");
     }
+
+    // Hosting a case costs coins, so it is unavailable in the free release.
+    assertFeatureEnabled(PAID_EXTRAS_ENABLED, FEATURE_OFF_MESSAGES.extras);
 
     // Verify wallet balance
     const { data: wallet, error: wErr } = await supabase

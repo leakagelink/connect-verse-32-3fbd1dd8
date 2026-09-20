@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { COIN_REWARDS_ENABLED, FEATURE_OFF_MESSAGES, assertFeatureEnabled } from "./feature-flags";
 
 // Day-N reward schedule (resets after day 7).
 export const STREAK_REWARDS = [10, 20, 30, 50, 75, 100, 200];
@@ -59,6 +60,8 @@ export const getCheckinStatus = createServerFn({ method: "GET" })
 export const claimDailyCheckin = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
+    // No coin rewards can be minted while the coin economy is off.
+    assertFeatureEnabled(COIN_REWARDS_ENABLED, FEATURE_OFF_MESSAGES.coins);
     const { supabase, userId } = context;
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 

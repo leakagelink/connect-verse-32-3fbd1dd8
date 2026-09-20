@@ -154,6 +154,8 @@ export const joinFanClub = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((d) => z.object({ creatorId: z.string().uuid() }).parse(d))
   .handler(async ({ context, data }) => {
+    // Fan clubs are coin-priced — unavailable until monetization returns.
+    assertFeatureEnabled(PAID_EXTRAS_ENABLED, FEATURE_OFF_MESSAGES.extras);
     const { userId } = context;
     if (userId === data.creatorId) throw new Error("Cannot join your own fan club");
 
