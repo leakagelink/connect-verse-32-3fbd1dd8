@@ -5,6 +5,7 @@ import { withAiAvatar, withAiAvatars } from "./ai-avatar";
 import { notifyUser, notifyIncomingCall, notifyCallEnded } from "./push.functions";
 import { VOICE_CALL_COINS_PER_MINUTE, VIDEO_CALL_COINS_PER_MINUTE } from "./constants";
 import { logCallEvent } from "./call-telemetry.server";
+import { CALL_BILLING_ENABLED } from "./feature-flags";
 
 const KindSchema = z.enum(["voice", "video"]);
 const InviteIdSchema = z.object({ inviteId: z.string().uuid() });

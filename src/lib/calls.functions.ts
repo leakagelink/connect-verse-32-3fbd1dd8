@@ -3,6 +3,7 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { withAiAvatars } from "./ai-avatar";
 import { logCallEvent, maybeLogConnected } from "./call-telemetry.server";
+import { CALL_BILLING_ENABLED } from "./feature-flags";
 
 // If `resumeId` is supplied AND it matches an in-progress call between the
 // same two users that was last touched within RESUME_WINDOW_SECONDS, we
