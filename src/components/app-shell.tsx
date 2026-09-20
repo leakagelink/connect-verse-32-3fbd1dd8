@@ -3,6 +3,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { Home, MessageCircle, Wallet, User, Shield, Coins, Sparkles, Zap, History } from "lucide-react";
+import { COINS_ENABLED } from "@/lib/feature-flags";
 import { cn } from "@/lib/utils";
 import { getMyProfile } from "@/lib/onboarding.functions";
 import { APP_NAME } from "@/lib/constants";
@@ -91,10 +92,14 @@ export function AppShell({ children, isAdmin }: { children: ReactNode; isAdmin?:
     }
   }, [me?.profile?.language, locale, setLocale]);
 
+  // Free release: the wallet tab is replaced by call history, since there is
+  // no balance to manage.
   const nav = [
     { to: "/home", label: t("nav.discover"), icon: Home },
     { to: "/chat", label: t("nav.chats"), icon: MessageCircle },
-    { to: "/wallet", label: t("nav.wallet"), icon: Wallet },
+    COINS_ENABLED
+      ? { to: "/wallet", label: t("nav.wallet"), icon: Wallet }
+      : { to: "/recents", label: "Recents", icon: History },
     { to: "/settings", label: t("nav.profile"), icon: User },
   ] as const;
 
@@ -148,22 +153,24 @@ export function AppShell({ children, isAdmin }: { children: ReactNode; isAdmin?:
           </Link>
 
           <div className="flex min-w-0 items-center justify-end gap-1 sm:gap-1.5">
-            {/* Coin pill — gold gradient, matches palette accent */}
-            <Link
-              to="/recharge"
-              aria-label={`Available coins: ${balance.toLocaleString("en-IN")}. Recharge`}
-              className={cn(
-                "group shimmer-sweep inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full border border-[color-mix(in_oklab,var(--coin)_45%,transparent)] bg-[linear-gradient(135deg,color-mix(in_oklab,var(--coin)_22%,var(--surface))_0%,var(--surface)_60%,color-mix(in_oklab,var(--primary)_14%,var(--surface))_100%)] pl-2 pr-1 text-xs font-bold text-foreground shadow-[0_4px_12px_-6px_color-mix(in_oklab,var(--coin)_55%,transparent)] transition hover:-translate-y-px hover:shadow-[0_8px_18px_-6px_color-mix(in_oklab,var(--coin)_65%,transparent)]"
-              )}
-            >
-              <Coins className="relative z-10 size-3.5 text-coin" />
-              <span className="relative z-10 truncate max-w-[70px] tabular-nums sm:max-w-none">
-                {balance.toLocaleString("en-IN")}
-              </span>
-              <span className="relative z-10 grid size-5 place-items-center rounded-full bg-gradient-brand text-[12px] leading-none text-primary-foreground shadow-sm">
-                +
-              </span>
-            </Link>
+            {/* Coin pill — only when the coin economy is live. */}
+            {COINS_ENABLED && (
+              <Link
+                to="/recharge"
+                aria-label={`Available coins: ${balance.toLocaleString("en-IN")}. Recharge`}
+                className={cn(
+                  "group shimmer-sweep inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full border border-[color-mix(in_oklab,var(--coin)_45%,transparent)] bg-[linear-gradient(135deg,color-mix(in_oklab,var(--coin)_22%,var(--surface))_0%,var(--surface)_60%,color-mix(in_oklab,var(--primary)_14%,var(--surface))_100%)] pl-2 pr-1 text-xs font-bold text-foreground shadow-[0_4px_12px_-6px_color-mix(in_oklab,var(--coin)_55%,transparent)] transition hover:-translate-y-px hover:shadow-[0_8px_18px_-6px_color-mix(in_oklab,var(--coin)_65%,transparent)]"
+                )}
+              >
+                <Coins className="relative z-10 size-3.5 text-coin" />
+                <span className="relative z-10 truncate max-w-[70px] tabular-nums sm:max-w-none">
+                  {balance.toLocaleString("en-IN")}
+                </span>
+                <span className="relative z-10 grid size-5 place-items-center rounded-full bg-gradient-brand text-[12px] leading-none text-primary-foreground shadow-sm">
+                  +
+                </span>
+              </Link>
+            )}
 
             <HeaderIconLink
               to="/chat"
