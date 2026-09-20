@@ -143,13 +143,14 @@ export const sendMessage = createServerFn({ method: "POST" })
     }
 
 
-    // Male senders pay coins per message; females are free
+    // Paid chat (male senders pay coins per message) is disabled while
+    // PAID_CHAT_ENABLED is false — messaging is free for everyone.
     const { data: senderProfile } = await supabase
       .from("profiles").select("gender").eq("id", userId).maybeSingle();
     const isMale = senderProfile?.gender === "male";
     let charged = 0;
 
-    if (isMale && MESSAGE_COIN_COST_MALE > 0) {
+    if (PAID_CHAT_ENABLED && isMale && MESSAGE_COIN_COST_MALE > 0) {
       const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
       const { data: wallet } = await supabaseAdmin
         .from("wallets").select("coin_balance").eq("user_id", userId).single();
