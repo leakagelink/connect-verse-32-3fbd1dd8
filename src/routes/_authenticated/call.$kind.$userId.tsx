@@ -2160,8 +2160,8 @@ function CallScreen() {
         </div>
 
 
-        {/* Mystery game controls */}
-        <div className="px-4 pb-3">
+        {/* Mystery game controls — coin-priced, hidden in the free release */}
+        <div className={PAID_EXTRAS_ENABLED ? "px-4 pb-3" : "hidden"}>
           {isMale ? (
             <>
               <Button
