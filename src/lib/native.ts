@@ -76,17 +76,33 @@ export async function applyChromeForApp(): Promise<void> {
  */
 export function onHardwareBack(handler: () => boolean | void): () => void {
   if (!isNative()) return () => {};
+  let disposed = false;
   let cleanup: (() => void) | undefined;
   (async () => {
     const { App } = await import('@capacitor/app');
-    const sub = await App.addListener('backButton', () => {
+    const sub = await App.addListener('backButton', ({ canGoBack }) => {
+      // If this subscriber was already torn down (e.g. the user left the call
+      // screen) never act on the event — an orphaned listener used to close
+      // the whole app on the next back press.
+      if (disposed) return;
       const handled = handler();
-      if (!handled) App.exitApp();
+      if (handled) return;
+      // Not handled: behave like a normal Android app — step back through
+      // history and only leave the app when we are already at the first screen.
+      if (canGoBack || (typeof window !== 'undefined' && window.history.length > 1)) {
+        try { window.history.back(); return; } catch { /* ignore */ }
+      }
+      App.exitApp();
     });
+    if (disposed) { sub.remove(); return; }
     cleanup = () => sub.remove();
   })();
-  return () => cleanup?.();
+  return () => {
+    disposed = true;
+    cleanup?.();
+  };
 }
+
 
 /* ---------------- External browser (Play Store compliant payments) ----------------
  * Google Play policy prohibits alternative billing (Razorpay/Juspay/etc.) for
