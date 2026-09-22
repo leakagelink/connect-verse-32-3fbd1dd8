@@ -9,13 +9,10 @@ import { getMyProfile } from "@/lib/onboarding.functions";
 import { getOrCreateConversation } from "@/lib/chat.functions";
 import { heartbeat, listOnlineCreators, listOnlineUsers } from "@/lib/presence.functions";
 import { listRooms } from "@/lib/rooms.functions";
-import { getWallet } from "@/lib/wallet.functions";
 import { AppShell } from "@/components/app-shell";
 import { EngagementStrip } from "@/components/engagement-strip";
 import { LiveCreatorsStrip } from "@/components/live-creators-strip";
 import { QuickActionsGrid } from "@/components/quick-actions-grid";
-import { RechargeOfferCard } from "@/components/recharge-offer-card";
-import { MatchmakerRoomsSection } from "@/components/matchmaker-rooms-section";
 import { TrendingNowSection } from "@/components/trending-now-section";
 import { FanClubSpotlight } from "@/components/fan-club-spotlight";
 import { RecentlyPlayedSection } from "@/components/recently-played-section";
@@ -44,10 +41,8 @@ function Home() {
   const beat = useServerFn(heartbeat);
   const rooms = useServerFn(listRooms);
   const startChat = useServerFn(getOrCreateConversation);
-  const wallet = useServerFn(getWallet);
 
   const { data: me } = useQuery({ queryKey: ["me"], queryFn: () => getProfile(), staleTime: 5 * 60_000 });
-  const { data: walletData } = useQuery({ queryKey: ["wallet"], queryFn: () => wallet(), staleTime: 60_000 });
   const { data: onlineUsers, isLoading: loadingOnline, refetch: refetchOnline } = useQuery({
     queryKey: ["online"], queryFn: () => online(), staleTime: 30_000,
   });
