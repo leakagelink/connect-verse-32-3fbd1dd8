@@ -6,69 +6,26 @@ import { withAiAvatar, withAiAvatars } from "./ai-avatar";
 const ONLINE_WINDOW_SECONDS = 60;
 
 // =============================================================
-// TRENDING NOW — top gifted creator (24h), hot room, new joiners (1h)
+// TRENDING NOW — new joiners (1h).
+// Gift-based and matchmaking-based trending are disabled in this release, so
+// discovery here is neutral: no gender or paid signal decides promotion.
 // =============================================================
 export const getTrendingNow = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const { supabase } = context;
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const since24h = new Date(Date.now() - 24 * 3600_000).toISOString();
     const since1h = new Date(Date.now() - 3600_000).toISOString();
 
-    const [{ data: gifts }, { data: rooms }, { count: newJoiners }] = await Promise.all([
-      supabase
-        .from("gift_sends")
-        .select("receiver_id, coins_spent")
-        .gte("created_at", since24h)
-        .limit(500),
-
-      supabase
-        .from("matchmaker_rooms")
-        .select("id, title, listener_count, host_id, started_at")
-        .eq("status", "live")
-        .order("listener_count", { ascending: false })
-        .limit(1),
-      supabase
-        .from("profiles")
-        .select("id", { count: "exact", head: true })
-        .gte("created_at", since1h)
-        .eq("onboarded", true)
-        .eq("is_banned", false),
-    ]);
-
-    // Aggregate top gifted creator
-    const tally = new Map<string, number>();
-    for (const g of gifts ?? []) {
-      tally.set(g.receiver_id, (tally.get(g.receiver_id) ?? 0) + Number(g.coins_spent ?? 0));
-    }
-    let topGiftedId: string | null = null;
-    let topGiftedCoins = 0;
-    for (const [id, c] of tally) {
-      if (c > topGiftedCoins) { topGiftedId = id; topGiftedCoins = c; }
-    }
-
-    let topGifted: any = null;
-    const hot = rooms?.[0] ?? null;
-    let hotHost: any = null;
-    const profileIds = [topGiftedId, hot?.host_id].filter(Boolean) as string[];
-    if (profileIds.length) {
-      const { data: profs } = await supabaseAdmin
-        .from("profiles")
-        .select("id, username, avatar_url, ai_avatar_style, country, language, is_creator, gender, is_banned, onboarded, deleted_at")
-        .in("id", profileIds)
-        .eq("is_banned", false)
-        .eq("onboarded", true)
-        .is("deleted_at", null);
-      const mapped = withAiAvatars(profs ?? []);
-      const map = new Map(mapped.map((p) => [p.id, p]));
-      if (topGiftedId) topGifted = { ...map.get(topGiftedId), coins_received: topGiftedCoins };
-      if (hot) hotHost = map.get(hot.host_id);
-    }
+    const { count: newJoiners } = await supabase
+      .from("profiles")
+      .select("id", { count: "exact", head: true })
+      .gte("created_at", since1h)
+      .eq("onboarded", true)
+      .eq("is_banned", false);
 
     return {
-      topGifted,
-      hotRoom: hot ? { ...hot, host: hotHost } : null,
+      topGifted: null as null,
+      hotRoom: null as null,
       newJoinersLastHour: newJoiners ?? 0,
     };
   });

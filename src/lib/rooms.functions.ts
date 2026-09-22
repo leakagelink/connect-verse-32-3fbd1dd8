@@ -2,16 +2,24 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { withAiAvatars } from "./ai-avatar";
+import {
+  GENDER_GATED_ROOMS_ENABLED,
+  FEATURE_OFF_MESSAGES,
+  assertFeatureEnabled,
+} from "./feature-flags";
 
 export const listRooms = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const { supabase } = context;
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data: rooms } = await supabase
+    let roomQuery = supabase
       .from("rooms")
       .select("id, host_id, title, topic, kind, max_seats, cover_url, gender_gate, created_at")
-      .eq("is_active", true)
+      .eq("is_active", true);
+    // Gender-gated rooms are not listed in this release.
+    if (!GENDER_GATED_ROOMS_ENABLED) roomQuery = roomQuery.eq("gender_gate", "all");
+    const { data: rooms } = await roomQuery
       .order("created_at", { ascending: false })
       .limit(80);
     if (!rooms?.length) return [];
@@ -39,21 +47,17 @@ export const createRoom = createServerFn({ method: "POST" })
     topic: z.string().trim().max(160).optional(),
     kind: z.enum(["voice", "video", "game", "live"]),
     max_seats: z.number().int().min(2).max(20).default(8),
+    // Gender-gated rooms are disabled for this release; only neutral community
+    // rooms can be created. The column stays for future architecture.
     gender_gate: z.enum(["all", "ladies_lounge"]).default("all"),
   }).parse(d))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
 
-    // Ladies Lounge can only be hosted by verified female creators.
-    if (data.gender_gate === "ladies_lounge") {
-      const { data: host } = await supabase
-        .from("profiles")
-        .select("gender, is_creator")
-        .eq("id", userId)
-        .maybeSingle();
-      if (host?.gender !== "female") {
-        throw new Error("Only female creators can host a Ladies Lounge room.");
-      }
+    // Server-side rejection: no gender-restricted room may be created while
+    // GENDER_GATED_ROOMS_ENABLED is false, whatever the client sends.
+    if (data.gender_gate !== "all") {
+      assertFeatureEnabled(GENDER_GATED_ROOMS_ENABLED, FEATURE_OFF_MESSAGES.genderRooms);
     }
 
     const { data: room, error } = await supabase
@@ -64,7 +68,7 @@ export const createRoom = createServerFn({ method: "POST" })
         topic: data.topic ?? null,
         kind: data.kind,
         max_seats: data.max_seats,
-        gender_gate: data.gender_gate,
+        gender_gate: GENDER_GATED_ROOMS_ENABLED ? data.gender_gate : "all",
       })
       .select("id")
       .single();
@@ -85,16 +89,10 @@ export const joinRoom = createServerFn({ method: "POST" })
       .maybeSingle();
     if (!room || !room.is_active) throw new Error("Room is not available");
 
-    // Ladies Lounge: males may join only as listener (no speaker seat).
-    // We mark this on the participant via room_participants metadata — the
-    // room UI uses gender_gate + caller gender to render mic-disabled mode.
-    if (room.gender_gate === "ladies_lounge") {
-      const { data: me } = await supabase
-        .from("profiles").select("gender").eq("id", userId).maybeSingle();
-      if (me?.gender !== "female" && me?.gender !== "male") {
-        throw new Error("Ladies Lounge: cannot join with this profile.");
-      }
-      // males proceed but the UI will disable mic + camera.
+    // Gender-gated rooms are disabled: no gender check decides access, and any
+    // legacy gender-restricted room is not joinable in this release.
+    if (room.gender_gate && room.gender_gate !== "all") {
+      assertFeatureEnabled(GENDER_GATED_ROOMS_ENABLED, FEATURE_OFF_MESSAGES.genderRooms);
     }
 
     const { count } = await supabase.from("room_participants").select("id", { count: "exact", head: true }).eq("room_id", data.roomId);

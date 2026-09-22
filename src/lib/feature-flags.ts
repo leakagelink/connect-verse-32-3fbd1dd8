@@ -45,6 +45,14 @@ export const KYC_FOR_PAYOUTS_ENABLED = MONETIZATION_ENABLED;
 export const COIN_REWARDS_ENABLED = COINS_ENABLED;
 export const PAID_EXTRAS_ENABLED = COINS_ENABLED;
 
+// --- Non-monetization release gates ---
+/** Random matchmaking / matchmaker rooms are not part of this release. */
+export const RANDOM_MATCHMAKING_ENABLED = false;
+/** Gender-gated rooms (e.g. "Ladies Lounge") are not part of this release. */
+export const GENDER_GATED_ROOMS_ENABLED = false;
+/** Free-minute quotas only exist when calls are billed. */
+export const FREE_MINUTES_ENABLED = CALL_BILLING_ENABLED;
+
 /** Read-only view used by the admin Monetization Settings panel. */
 export const MONETIZATION_FLAGS: Array<{ label: string; enabled: boolean }> = [
   { label: "Monetization Enabled", enabled: MONETIZATION_ENABLED },
@@ -74,4 +82,6 @@ export const FEATURE_OFF_MESSAGES = {
   withdrawals: "Payouts are not available in this version of Talkora.",
   kyc: "Payout verification is not available in this version of Talkora.",
   extras: "This feature is coming soon.",
+  matchmaking: "Matchmaking is not available in this version of Talkora.",
+  genderRooms: "Gender-restricted rooms are not available in this version of Talkora.",
 } as const;
