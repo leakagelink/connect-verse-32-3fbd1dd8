@@ -84,11 +84,11 @@ function ChildSafety() {
 
         <Section icon={Eye} title="How we prevent and detect abuse">
           <ul className="list-disc space-y-1 pl-5">
-            <li>Automated keyword and pattern filters block banned and high-risk content in chat.</li>
+            <li>Keyword and pattern filters block banned and high-risk words in chat messages.</li>
             <li>In-app Report and Block are available on every profile, chat and call.</li>
-            <li>An in-call SOS button escalates urgent safety incidents to our team.</li>
+            <li>An in-call SOS button raises an urgent safety report for our team to review.</li>
             <li>Sharing phone numbers, emails and social handles is blocked in chat.</li>
-            <li>Confirmed safety strikes lead to automatic account bans.</li>
+            <li>Reports are reviewed by our moderation team, which can ban the account.</li>
           </ul>
         </Section>
 
@@ -123,11 +123,13 @@ function ChildSafety() {
         <Section icon={Scale} title="Enforcement and cooperation">
           <ul className="list-disc space-y-1 pl-5">
             <li>
-              Accounts involved in CSAE are permanently banned without warning.
+              Accounts confirmed to be involved in CSAE are permanently banned after
+              review, without warning.
             </li>
             <li>
-              Suspected CSAM is preserved, escalated internally, and reported to the
-              relevant authorities as required by applicable law.
+              Report records related to a CSAE case are retained and escalated to our
+              safety team, and we report to the relevant authorities where applicable law
+              requires it.
             </li>
             <li>
               We respond to lawful requests from law enforcement and child protection
