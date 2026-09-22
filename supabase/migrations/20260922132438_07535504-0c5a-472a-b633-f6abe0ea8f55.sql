@@ -1,0 +1,1 @@
+ALTER TYPE public.report_reason ADD VALUE IF NOT EXISTS 'child_safety';

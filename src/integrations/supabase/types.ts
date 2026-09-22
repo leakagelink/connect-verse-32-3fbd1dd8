@@ -2340,6 +2340,7 @@ export type Database = {
         | "scam"
         | "underage"
         | "other"
+        | "child_safety"
       report_status: "open" | "reviewed" | "actioned" | "dismissed"
       room_kind: "voice" | "video" | "game" | "live"
       txn_type:
@@ -2510,6 +2511,7 @@ export const Constants = {
         "scam",
         "underage",
         "other",
+        "child_safety",
       ],
       report_status: ["open", "reviewed", "actioned", "dismissed"],
       room_kind: ["voice", "video", "game", "live"],
