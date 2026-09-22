@@ -291,11 +291,7 @@ export function CreatorPreviewDialog({ userId, kind, onOpenChange, onConfirm, on
                   disabled={joinMut.isPending}
                   onClick={() => joinMut.mutate()}
                 >
-                  {joinMut.isPending
-                    ? "…"
-                    : fanClubQuery.data.active
-                      ? `Extend · ${fanClubQuery.data.club.monthly_coins}`
-                      : `Join · ${fanClubQuery.data.club.monthly_coins}`}
+                  {joinMut.isPending ? "…" : fanClubQuery.data.active ? "Extend" : "Join"}
                 </Button>
               </div>
             )}
