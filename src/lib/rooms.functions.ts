@@ -13,10 +13,13 @@ export const listRooms = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     const { supabase } = context;
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data: rooms } = await supabase
+    let roomQuery = supabase
       .from("rooms")
       .select("id, host_id, title, topic, kind, max_seats, cover_url, gender_gate, created_at")
-      .eq("is_active", true)
+      .eq("is_active", true);
+    // Gender-gated rooms are not listed in this release.
+    if (!GENDER_GATED_ROOMS_ENABLED) roomQuery = roomQuery.eq("gender_gate", "all");
+    const { data: rooms } = await roomQuery
       .order("created_at", { ascending: false })
       .limit(80);
     if (!rooms?.length) return [];
