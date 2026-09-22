@@ -126,10 +126,11 @@ Expected outcome: **Mature 17+**. Target audience: 18 and over only. Turn OFF
 | 1 | Chat | "Free unlimited chat" |
 | 2 | Call | "Free voice & video calls" |
 | 3 | Safety | "Block, report, SOS — 18+ only" |
-| 4 | Wallet/free notice | "No coins, no purchases" |
+| 4 | Profile / Discovery | "Find people and start talking" |
 
 Screenshots must show only what the app actually does today — no coin packs, no
-gift animations, no earnings dashboards.
+recharge or wallet screens, no gift animations, no earnings dashboards, and no
+admin or moderation dashboards.
 
 ---
 
@@ -137,8 +138,10 @@ gift animations, no earnings dashboards.
 
 - [ ] Test account credentials filled in Console → App content → App access.
 - [ ] Sensitive permission justifications submitted for camera, microphone,
-      foreground service (microphone/camera), post-notifications, and
-      battery-optimization exemption (VoIP incoming calls).
+      foreground service (microphone/camera), and post-notifications.
+- [ ] Talkora does not request a battery-optimization exemption; the build
+      declares only the permissions required for legitimate voice/video calling
+      and incoming-call delivery.
 - [ ] UGC declaration: in-app reporting, moderation workflow, 18+ gate.
 - [ ] Child safety standards URL submitted in Console → App content.
 - [ ] Account deletion reachable in-app and at `/delete-account` without login.
