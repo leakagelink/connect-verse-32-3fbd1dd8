@@ -11,10 +11,9 @@ import { CALL_BILLING_ENABLED } from "./feature-flags";
 // / reconnect continue the same call_log without double-charging the user.
 const RESUME_WINDOW_SECONDS = 5 * 60;
 
-// Cooling-off: new male accounts (first 24h since signup) may only initiate
-// NEW_MALE_DAILY_CALL_CAP outbound calls in their first 24h. Drastically cuts
-// spam/harassment from disposable accounts.
-const NEW_MALE_DAILY_CALL_CAP = 10;
+// Cooling-off: any brand-new account (first 24h since signup) may only initiate
+// NEW_ACCOUNT_DAILY_CALL_CAP outbound calls. Gender-neutral anti-spam limit.
+const NEW_ACCOUNT_DAILY_CALL_CAP = 10;
 const NEW_ACCOUNT_WINDOW_HOURS = 24;
 
 export const startCallLog = createServerFn({ method: "POST" })
