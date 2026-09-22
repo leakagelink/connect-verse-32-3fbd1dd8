@@ -1,6 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { Card } from "@/components/ui/card";
-import { Phone, Video, Gamepad2, Radio } from "lucide-react";
+import { Phone, Video, MessageCircle, Radio } from "lucide-react";
 
 const ACTIONS = [
   {
@@ -20,10 +20,10 @@ const ACTIONS = [
     iconColor: "text-fuchsia-400",
   },
   {
-    label: "Mystery Game",
-    icon: Gamepad2,
-    to: "/connect" as const,
-    desc: "Solve & flirt",
+    label: "Messages",
+    icon: MessageCircle,
+    to: "/chat" as const,
+    desc: "Free chat",
     gradient: "from-amber-500/30 to-orange-500/10",
     iconColor: "text-amber-400",
   },
