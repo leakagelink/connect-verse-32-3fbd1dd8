@@ -4,7 +4,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import {
   Clock,
-  Coins,
+
   UserSearch,
   ShieldAlert,
   RefreshCw,
