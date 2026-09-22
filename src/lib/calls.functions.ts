@@ -11,10 +11,9 @@ import { CALL_BILLING_ENABLED } from "./feature-flags";
 // / reconnect continue the same call_log without double-charging the user.
 const RESUME_WINDOW_SECONDS = 5 * 60;
 
-// Cooling-off: new male accounts (first 24h since signup) may only initiate
-// NEW_MALE_DAILY_CALL_CAP outbound calls in their first 24h. Drastically cuts
-// spam/harassment from disposable accounts.
-const NEW_MALE_DAILY_CALL_CAP = 10;
+// Cooling-off: any brand-new account (first 24h since signup) may only initiate
+// NEW_ACCOUNT_DAILY_CALL_CAP outbound calls. Gender-neutral anti-spam limit.
+const NEW_ACCOUNT_DAILY_CALL_CAP = 10;
 const NEW_ACCOUNT_WINDOW_HOURS = 24;
 
 export const startCallLog = createServerFn({ method: "POST" })
@@ -73,8 +72,8 @@ export const startCallLog = createServerFn({ method: "POST" })
       throw new Error("This creator does not accept calls from your state.");
     }
 
-    // Cooling-off cap for brand-new male accounts
-    if (caller.gender === "male" && caller.created_at) {
+    // Cooling-off cap for brand-new accounts (gender-neutral)
+    if (caller.created_at) {
       const accountAgeHours = (Date.now() - new Date(caller.created_at).getTime()) / 3600_000;
       if (accountAgeHours < NEW_ACCOUNT_WINDOW_HOURS) {
         const since = new Date(Date.now() - 24 * 3600_000).toISOString();
@@ -83,9 +82,9 @@ export const startCallLog = createServerFn({ method: "POST" })
           .select("id", { count: "exact", head: true })
           .eq("caller_id", userId)
           .gte("started_at", since);
-        if ((count ?? 0) >= NEW_MALE_DAILY_CALL_CAP) {
+        if ((count ?? 0) >= NEW_ACCOUNT_DAILY_CALL_CAP) {
           throw new Error(
-            `New accounts are limited to ${NEW_MALE_DAILY_CALL_CAP} calls in the first 24 hours. This cap lifts automatically.`,
+            `New accounts are limited to ${NEW_ACCOUNT_DAILY_CALL_CAP} calls in the first 24 hours. This cap lifts automatically.`,
           );
         }
       }
