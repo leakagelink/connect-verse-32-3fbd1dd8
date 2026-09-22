@@ -15,7 +15,8 @@ const REASONS = [
   { value: "spam", label: "Spam" },
   { value: "threat", label: "Threat / violence" },
   { value: "scam", label: "Scam" },
-  { value: "underage", label: "Underage user" },
+  { value: "underage", label: "Underage user (under 18)" },
+  { value: "child_safety", label: "Child safety / child endangerment" },
   { value: "other", label: "Other" },
 ] as const;
 
