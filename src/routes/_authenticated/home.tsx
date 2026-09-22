@@ -9,13 +9,10 @@ import { getMyProfile } from "@/lib/onboarding.functions";
 import { getOrCreateConversation } from "@/lib/chat.functions";
 import { heartbeat, listOnlineCreators, listOnlineUsers } from "@/lib/presence.functions";
 import { listRooms } from "@/lib/rooms.functions";
-import { getWallet } from "@/lib/wallet.functions";
 import { AppShell } from "@/components/app-shell";
 import { EngagementStrip } from "@/components/engagement-strip";
 import { LiveCreatorsStrip } from "@/components/live-creators-strip";
 import { QuickActionsGrid } from "@/components/quick-actions-grid";
-import { RechargeOfferCard } from "@/components/recharge-offer-card";
-import { MatchmakerRoomsSection } from "@/components/matchmaker-rooms-section";
 import { TrendingNowSection } from "@/components/trending-now-section";
 import { FanClubSpotlight } from "@/components/fan-club-spotlight";
 import { RecentlyPlayedSection } from "@/components/recently-played-section";
@@ -44,10 +41,8 @@ function Home() {
   const beat = useServerFn(heartbeat);
   const rooms = useServerFn(listRooms);
   const startChat = useServerFn(getOrCreateConversation);
-  const wallet = useServerFn(getWallet);
 
   const { data: me } = useQuery({ queryKey: ["me"], queryFn: () => getProfile(), staleTime: 5 * 60_000 });
-  const { data: walletData } = useQuery({ queryKey: ["wallet"], queryFn: () => wallet(), staleTime: 60_000 });
   const { data: onlineUsers, isLoading: loadingOnline, refetch: refetchOnline } = useQuery({
     queryKey: ["online"], queryFn: () => online(), staleTime: 30_000,
   });
@@ -165,57 +160,16 @@ function Home() {
     setPreview({ userId: uid, kind });
   }
 
-  function autoMatchFree() {
-    const candidates = (liveOnlineUsers).filter(
-      (u: any) => u.gender === "female" && u.id !== me?.profile?.id,
-    );
-    const creatorCandidates = liveCreators.filter((u: any) => u.gender === "female" && u.id !== me?.profile?.id);
-    const pool = creatorCandidates.length ? creatorCandidates : candidates;
-    if (pool.length === 0) {
-      toast.info("No female creators are online right now. Try again in a moment.");
-      return;
-    }
-    const pick = pool[Math.floor(Math.random() * pool.length)];
-    setPreview({ userId: pick.id, kind: "voice" });
-  }
-
-  const freeMin = Math.floor((me?.profile?.free_seconds_remaining ?? 0) / 60);
-  const freeSec = (me?.profile?.free_seconds_remaining ?? 0) % 60;
-
   return (
     <AppShell isAdmin={me?.isAdmin}>
       {/* Header */}
       <div className="mb-4 flex items-end justify-between">
         <div>
           <h1 className="text-2xl font-bold">Discover</h1>
-          <p className="text-sm text-muted-foreground">Live creators · calls · rooms</p>
+          <p className="text-sm text-muted-foreground">People · free calls · rooms</p>
         </div>
         <Button size="sm" variant="outline" onClick={() => { refetchOnline(); refetchCreators(); }}>Refresh</Button>
       </div>
-
-      {/* Free Minutes Hero Banner — sticky, top priority */}
-      {(me?.profile?.free_seconds_remaining ?? 0) > 0 && (
-        <Card className="relative overflow-hidden mb-4 p-4 border-emerald-500/40 bg-gradient-to-br from-emerald-500/20 via-teal-500/10 to-transparent">
-          <div className="absolute -right-8 -top-8 size-28 rounded-full bg-emerald-400/15 blur-3xl" />
-          <div className="relative flex items-center gap-3">
-            <div className="size-12 rounded-2xl bg-emerald-500/25 backdrop-blur flex items-center justify-center">
-              <Flame className="size-6 text-emerald-400" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-baseline gap-1.5">
-                <span className="text-xl font-extrabold tabular-nums text-emerald-300">
-                  {freeMin}:{freeSec.toString().padStart(2, "0")}
-                </span>
-                <span className="text-xs text-muted-foreground">free min left</span>
-              </div>
-              <p className="text-[11px] text-muted-foreground">Connect instantly — auto-match with a live creator.</p>
-            </div>
-            <Button size="sm" className="brand-gradient shadow-lg shadow-primary/30" onClick={autoMatchFree}>
-              Use now
-            </Button>
-          </div>
-        </Card>
-      )}
 
       {/* Live Creators Strip */}
       <div className="mb-5">
@@ -242,15 +196,7 @@ function Home() {
         <QuickActionsGrid />
       </div>
 
-      {/* Recharge Offer — only if user still has a bonus tier */}
-      <div className="mb-5">
-        <RechargeOfferCard depositCount={walletData?.depositCount ?? 0} />
-      </div>
-
-      {/* Matchmaker Rooms */}
-      <MatchmakerRoomsSection canHost={me?.profile?.gender === "female"} />
-
-      {/* Trending Now — top gifted, hottest room, new joiners */}
+      {/* Trending Now — recently joined members */}
       <TrendingNowSection />
 
       {/* Recently Played With — quick reconnect */}
@@ -266,16 +212,16 @@ function Home() {
       {/* Engagement (daily check-in streak) */}
       <EngagementStrip />
 
-      {/* Creator dashboard shortcut for female users */}
-      {me?.profile?.gender === "female" && (
+      {/* Creator dashboard shortcut — creator status, never gender */}
+      {me?.profile?.is_creator && (
         <Link to="/creator-dashboard" className="block mb-4">
-          <Card className="glass p-3 flex items-center gap-3 border-coin/40 hover:border-coin transition">
-            <div className="size-10 rounded-xl bg-coin/15 flex items-center justify-center">
-              <Sparkles className="size-5 text-coin" />
+          <Card className="glass p-3 flex items-center gap-3 border-primary/40 hover:border-primary transition">
+            <div className="size-10 rounded-xl bg-primary/15 flex items-center justify-center">
+              <Sparkles className="size-5 text-primary" />
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-semibold">Creator Dashboard</p>
-              <p className="text-[11px] text-muted-foreground">Earnings · schedule · fan club</p>
+              <p className="text-[11px] text-muted-foreground">Profile · schedule · availability</p>
             </div>
             <ChevronRight className="size-4 text-muted-foreground" />
           </Card>
@@ -389,11 +335,12 @@ function Home() {
           const kind = preview?.kind ?? "voice";
           const prevId = preview?.userId;
           const fresh = await refetchOnline();
+          // Neutral suggestion: anyone online except me and the previous person.
           const candidates = (fresh.data ?? []).filter(
-            (u: any) => u.gender === "female" && u.id !== me?.profile?.id && u.id !== prevId,
+            (u: any) => u.id !== me?.profile?.id && u.id !== prevId,
           );
           if (candidates.length === 0) {
-            toast.info("No other female creators are online right now.");
+            toast.info("No one else is online right now.");
             setPreview(null);
             return;
           }
