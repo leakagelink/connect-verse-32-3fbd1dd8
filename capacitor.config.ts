@@ -24,20 +24,15 @@ const config: CapacitorConfig = {
     // Loading the published deployment makes the Android wrap behave exactly
     // like the website that already works for the user.
     url: 'https://talkoraapp.com',
+    hostname: 'talkoraapp.com',
     cleartext: false,
     androidScheme: 'https',
-    // Keep every domain that can legitimately serve/redirect Talkora inside
-    // the Capacitor WebView. If the live site redirects from the old published
-    // URL to the custom domain and the destination is not allowlisted, Android
-    // opens the external browser instead of the app shell.
-    allowNavigation: [
-      'talkoraapp.com',
-      'www.talkoraapp.com',
-      '*.talkoraapp.com',
-      'connect-verse-32.lovable.app',
-      '*.lovable.app',
-    ],
-
+    // '*' keeps EVERY http(s) navigation inside the Capacitor WebView.
+    // Without it Android hands off any host that is not explicitly listed
+    // (custom-domain redirects, Google/Supabase auth hops, Agora endpoints)
+    // to Chrome, which is why the app appeared to "open in the browser"
+    // right after launch.
+    allowNavigation: ['*'],
   },
   android: {
     allowMixedContent: false,
