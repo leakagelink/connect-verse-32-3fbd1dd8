@@ -37,7 +37,7 @@ function Page() {
         </Section>
 
         <Section title="2. No sexual or nude content">
-          <li>No nudity, sexually explicit content, sexual solicitation or pornographic material in profiles, chat, calls, rooms or gifts.</li>
+          <li>No nudity, sexually explicit content, sexual solicitation or pornographic material in profiles, chat, calls or rooms.</li>
           <li>No sexual content involving minors under any circumstance — such content is reported to authorities immediately.</li>
         </Section>
 
@@ -64,11 +64,10 @@ function Page() {
 
         <Section title="7. Authentic accounts">
           <li>One person, one account. No fake profiles or AI-generated identities pretending to be real people.</li>
-          <li>Creator earnings require KYC verification; fake KYC results in a permanent ban and forfeiture of pending earnings.</li>
         </Section>
 
         <Section title="8. Enforcement">
-          <li>Violations may result in warnings, content removal, temporary suspension, or permanent ban without refund.</li>
+          <li>Violations may result in warnings, content removal, temporary suspension, or permanent ban.</li>
           <li>Severe violations (CSAM, threats of violence, fraud) are reported to law enforcement.</li>
           <li>You can report any user from their profile or any chat / call screen. Reports are reviewed by our moderation team.</li>
         </Section>

@@ -43,17 +43,16 @@ function PrivacyPage() {
         <Section title="1. Information we collect">
           <ul className="list-disc pl-5 space-y-2 text-muted-foreground">
             <li><strong className="text-foreground">Account data:</strong> email, username, gender, date of birth, country, state, language, profile photo.</li>
-            <li><strong className="text-foreground">Communication data:</strong> chat messages, voice / video call metadata (start time, duration, participants), gifts sent, reports filed.</li>
-            <li><strong className="text-foreground">Wallet & transactions:</strong> coin balance, recharge history, bonus credits, in-app spends.</li>
+            <li><strong className="text-foreground">Communication data:</strong> chat messages, voice / video call metadata (start time, duration, participants), reports filed.</li>
             <li><strong className="text-foreground">Device & usage data:</strong> device model, OS version, IP address, app version, crash logs, basic analytics events.</li>
-            <li><strong className="text-foreground">Optional verification data:</strong> if you opt in to creator verification, we may collect identity documents.</li>
+            <li><strong className="text-foreground">Safety data:</strong> reports, blocks and moderation records created when safety tools are used.</li>
           </ul>
         </Section>
 
         <Section title="2. How we use your information">
           <ul className="list-disc pl-5 space-y-2 text-muted-foreground">
             <li>Provide chat, voice, video and live-room features.</li>
-            <li>Process coin recharges, bonuses, gifts and creator earnings.</li>
+            <li>Operate your account and keep the Service reliable. The current version is free — we do not process payments.</li>
             <li>Detect and prevent fraud, abuse, harassment and policy violations.</li>
             <li>Respond to reports and enforce community guidelines (warnings, bans).</li>
             <li>Send service announcements and support responses.</li>
@@ -95,12 +94,8 @@ function PrivacyPage() {
             our agreements.
           </p>
           <p className="text-muted-foreground mt-2">
-            <strong className="text-foreground">KYC documents (PAN, Aadhaar, selfie):</strong>{" "}
-            stored in an encrypted, access-restricted bucket and visible only to you and
-            authorised reviewers. After review, documents are automatically deleted from
-            our storage — within 7 days of approval and within 30 days of rejection.
-            Verification status and minimal audit metadata (decision, reviewer, timestamp)
-            are retained to comply with KYC/AML and tax obligations.
+            The current version has no payments or payouts, so we do not collect
+            payment details or identity (KYC) documents.
           </p>
         </Section>
 

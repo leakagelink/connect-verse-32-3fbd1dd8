@@ -66,43 +66,27 @@ function TermsPage() {
             <li>Impersonation, fake profiles or misleading information.</li>
             <li>Sharing other users’ personal information without consent.</li>
             <li>Sharing off-platform contact details (WhatsApp, Telegram, Instagram, phone numbers) to bypass safety controls.</li>
-            <li>Fraud, chargeback abuse, exploitation of bonuses, or any attempt to manipulate the coin economy.</li>
+            <li>Fraud, or any attempt to manipulate or abuse the Service.</li>
             <li>Spam, advertising, scams, malware or links to harmful content.</li>
             <li>Any illegal activity under the laws of {JURISDICTION}.</li>
           </ul>
           <p className="mt-3 text-muted-foreground">
             Violations may result in warnings, temporary suspension, permanent ban,
-            forfeiture of coin balance, and / or reporting to law enforcement.
+            and / or reporting to law enforcement.
           </p>
         </Section>
 
-        <Section title="4. Coins & virtual items">
-          <ul className="list-disc pl-5 space-y-2 text-muted-foreground">
-            <li>Coins are a non-refundable virtual item used inside the Service.</li>
-            <li>Coins have no real-world monetary value and cannot be transferred between accounts.</li>
-            <li>Bonus coins are promotional and may have expiry or usage conditions.</li>
-            <li>We may modify coin pricing, plans and bonus rates at any time.</li>
-            <li>Coin balances of suspended or banned accounts may be forfeited.</li>
-          </ul>
-        </Section>
-
-        <Section title="5. Free minutes">
+        <Section title="4. Paid features">
           <p className="text-muted-foreground">
-            New accounts receive 5 free minutes of call time as a one-time welcome
-            benefit. Free minutes are non-transferable and have no cash value.
+            The current version of {APP_NAME} is free to use: chat and voice / video
+            calls cost nothing and there are no coins, virtual items, in-app purchases,
+            creator payouts or withdrawals. If paid features are introduced in future,
+            these Terms will be updated and the pricing and refund rules will be shown
+            in the app before any purchase.
           </p>
         </Section>
 
-        <Section title="6. Creator earnings & withdrawals">
-          <p className="text-muted-foreground">
-            Eligible verified creators may earn coins from chats, calls and gifts.
-            Withdrawal is subject to KYC verification, minimum payout thresholds,
-            applicable taxes, and our anti-fraud review. We may withhold or reverse
-            payouts linked to policy violations.
-          </p>
-        </Section>
-
-        <Section title="7. Reports & moderation">
+        <Section title="5. Reports & moderation">
           <p className="text-muted-foreground">
             You can report any user or content. We review reports and take action at
             our discretion, including content removal, account suspension or
@@ -110,7 +94,7 @@ function TermsPage() {
           </p>
         </Section>
 
-        <Section title="8. Intellectual property">
+        <Section title="6. Intellectual property">
           <p className="text-muted-foreground">
             All software, branding, designs and content of the Service are owned by
             {" "}{COMPANY_NAME} or its licensors. You retain ownership of content you

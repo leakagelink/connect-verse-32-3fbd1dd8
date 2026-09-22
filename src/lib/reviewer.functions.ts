@@ -8,6 +8,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { COINS_ENABLED, FREE_MINUTES_ENABLED } from "@/lib/feature-flags";
 
 const FREE_TRIAL_SECONDS = 300; // 5 minutes
 const TEST_COIN_GRANT = 500;
@@ -48,6 +49,11 @@ export const reviewerResetTrial = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     await assertAdmin(context.supabase, context.userId);
+    // Free-minute quotas only exist when calls are billed. In the current free
+    // release calls are unlimited, so there is no trial to reset.
+    if (!FREE_MINUTES_ENABLED) {
+      throw new Error("Calls are free and unlimited in this release — no trial quota to reset.");
+    }
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { error } = await supabaseAdmin
       .from("profiles")
@@ -64,6 +70,10 @@ export const reviewerGrantCoins = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     await assertAdmin(context.supabase, context.userId);
+    // Coins are disabled in this release; no test grants can be issued.
+    if (!COINS_ENABLED) {
+      throw new Error("Coins are disabled in this release.");
+    }
     const coins = data.coins ?? TEST_COIN_GRANT;
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 

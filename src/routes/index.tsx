@@ -2,7 +2,7 @@ import { createFileRoute, Link, Navigate, useNavigate } from "@tanstack/react-ro
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { MessageCircle, Shield, Coins, Sparkles, Users, Heart } from "lucide-react";
+import { MessageCircle, Shield, Phone, Sparkles, Users, Heart } from "lucide-react";
 import { APP_NAME } from "@/lib/constants";
 import { supabase } from "@/integrations/supabase/client";
 import talkoraLogo from "@/assets/talkora-logo.png.asset.json";
@@ -29,10 +29,12 @@ export const Route = createFileRoute("/")({
   ssr: false,
   head: () => ({
     meta: [
-      { title: `${APP_NAME} — Voice Chat & Live Rooms` },
-      { name: "description", content: "Talkora — join voice rooms, chat with friends and meet new people safely. Get 5 free minutes on signup." },
-      { property: "og:title", content: `${APP_NAME} — Voice Chat & Live Rooms` },
-      { property: "og:description", content: "Join voice rooms, chat & meet new friends safely on Talkora." },
+      { title: `${APP_NAME} — Free Chat, Voice & Video Calls` },
+      { name: "description", content: "Talkora is an 18+ social app: free chat, free voice and video calls, community rooms and strong safety tools." },
+      { property: "og:title", content: `${APP_NAME} — Free Chat, Voice & Video Calls` },
+      { property: "og:description", content: "Chat and make free voice & video calls with verified 18+ members on Talkora." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
   component: Landing,
@@ -81,7 +83,7 @@ function Landing() {
           Voice rooms.<br /><span className="text-gradient">Real conversations.</span>
         </h1>
         <p className="mt-6 text-lg text-muted-foreground max-w-2xl mx-auto">
-          {APP_NAME} is a premium voice-first community where verified members chat, host live rooms and meet new friends — safely. Get <strong className="text-foreground">5 free minutes</strong> on signup.
+          {APP_NAME} is an 18+ community where members chat and make <strong className="text-foreground">free voice and video calls</strong> — safely.
         </p>
         <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
           <Link to="/auth"><Button size="lg" className="brand-gradient text-primary-foreground">Get started — free</Button></Link>
@@ -91,12 +93,12 @@ function Landing() {
 
       <section id="how" className="mx-auto max-w-6xl px-6 pb-24 grid gap-4 md:grid-cols-3">
         {[
-          { icon: MessageCircle, t: "Realtime chat", d: "1-on-1 messaging with verified members across the world." },
-          { icon: Coins, t: "Coin economy", d: "Recharge once and chat freely. Up to 50% bonus on your first deposit." },
-          { icon: Shield, t: "Strong safety", d: "18+ only. One-tap block & report. Active human moderation." },
-          { icon: Users, t: "Creator program", d: "Eligible members can earn coins from chats. KYC required to withdraw." },
-          { icon: Sparkles, t: "Coming soon", d: "HD voice & video calls, live rooms and mini games." },
-          { icon: Heart, t: "Made for everyone", d: "Free signup for all. Girls always join free." },
+          { icon: MessageCircle, t: "Free chat", d: "Unlimited 1-on-1 messaging with members across India and beyond." },
+          { icon: Phone, t: "Free calls", d: "Voice and video calls at no cost — no coins, no recharge." },
+          { icon: Shield, t: "Strong safety", d: "18+ only. One-tap block & report. Human moderation." },
+          { icon: Users, t: "Community rooms", d: "Join or host rooms and talk about what you love." },
+          { icon: Sparkles, t: "Simple profiles", d: "Set your languages, interests and availability in a minute." },
+          { icon: Heart, t: "Open to everyone", d: "Free signup, no gender-based restrictions." },
         ].map((f) => (
           <Card key={f.t} className="glass p-6">
             <f.icon className="size-6 text-primary" />

@@ -66,8 +66,9 @@ function ChildSafety() {
             suspended immediately while we review them.
           </p>
           <p>
-            Creators who receive earnings must additionally complete identity verification
-            with a government-issued ID before any payout is enabled.
+            The current release has no payments, coins or payouts. If monetization is
+            introduced later, identity verification with a government-issued ID will be
+            required before any payout is enabled.
           </p>
         </Section>
 
@@ -83,7 +84,7 @@ function ChildSafety() {
 
         <Section icon={Eye} title="How we prevent and detect abuse">
           <ul className="list-disc space-y-1 pl-5">
-            <li>Automated moderation screens messages and flags high-risk content.</li>
+            <li>Automated keyword and pattern filters block banned and high-risk content in chat.</li>
             <li>In-app Report and Block are available on every profile, chat and call.</li>
             <li>An in-call SOS button escalates urgent safety incidents to our team.</li>
             <li>Sharing phone numbers, emails and social handles is blocked in chat.</li>
@@ -95,7 +96,7 @@ function ChildSafety() {
           <p>
             Inside the app: open the profile, chat or call and use{" "}
             <span className="font-semibold text-foreground">Report</span>, choosing
-            “Underage” or “Violence/Threat” as the reason. Reports reach our moderation
+            “Child safety / child endangerment” or “Underage user” as the reason. Reports reach our moderation
             queue immediately.
           </p>
           <p className="flex items-center gap-2">
@@ -122,8 +123,7 @@ function ChildSafety() {
         <Section icon={Scale} title="Enforcement and cooperation">
           <ul className="list-disc space-y-1 pl-5">
             <li>
-              Accounts involved in CSAE are permanently banned without warning, and
-              related device/network signals are blocked to prevent re-registration.
+              Accounts involved in CSAE are permanently banned without warning.
             </li>
             <li>
               Suspected CSAM is preserved, escalated internally, and reported to the
