@@ -2353,7 +2353,8 @@ function CallScreen() {
         </AlertDialogContent>
       </AlertDialog>
 
-      <AlertDialog open={lowBalanceOpen} onOpenChange={setLowBalanceOpen}>
+      {/* Coin/recharge dialogs can never open while billing is disabled. */}
+      <AlertDialog open={CALL_BILLING_ENABLED && lowBalanceOpen} onOpenChange={setLowBalanceOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2">
@@ -2390,7 +2391,7 @@ function CallScreen() {
       </AlertDialog>
 
       <InCallRecharge
-        open={rechargeOpen}
+        open={CALL_BILLING_ENABLED && rechargeOpen}
         onOpenChange={setRechargeOpen}
         // Highlight plans that at minimum cover the next minute of this call
         // (or the mystery case cost, whichever is larger).
