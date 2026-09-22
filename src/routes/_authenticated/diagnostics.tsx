@@ -28,7 +28,6 @@ import {
   checkFullScreenIntentPermission,
   openFullScreenIntentSettings,
   getBackgroundReliabilityStatus,
-  requestIgnoreBatteryOptimizations,
   openAutostartSettings,
   openBatterySettings,
   isNative,
