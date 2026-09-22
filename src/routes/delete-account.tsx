@@ -63,9 +63,7 @@ function DeleteAccountPublic() {
           <ul className="list-disc pl-5 text-sm space-y-1">
             <li>Your profile (username, avatar, bio, date of birth, country/state)</li>
             <li>Your chats, call history and follow connections</li>
-            <li>Your wallet balance and any unused coins — no refund</li>
-            <li>Pending creator earnings that have not been withdrawn</li>
-            <li>KYC documents, per our retention policy (7 days after approval, 30 days after rejection)</li>
+            <li>Your reports, blocks and other account settings</li>
           </ul>
         </section>
 
@@ -73,7 +71,6 @@ function DeleteAccountPublic() {
           <h2 className="text-xl font-semibold">What we retain (and why)</h2>
           <ul className="list-disc pl-5 text-sm space-y-1">
             <li>Anonymised safety reports filed against your account — kept for community safety and legal compliance.</li>
-            <li>Transaction records required by Indian tax & financial regulations — kept for the legally required period.</li>
             <li>Records required to respond to law-enforcement requests (e.g. IT Rules 2021).</li>
           </ul>
           <p className="text-sm text-muted-foreground">
