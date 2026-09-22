@@ -735,6 +735,9 @@ function CallScreen() {
   // When payer runs out of free time + coins, end the call on this side.
   // Leaving Agora triggers `user-left` on the peer, which auto-ends them too.
   useEffect(() => {
+    // Calls are unlimited in this release: no balance checks, no low-time
+    // warnings, no recharge prompts and no billing-driven disconnects.
+    if (!CALL_BILLING_ENABLED) return;
     if (!connected) return;
     if (pausedRef.current) return;
     if (outOfFunds && !outOfFundsTriggeredRef.current) {
