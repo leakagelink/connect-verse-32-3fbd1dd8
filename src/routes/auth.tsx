@@ -7,7 +7,6 @@ import { Card } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
-import { lovable } from "@/integrations/lovable";
 import { toast } from "sonner";
 import { Sparkles } from "lucide-react";
 import { APP_NAME } from "@/lib/constants";
@@ -52,15 +51,6 @@ function AuthPage() {
     else { toast.success("Account created! Continue to set up your profile."); navigate({ to: "/home", replace: true }); }
   }
 
-  async function google() {
-    if (!ageOk || !termsOk) {
-      return toast.error("Please confirm age and accept policies before continuing");
-    }
-    const r = await lovable.auth.signInWithOAuth("google", { redirect_uri: window.location.origin });
-    if (r.error) toast.error("Google sign-in failed");
-    if (!r.redirected && !r.error) navigate({ to: "/home", replace: true });
-  }
-
   const consents = (
     <div className="space-y-2 rounded-lg border border-border/60 bg-muted/30 p-3 text-xs">
       <label className="flex items-start gap-2 cursor-pointer">
@@ -95,10 +85,6 @@ function AuthPage() {
           </TabsList>
 
           <TabsContent value="signin" className="space-y-3">
-            <Button onClick={google} variant="outline" className="w-full">Continue with Google</Button>
-            <div className="my-2 flex items-center gap-2 text-xs text-muted-foreground">
-              <div className="h-px flex-1 bg-border" /> or <div className="h-px flex-1 bg-border" />
-            </div>
             <div><Label>Email</Label><Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} /></div>
             <div><Label>Password</Label><Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} /></div>
             <Button onClick={signIn} disabled={busy} className="w-full brand-gradient text-primary-foreground">Sign in</Button>
@@ -106,10 +92,6 @@ function AuthPage() {
 
           <TabsContent value="signup" className="space-y-3">
             {consents}
-            <Button onClick={google} variant="outline" className="w-full" disabled={!ageOk || !termsOk}>Continue with Google</Button>
-            <div className="my-2 flex items-center gap-2 text-xs text-muted-foreground">
-              <div className="h-px flex-1 bg-border" /> or <div className="h-px flex-1 bg-border" />
-            </div>
             <div><Label>Email</Label><Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} /></div>
             <div><Label>Password</Label><Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Min 6 characters" /></div>
             <Button onClick={signUp} disabled={busy || !ageOk || !termsOk} className="w-full brand-gradient text-primary-foreground">Create account</Button>
