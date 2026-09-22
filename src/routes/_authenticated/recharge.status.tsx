@@ -1,4 +1,3 @@
-import { AppShell } from "@/components/app-shell";
 import { FeatureUnavailable } from "@/components/feature-unavailable";
 import { COINS_ENABLED } from "@/lib/feature-flags";
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";

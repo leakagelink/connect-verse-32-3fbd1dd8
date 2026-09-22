@@ -1,4 +1,3 @@
-import { AppShell } from "@/components/app-shell";
 import { FeatureUnavailable } from "@/components/feature-unavailable";
 import { WITHDRAWALS_ENABLED } from "@/lib/feature-flags";
 import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
