@@ -16,8 +16,6 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
   reviewerStatus,
-  reviewerResetTrial,
-  reviewerGrantCoins,
   reviewerFindMatch,
   reviewerSimulateSOS,
 } from "@/lib/reviewer.functions";
@@ -36,8 +34,6 @@ export const Route = createFileRoute("/_authenticated/reviewer")({
 function ReviewerPage() {
   const navigate = useNavigate();
   const statusFn = useServerFn(reviewerStatus);
-  const resetFn = useServerFn(reviewerResetTrial);
-  const grantFn = useServerFn(reviewerGrantCoins);
   const matchFn = useServerFn(reviewerFindMatch);
   const sosFn = useServerFn(reviewerSimulateSOS);
 
@@ -132,37 +128,17 @@ function ReviewerPage() {
           <div className="mt-3 flex flex-wrap gap-2">
             <Badge variant="secondary">
               <Clock className="mr-1 h-3 w-3" />
-              {s ? Math.round((s.freeSeconds ?? 0) / 60) : 0} min free
-            </Badge>
-            <Badge variant="secondary">
-              <Coins className="mr-1 h-3 w-3" />
-              {s?.coinBalance ?? 0} coins
+              Free chat &amp; calls
             </Badge>
             {s?.isCreator && <Badge>Creator</Badge>}
           </div>
           <p className="mt-3 text-xs text-muted-foreground">
-            These shortcuts write to real tables (wallets, transactions,
-            reports). Use only on a test/reviewer account.
+            This release has no monetization: chat and voice/video calls are free
+            and there are no coins or payments. These shortcuts write to real
+            moderation tables — use only on a test/reviewer account.
           </p>
         </Card>
 
-        <ActionCard
-          icon={<Clock className="h-5 w-5" />}
-          title="Reset 5 free minutes"
-          desc="Sets your free trial back to 300 seconds so you can test billing from zero."
-          cta="Reset trial"
-          loading={resetMut.isPending}
-          onClick={() => resetMut.mutate()}
-        />
-
-        <ActionCard
-          icon={<Coins className="h-5 w-5" />}
-          title="Grant 500 test coins"
-          desc="Credits your wallet without going through Razorpay. Logged as admin_credit."
-          cta="Credit coins"
-          loading={grantMut.isPending}
-          onClick={() => grantMut.mutate()}
-        />
 
         <ActionCard
           icon={<UserSearch className="h-5 w-5" />}
@@ -186,20 +162,6 @@ function ReviewerPage() {
         <Card className="p-4">
           <p className="mb-2 text-sm font-medium">Manual verification</p>
           <div className="flex flex-wrap gap-2">
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => navigate({ to: "/wallet" })}
-            >
-              Wallet <ExternalLink className="ml-1 h-3 w-3" />
-            </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => navigate({ to: "/recharge" })}
-            >
-              Recharge <ExternalLink className="ml-1 h-3 w-3" />
-            </Button>
             <Button
               size="sm"
               variant="outline"
