@@ -723,6 +723,7 @@ function CallScreen() {
   // Notify the user exactly when free minutes finish and coin billing kicks in.
   const freeExhaustedRef = useRef(false);
   useEffect(() => {
+    if (!FREE_MINUTES_ENABLED) return;
     if (!connected || freeStart === null) return;
     if (freeAvail > 0 && freeLeftSec === 0 && !freeExhaustedRef.current) {
       freeExhaustedRef.current = true;
