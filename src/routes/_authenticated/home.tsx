@@ -201,15 +201,7 @@ function Home() {
         <QuickActionsGrid />
       </div>
 
-      {/* Recharge Offer — only if user still has a bonus tier */}
-      <div className="mb-5">
-        <RechargeOfferCard depositCount={walletData?.depositCount ?? 0} />
-      </div>
-
-      {/* Matchmaker Rooms */}
-      <MatchmakerRoomsSection canHost={me?.profile?.gender === "female"} />
-
-      {/* Trending Now — top gifted, hottest room, new joiners */}
+      {/* Trending Now — recently joined members */}
       <TrendingNowSection />
 
       {/* Recently Played With — quick reconnect */}
@@ -225,16 +217,16 @@ function Home() {
       {/* Engagement (daily check-in streak) */}
       <EngagementStrip />
 
-      {/* Creator dashboard shortcut for female users */}
-      {me?.profile?.gender === "female" && (
+      {/* Creator dashboard shortcut — creator status, never gender */}
+      {me?.profile?.is_creator && (
         <Link to="/creator-dashboard" className="block mb-4">
-          <Card className="glass p-3 flex items-center gap-3 border-coin/40 hover:border-coin transition">
-            <div className="size-10 rounded-xl bg-coin/15 flex items-center justify-center">
-              <Sparkles className="size-5 text-coin" />
+          <Card className="glass p-3 flex items-center gap-3 border-primary/40 hover:border-primary transition">
+            <div className="size-10 rounded-xl bg-primary/15 flex items-center justify-center">
+              <Sparkles className="size-5 text-primary" />
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-semibold">Creator Dashboard</p>
-              <p className="text-[11px] text-muted-foreground">Earnings · schedule · fan club</p>
+              <p className="text-[11px] text-muted-foreground">Profile · schedule · availability</p>
             </div>
             <ChevronRight className="size-4 text-muted-foreground" />
           </Card>
