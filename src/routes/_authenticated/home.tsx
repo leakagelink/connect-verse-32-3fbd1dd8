@@ -335,11 +335,12 @@ function Home() {
           const kind = preview?.kind ?? "voice";
           const prevId = preview?.userId;
           const fresh = await refetchOnline();
+          // Neutral suggestion: anyone online except me and the previous person.
           const candidates = (fresh.data ?? []).filter(
-            (u: any) => u.gender === "female" && u.id !== me?.profile?.id && u.id !== prevId,
+            (u: any) => u.id !== me?.profile?.id && u.id !== prevId,
           );
           if (candidates.length === 0) {
-            toast.info("No other female creators are online right now.");
+            toast.info("No one else is online right now.");
             setPreview(null);
             return;
           }
