@@ -325,11 +325,12 @@ export async function openFullScreenIntentSettings(): Promise<void> {
 }
 
 /* ---------------- Background reliability (Autostart + battery) ----------------
- * OEM-specific Autostart toggles + REQUEST_IGNORE_BATTERY_OPTIMIZATIONS.
+ * OEM-specific Autostart toggles and the system battery-optimization screen.
  * Without these, MIUI / FunTouch / ColorOS / Realme / Honor kill our process
  * shortly after backgrounding, so the FCM ringer push either never wakes
- * Talkora or can't launch the IncomingCallActivity. Bridged via
- * BackgroundReliabilityPlugin.java.
+ * Talkora or can't launch the IncomingCallActivity. We only read the state
+ * and open the system screens — no battery-optimization permission is
+ * requested. Bridged via BackgroundReliabilityPlugin.java.
  */
 
 export type OemVendor =
@@ -346,7 +347,6 @@ export interface BackgroundReliabilityStatus {
 
 interface BackgroundReliabilityBridge {
   status(): Promise<BackgroundReliabilityStatus>;
-  requestIgnoreBatteryOptimizations(): Promise<{ granted: boolean; opened?: boolean }>;
   openBatterySettings(): Promise<{ opened: boolean }>;
   openAutostartSettings(): Promise<{ opened: boolean; vendor?: OemVendor; fallback?: boolean }>;
 }
@@ -366,15 +366,6 @@ export async function getBackgroundReliabilityStatus(): Promise<BackgroundReliab
   const p = bgPlugin();
   if (!p) return null;
   try { return await p.status(); } catch { return null; }
-}
-
-export async function requestIgnoreBatteryOptimizations(): Promise<boolean> {
-  const p = bgPlugin();
-  if (!p) return false;
-  try {
-    const r = await p.requestIgnoreBatteryOptimizations();
-    return !!r.granted;
-  } catch { return false; }
 }
 
 export async function openAutostartSettings(): Promise<boolean> {
