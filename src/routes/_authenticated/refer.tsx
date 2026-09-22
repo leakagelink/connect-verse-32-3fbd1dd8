@@ -1,3 +1,6 @@
+import { AppShell } from "@/components/app-shell";
+import { FeatureUnavailable } from "@/components/feature-unavailable";
+import { COIN_REWARDS_ENABLED } from "@/lib/feature-flags";
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
@@ -16,6 +19,17 @@ export const Route = createFileRoute("/_authenticated/refer")({
 });
 
 function ReferPage() {
+  if (!COIN_REWARDS_ENABLED) {
+    return (
+      <AppShell>
+        <FeatureUnavailable
+          title="Referral rewards are not available"
+          description="Reward coins are switched off in this release. You can still invite friends by sharing the app from your phone."
+        />
+      </AppShell>
+    );
+  }
+
   const qc = useQueryClient();
   const statsFn = useServerFn(getMyReferralStats);
   const applyFn = useServerFn(applyReferralCode);

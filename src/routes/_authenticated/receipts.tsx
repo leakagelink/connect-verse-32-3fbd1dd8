@@ -1,3 +1,5 @@
+import { FeatureUnavailable } from "@/components/feature-unavailable";
+import { COINS_ENABLED } from "@/lib/feature-flags";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -80,6 +82,17 @@ function formatInr(paise: number, currency: string) {
 }
 
 function ReceiptsPage() {
+  if (!COINS_ENABLED) {
+    return (
+      <AppShell>
+        <FeatureUnavailable
+          title="No receipts yet"
+          description="There are no purchases in this release — Talkora is free to use, so there is nothing to bill or receipt."
+        />
+      </AppShell>
+    );
+  }
+
   const listFn = useServerFn(listMyRechargeReceipts);
   const { data, isLoading, isFetching, refetch } = useQuery({
     queryKey: ["receipts", "mine"],
