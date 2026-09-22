@@ -2,6 +2,20 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { withAiAvatar, withAiAvatars } from "./ai-avatar";
+import {
+  RANDOM_MATCHMAKING_ENABLED,
+  FEATURE_OFF_MESSAGES,
+  assertFeatureEnabled,
+} from "./feature-flags";
+
+/**
+ * Matchmaking is disabled for this release. Every server function below calls
+ * this first so a direct API call cannot reach the disabled feature. The
+ * implementation stays in place as future architecture.
+ */
+function assertMatchmakingEnabled(): void {
+  assertFeatureEnabled(RANDOM_MATCHMAKING_ENABLED, FEATURE_OFF_MESSAGES.matchmaking);
+}
 
 /** Generate a unique short Agora channel name for a matchmaker room. */
 function makeChannel(): string {
@@ -18,6 +32,7 @@ export const createMatchmakerRoom = createServerFn({ method: "POST" })
     }).parse(d),
   )
   .handler(async ({ data, context }) => {
+    assertMatchmakingEnabled();
     const { supabase, userId } = context;
     const { data: me } = await supabase
       .from("profiles")
@@ -46,6 +61,7 @@ export const createMatchmakerRoom = createServerFn({ method: "POST" })
 export const listLiveMatchmakerRooms = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
+    if (!RANDOM_MATCHMAKING_ENABLED) return [];
     const { supabase } = context;
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: rooms } = await supabase
@@ -72,6 +88,7 @@ export const getMatchmakerRoom = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((d: unknown) => z.object({ roomId: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
+    assertMatchmakingEnabled();
     const { supabase, userId } = context;
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: room } = await supabase
@@ -134,6 +151,7 @@ export const joinAsCandidate = createServerFn({ method: "POST" })
     z.object({ roomId: z.string().uuid(), seat: z.number().int().min(1).max(2) }).parse(d),
   )
   .handler(async ({ data, context }) => {
+    assertMatchmakingEnabled();
     const { supabase, userId } = context;
     const { data: me } = await supabase
       .from("profiles")
@@ -181,6 +199,7 @@ export const leaveCandidate = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((d: unknown) => z.object({ roomId: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
+    assertMatchmakingEnabled();
     const { supabase, userId } = context;
     await supabase
       .from("matchmaker_candidates")
@@ -201,6 +220,7 @@ export const castVote = createServerFn({ method: "POST" })
     z.object({ roomId: z.string().uuid(), candidateId: z.string().uuid() }).parse(d),
   )
   .handler(async ({ data, context }) => {
+    assertMatchmakingEnabled();
     const { supabase, userId } = context;
     // Candidates and host cannot vote
     const { data: room } = await supabase
@@ -248,6 +268,7 @@ export const endMatchmakerRoom = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((d: unknown) => z.object({ roomId: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
+    assertMatchmakingEnabled();
     const { supabase, userId } = context;
     const { data: room } = await supabase
       .from("matchmaker_rooms")
@@ -287,6 +308,7 @@ export const matchmakerHeartbeat = createServerFn({ method: "POST" })
     z.object({ roomId: z.string().uuid(), listenerCount: z.number().int().min(0).max(10000) }).parse(d),
   )
   .handler(async ({ data, context }) => {
+    assertMatchmakingEnabled();
     await context.supabase
       .from("matchmaker_rooms")
       .update({ listener_count: data.listenerCount })
