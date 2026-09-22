@@ -39,7 +39,7 @@ function Page() {
 
         <Section title="Special protections for women">
           <li>Women creators receive priority moderation on every report they file.</li>
-          <li>Male users are charged coins to send the first message — this drastically reduces unwanted spam.</li>
+          <li>You can only message someone after they accept your request — this drastically reduces unwanted spam.</li>
           <li>Free account creation and earnings for women, with manual KYC review before withdrawals.</li>
           <li>One-tap block & report from any call, chat or room.</li>
         </Section>

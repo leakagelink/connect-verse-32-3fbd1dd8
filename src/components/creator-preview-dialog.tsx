@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { PAID_EXTRAS_ENABLED } from "@/lib/feature-flags";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
@@ -264,7 +265,7 @@ export function CreatorPreviewDialog({ userId, kind, onOpenChange, onConfirm, on
               </span>
             </div>
 
-            {fanClubQuery.data?.club?.is_open && (
+            {PAID_EXTRAS_ENABLED && fanClubQuery.data?.club?.is_open && (
               <div className="rounded-lg border border-coin/40 bg-coin/5 p-3 flex items-start gap-2">
                 {fanClubQuery.data.active ? (
                   <Crown className="size-4 text-coin shrink-0 mt-0.5" />
@@ -291,11 +292,7 @@ export function CreatorPreviewDialog({ userId, kind, onOpenChange, onConfirm, on
                   disabled={joinMut.isPending}
                   onClick={() => joinMut.mutate()}
                 >
-                  {joinMut.isPending
-                    ? "…"
-                    : fanClubQuery.data.active
-                      ? `Extend · ${fanClubQuery.data.club.monthly_coins}`
-                      : `Join · ${fanClubQuery.data.club.monthly_coins}`}
+                  {joinMut.isPending ? "…" : fanClubQuery.data.active ? "Extend" : "Join"}
                 </Button>
               </div>
             )}

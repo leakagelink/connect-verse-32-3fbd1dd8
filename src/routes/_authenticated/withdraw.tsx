@@ -1,3 +1,5 @@
+import { FeatureUnavailable } from "@/components/feature-unavailable";
+import { WITHDRAWALS_ENABLED } from "@/lib/feature-flags";
 import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -27,6 +29,17 @@ const MIN_COINS = 10000;
 const RATE = 0.05;
 
 function WithdrawPage() {
+  if (!WITHDRAWALS_ENABLED) {
+    return (
+      <AppShell>
+        <FeatureUnavailable
+          title="Withdrawals are not available"
+          description="Talkora has no earnings or payouts in this release. Chat and voice/video calls are completely free."
+        />
+      </AppShell>
+    );
+  }
+
   const router = useRouter();
   const qc = useQueryClient();
   // Phase 4 — Native: block screenshots of bank/PAN/Aadhaar previews.

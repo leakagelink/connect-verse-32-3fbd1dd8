@@ -1,3 +1,5 @@
+import { FeatureUnavailable } from "@/components/feature-unavailable";
+import { COINS_ENABLED } from "@/lib/feature-flags";
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { z } from "zod";
@@ -29,6 +31,17 @@ function phaseFrom(status: string): Phase {
 }
 
 function RechargeStatus() {
+  if (!COINS_ENABLED) {
+    return (
+      <AppShell>
+        <FeatureUnavailable
+          title="Payments are not available"
+          description="Talkora is free right now — there are no coins, plans or payments to check the status of."
+        />
+      </AppShell>
+    );
+  }
+
   const { orderId } = Route.useSearch();
   const navigate = useNavigate();
   const qc = useQueryClient();

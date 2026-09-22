@@ -1,8 +1,7 @@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
-import { Phone, Video, Coins, Sparkles } from "lucide-react";
-import { VOICE_CALL_COINS_PER_MINUTE, VIDEO_CALL_COINS_PER_MINUTE } from "@/lib/constants";
+import { Phone, Video, Sparkles } from "lucide-react";
 import { useAvatarPrefetch } from "@/lib/avatar-prefetch";
 import { useFollowStatusMap } from "@/lib/use-follow-status";
 import { FollowStatusPill } from "@/components/follow-status-pill";
@@ -88,16 +87,14 @@ export function LiveCreatorsStrip({
                 className="flex items-center justify-center gap-1 rounded-md bg-primary/15 hover:bg-primary/25 text-primary py-1.5 text-[10px] font-semibold transition"
               >
                 <Phone className="size-3" />
-                <Coins className="size-2.5" />
-                {VOICE_CALL_COINS_PER_MINUTE}
+                Voice
               </button>
               <button
                 onClick={() => onCall(u.id, "video")}
                 className="flex items-center justify-center gap-1 rounded-md brand-gradient text-primary-foreground py-1.5 text-[10px] font-semibold"
               >
                 <Video className="size-3" />
-                <Coins className="size-2.5" />
-                {VIDEO_CALL_COINS_PER_MINUTE}
+                Video
               </button>
             </div>
           </div>
