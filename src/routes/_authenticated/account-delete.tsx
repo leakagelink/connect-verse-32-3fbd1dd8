@@ -49,12 +49,16 @@ function AccountDelete() {
             <p>Deleting your account will permanently remove:</p>
             <ul className="list-disc pl-5 space-y-0.5 text-foreground/90">
               <li>Your profile, username, avatar and bio</li>
-              <li>Your chats, call history and follow connections</li>
-              <li>Your wallet balance and any unused coins (no refund)</li>
-              <li>Pending creator earnings that have not been withdrawn</li>
-              <li>KYC documents (per our retention policy)</li>
+              <li>Your chats and message history</li>
+              <li>Your call history, connections and follows</li>
+              <li>Your notification and app preferences</li>
             </ul>
-            <p className="text-muted-foreground">Reports filed against your account are retained for safety and legal compliance, in anonymised form.</p>
+            <p className="text-muted-foreground">
+              Talkora has no purchases, coins or payouts in this release, so there is nothing
+              financial to settle. Safety records — such as reports filed about your account and
+              blocks made against you — are kept in anonymised form where we are required to do so
+              for safety and legal compliance.
+            </p>
           </div>
         </div>
 
@@ -82,7 +86,8 @@ function AccountDelete() {
         </div>
 
         <p className="mt-4 text-xs text-muted-foreground">
-          Prefer to take a break? You can sign out from Settings and return any time. If you have a billing dispute, email{" "}
+          Prefer to take a break? You can sign out from Settings and return any time. Questions before
+          you delete? Email{" "}
           <a className="underline" href="mailto:support@talkora.app">support@talkora.app</a> first — deletion cannot be undone.
         </p>
       </Card>

@@ -735,6 +735,9 @@ function CallScreen() {
   // When payer runs out of free time + coins, end the call on this side.
   // Leaving Agora triggers `user-left` on the peer, which auto-ends them too.
   useEffect(() => {
+    // Calls are unlimited in this release: no balance checks, no low-time
+    // warnings, no recharge prompts and no billing-driven disconnects.
+    if (!CALL_BILLING_ENABLED) return;
     if (!connected) return;
     if (pausedRef.current) return;
     if (outOfFunds && !outOfFundsTriggeredRef.current) {
@@ -2350,7 +2353,8 @@ function CallScreen() {
         </AlertDialogContent>
       </AlertDialog>
 
-      <AlertDialog open={lowBalanceOpen} onOpenChange={setLowBalanceOpen}>
+      {/* Coin/recharge dialogs can never open while billing is disabled. */}
+      <AlertDialog open={CALL_BILLING_ENABLED && lowBalanceOpen} onOpenChange={setLowBalanceOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2">
@@ -2387,7 +2391,7 @@ function CallScreen() {
       </AlertDialog>
 
       <InCallRecharge
-        open={rechargeOpen}
+        open={CALL_BILLING_ENABLED && rechargeOpen}
         onOpenChange={setRechargeOpen}
         // Highlight plans that at minimum cover the next minute of this call
         // (or the mystery case cost, whichever is larger).

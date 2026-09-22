@@ -3,7 +3,6 @@ import { BatteryCharging, RotateCcw, Settings, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   getBackgroundReliabilityStatus,
-  requestIgnoreBatteryOptimizations,
   openAutostartSettings,
   openBatterySettings,
   isNative,
@@ -78,8 +77,9 @@ export function BackgroundReliabilityGate() {
 
   const handleBattery = async () => {
     setBusy(true);
-    await requestIgnoreBatteryOptimizations();
-    // Re-check after the user returns from the dialog.
+    // Opens the system battery-optimization list; the user flips the toggle.
+    await openBatterySettings();
+    // Re-check after the user returns from Settings.
     const next = await getBackgroundReliabilityStatus();
     setStatus(next);
     setBusy(false);
@@ -130,11 +130,12 @@ export function BackgroundReliabilityGate() {
             {needsBattery && (
               <li className="flex flex-wrap items-center gap-2">
                 <span className="text-xs">
-                  <strong>1.</strong> Allow Talkora to ignore battery optimization
+                  <strong>1.</strong> In Battery settings, set Talkora to{" "}
+                  <em>Unrestricted / Don't optimise</em>
                 </span>
                 <Button size="sm" onClick={handleBattery} disabled={busy} className="h-7">
                   <BatteryCharging className="mr-1.5 size-3.5" />
-                  Allow
+                  Open
                 </Button>
               </li>
             )}

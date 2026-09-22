@@ -28,7 +28,6 @@ import {
   checkFullScreenIntentPermission,
   openFullScreenIntentSettings,
   getBackgroundReliabilityStatus,
-  requestIgnoreBatteryOptimizations,
   openAutostartSettings,
   openBatterySettings,
   isNative,
@@ -386,7 +385,7 @@ function DiagnosticsPage() {
                         size="sm"
                         onClick={async () => {
                           setBusy("battery");
-                          await requestIgnoreBatteryOptimizations();
+                          await openBatterySettings();
                           const next = await getBackgroundReliabilityStatus();
                           setBg(next);
                           setBusy(null);
@@ -394,7 +393,7 @@ function DiagnosticsPage() {
                         disabled={busy !== null}
                         className="h-7"
                       >
-                        <BatteryCharging className="mr-1.5 size-3.5" /> Allow battery
+                        <BatteryCharging className="mr-1.5 size-3.5" /> Battery settings
                       </Button>
                     )}
                     {bg.autostartSupported && (

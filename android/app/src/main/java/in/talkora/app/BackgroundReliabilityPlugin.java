@@ -18,17 +18,13 @@ import com.getcapacitor.annotation.CapacitorPlugin;
  * Bridges OEM-specific "Autostart" and battery-optimization settings to JS so
  * Talkora can pop full-screen incoming calls when the app is killed.
  *
- * Android stock gives us REQUEST_IGNORE_BATTERY_OPTIMIZATIONS; Chinese OEMs
- * (Xiaomi/MIUI, Vivo/FunTouch, Oppo/ColorOS, Realme, Honor, Huawei) layer
- * extra "Autostart" + "Background activity" toggles on top, without which our
- * FCM message either never wakes the process or can't launch the ringer
- * Activity. The user must enable these manually — there is no API — but we
- * can deep-link them straight to the right OEM screen.
+ * We never request REQUEST_IGNORE_BATTERY_OPTIMIZATIONS; we only *read* the
+ * current exemption state and deep-link the user to the system screens
+ * (battery optimization list / OEM Autostart manager) so they can decide.
  *
  * JS calls:
  *   BackgroundReliability.status() →
  *     { batteryOptIgnored, vendor, autostartSupported, recommended }
- *   BackgroundReliability.requestIgnoreBatteryOptimizations()
  *   BackgroundReliability.openAutostartSettings() → { opened }
  *   BackgroundReliability.openBatterySettings()   → { opened }
  */
@@ -50,39 +46,6 @@ public class BackgroundReliabilityPlugin extends Plugin {
         call.resolve(ret);
     }
 
-    @PluginMethod
-    public void requestIgnoreBatteryOptimizations(PluginCall call) {
-        Context ctx = getContext();
-        JSObject ret = new JSObject();
-        try {
-            if (isIgnoringBatteryOptimizations(ctx)) {
-                ret.put("granted", true);
-                call.resolve(ret);
-                return;
-            }
-            // System dialog: "Allow Talkora to ignore battery optimizations?"
-            // This is the supported, Play-Store-safe entry point.
-            Intent intent = new Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS);
-            intent.setData(Uri.parse("package:" + ctx.getPackageName()));
-            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-            ctx.startActivity(intent);
-            ret.put("granted", false); // user still needs to confirm
-            ret.put("opened", true);
-            call.resolve(ret);
-        } catch (Exception e) {
-            // Some OEMs hide the request dialog — fall back to the list screen.
-            try {
-                Intent fallback = new Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS);
-                fallback.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                ctx.startActivity(fallback);
-                ret.put("granted", false);
-                ret.put("opened", true);
-                call.resolve(ret);
-            } catch (Exception inner) {
-                call.reject("could not open battery optimization settings", inner);
-            }
-        }
-    }
 
     @PluginMethod
     public void openBatterySettings(PluginCall call) {
