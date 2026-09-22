@@ -43,23 +43,6 @@ function ReviewerPage() {
     retry: false,
   });
 
-  const resetMut = useMutation({
-    mutationFn: () => resetFn(),
-    onSuccess: (r) => {
-      toast.success(`Free trial reset — ${Math.round(r.freeSeconds / 60)} min available`);
-      status.refetch();
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
-
-  const grantMut = useMutation({
-    mutationFn: () => grantFn({ data: {} }),
-    onSuccess: (r) => {
-      toast.success(`+${r.granted} coins credited (balance: ${r.balance})`);
-      status.refetch();
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
 
   const matchMut = useMutation({
     mutationFn: () => matchFn(),
