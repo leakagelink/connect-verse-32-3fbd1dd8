@@ -30,18 +30,20 @@ public class MainActivity extends BridgeActivity {
             WebView webView = getBridge().getWebView();
             WebSettings settings = webView.getSettings();
 
-            // Talkora loads the live app in the Capacitor shell. Clearing the
-            // WebView cache on launch prevents an old bundled/offline copy from
-            // continuing to hide live creators or stale call code after rebuilds.
-            webView.clearCache(true);
-            webView.clearHistory();
+            // Talkora loads the live app in the Capacitor shell. We deliberately
+            // do NOT clear the WebView cache/history on every launch: doing so
+            // forced a full re-download of the app on each start and could make
+            // the WebView renderer die (which closes the app) on slower devices.
+            // Normal HTTP caching already keeps the shell up to date.
 
             // WebRTC/Agora/100ms need camera/mic capture from the WebView. Keep
             // media APIs available and let the explicit pre-call gate request the
             // Android runtime permissions before a call starts.
             settings.setDomStorageEnabled(true);
+            settings.setDatabaseEnabled(true);
             settings.setJavaScriptEnabled(true);
             settings.setMediaPlaybackRequiresUserGesture(false);
+
         } catch (Exception ignored) {
             // Never crash the app because of optional WebView hardening.
         }
