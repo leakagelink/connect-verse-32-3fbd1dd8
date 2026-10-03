@@ -9,111 +9,67 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as IndexRouteImport } from './routes/index'
-import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
-import { Route as AuthRouteImport } from './routes/auth'
-import { Route as BannedRouteImport } from './routes/banned'
-import { Route as ChildSafetyRouteImport } from './routes/child-safety'
-import { Route as CommunityGuidelinesRouteImport } from './routes/community-guidelines'
-import { Route as DeleteAccountRouteImport } from './routes/delete-account'
-import { Route as ManifestDotwebmanifestRouteImport } from './routes/manifest[.]webmanifest'
-import { Route as PrivacyRouteImport } from './routes/privacy'
-import { Route as RefundPolicyRouteImport } from './routes/refund-policy'
-import { Route as SafetyRouteImport } from './routes/safety'
 import { Route as TermsRouteImport } from './routes/terms'
-import { Route as _e2eCallControlsRouteImport } from './routes/__e2e.call-controls'
-import { Route as _e2eCallFullscreenRouteImport } from './routes/__e2e.call-fullscreen'
-import { Route as _e2eCallRecoveryRouteImport } from './routes/__e2e.call-recovery'
-import { Route as _e2ePeerSheetBannerRouteImport } from './routes/__e2e.peer-sheet-banner'
-import { Route as _e2eRechargeRetryRouteImport } from './routes/__e2e.recharge-retry'
-import { Route as AuthenticatedAccountDeleteRouteImport } from './routes/_authenticated/account-delete'
-import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
-import { Route as AuthenticatedChatRouteImport } from './routes/_authenticated/chat'
-import { Route as AuthenticatedConnectRouteImport } from './routes/_authenticated/connect'
-import { Route as AuthenticatedCreatorDashboardRouteImport } from './routes/_authenticated/creator-dashboard'
-import { Route as AuthenticatedDataExportRouteImport } from './routes/_authenticated/data-export'
-import { Route as AuthenticatedDiagnosticsRouteImport } from './routes/_authenticated/diagnostics'
-import { Route as AuthenticatedHomeRouteImport } from './routes/_authenticated/home'
-import { Route as AuthenticatedLeaderboardRouteImport } from './routes/_authenticated/leaderboard'
-import { Route as AuthenticatedNewJoinersRouteImport } from './routes/_authenticated/new-joiners'
-import { Route as AuthenticatedNotificationPreferencesRouteImport } from './routes/_authenticated/notification-preferences'
-import { Route as AuthenticatedNotificationsRouteImport } from './routes/_authenticated/notifications'
-import { Route as AuthenticatedOnboardingRouteImport } from './routes/_authenticated/onboarding'
-import { Route as AuthenticatedPrivacyCenterRouteImport } from './routes/_authenticated/privacy-center'
-import { Route as AuthenticatedReceiptsRouteImport } from './routes/_authenticated/receipts'
-import { Route as AuthenticatedRecentsRouteImport } from './routes/_authenticated/recents'
-import { Route as AuthenticatedRechargeRouteImport } from './routes/_authenticated/recharge'
-import { Route as AuthenticatedReferRouteImport } from './routes/_authenticated/refer'
-import { Route as AuthenticatedRequestsRouteImport } from './routes/_authenticated/requests'
-import { Route as AuthenticatedReviewerRouteImport } from './routes/_authenticated/reviewer'
-import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
-import { Route as AuthenticatedWalletRouteImport } from './routes/_authenticated/wallet'
+import { Route as SafetyRouteImport } from './routes/safety'
+import { Route as RefundPolicyRouteImport } from './routes/refund-policy'
+import { Route as PrivacyRouteImport } from './routes/privacy'
+import { Route as ManifestDotwebmanifestRouteImport } from './routes/manifest[.]webmanifest'
+import { Route as DeleteAccountRouteImport } from './routes/delete-account'
+import { Route as CommunityGuidelinesRouteImport } from './routes/community-guidelines'
+import { Route as ChildSafetyRouteImport } from './routes/child-safety'
+import { Route as BannedRouteImport } from './routes/banned'
+import { Route as AuthRouteImport } from './routes/auth'
+import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
+import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedWithdrawRouteImport } from './routes/_authenticated/withdraw'
-import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authenticated/admin.index'
+import { Route as AuthenticatedWalletRouteImport } from './routes/_authenticated/wallet'
+import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
+import { Route as AuthenticatedReviewerRouteImport } from './routes/_authenticated/reviewer'
+import { Route as AuthenticatedRequestsRouteImport } from './routes/_authenticated/requests'
+import { Route as AuthenticatedReferRouteImport } from './routes/_authenticated/refer'
+import { Route as AuthenticatedRechargeRouteImport } from './routes/_authenticated/recharge'
+import { Route as AuthenticatedRecentsRouteImport } from './routes/_authenticated/recents'
+import { Route as AuthenticatedReceiptsRouteImport } from './routes/_authenticated/receipts'
+import { Route as AuthenticatedPrivacyCenterRouteImport } from './routes/_authenticated/privacy-center'
+import { Route as AuthenticatedOnboardingRouteImport } from './routes/_authenticated/onboarding'
+import { Route as AuthenticatedNotificationsRouteImport } from './routes/_authenticated/notifications'
+import { Route as AuthenticatedNotificationPreferencesRouteImport } from './routes/_authenticated/notification-preferences'
+import { Route as AuthenticatedNewJoinersRouteImport } from './routes/_authenticated/new-joiners'
+import { Route as AuthenticatedLeaderboardRouteImport } from './routes/_authenticated/leaderboard'
+import { Route as AuthenticatedHomeRouteImport } from './routes/_authenticated/home'
+import { Route as AuthenticatedDiagnosticsRouteImport } from './routes/_authenticated/diagnostics'
+import { Route as AuthenticatedDataExportRouteImport } from './routes/_authenticated/data-export'
+import { Route as AuthenticatedCreatorDashboardRouteImport } from './routes/_authenticated/creator-dashboard'
+import { Route as AuthenticatedConnectRouteImport } from './routes/_authenticated/connect'
+import { Route as AuthenticatedChatRouteImport } from './routes/_authenticated/chat'
+import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
+import { Route as AuthenticatedAccountDeleteRouteImport } from './routes/_authenticated/account-delete'
+import { Route as _e2eRechargeRetryRouteImport } from './routes/__e2e.recharge-retry'
+import { Route as _e2ePeerSheetBannerRouteImport } from './routes/__e2e.peer-sheet-banner'
+import { Route as _e2eCallRecoveryRouteImport } from './routes/__e2e.call-recovery'
+import { Route as _e2eCallFullscreenRouteImport } from './routes/__e2e.call-fullscreen'
+import { Route as _e2eCallControlsRouteImport } from './routes/__e2e.call-controls'
 import { Route as AuthenticatedChatIndexRouteImport } from './routes/_authenticated/chat.index'
-import { Route as AuthenticatedChatConversationIdRouteImport } from './routes/_authenticated/chat.$conversationId'
-import { Route as AuthenticatedMatchmakerIdRouteImport } from './routes/_authenticated/matchmaker.$id'
-import { Route as AuthenticatedMatchmakerNewRouteImport } from './routes/_authenticated/matchmaker.new'
-import { Route as AuthenticatedMysteryCaseIdRouteImport } from './routes/_authenticated/mystery.$caseId'
-import { Route as AuthenticatedRechargeStatusRouteImport } from './routes/_authenticated/recharge.status'
-import { Route as AuthenticatedRoomsIdRouteImport } from './routes/_authenticated/rooms.$id'
-import { Route as AuthenticatedRoomsNewRouteImport } from './routes/_authenticated/rooms.new'
-import { Route as ApiPublicRazorpayWebhookRouteImport } from './routes/api/public/razorpay-webhook'
+import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authenticated/admin.index'
 import { Route as Call_e2ePeerSheetBannerRouteImport } from './routes/call.__e2e.peer-sheet-banner'
-import { Route as AuthenticatedCallKindUserIdRouteImport } from './routes/_authenticated/call.$kind.$userId'
-import { Route as ApiPublicHooksKycCleanupRouteImport } from './routes/api/public/hooks/kyc-cleanup'
-import { Route as ApiPublicHooksPlayRtdnRouteImport } from './routes/api/public/hooks/play-rtdn'
-import { Route as ApiPublicHooksProcessPrivacyDeletionsRouteImport } from './routes/api/public/hooks/process-privacy-deletions'
-import { Route as ApiPublicHooksReconcileRazorpayRouteImport } from './routes/api/public/hooks/reconcile-razorpay'
+import { Route as ApiPublicRazorpayWebhookRouteImport } from './routes/api/public/razorpay-webhook'
+import { Route as AuthenticatedRoomsNewRouteImport } from './routes/_authenticated/rooms.new'
+import { Route as AuthenticatedRoomsIdRouteImport } from './routes/_authenticated/rooms.$id'
+import { Route as AuthenticatedRechargeStatusRouteImport } from './routes/_authenticated/recharge.status'
+import { Route as AuthenticatedMysteryCaseIdRouteImport } from './routes/_authenticated/mystery.$caseId'
+import { Route as AuthenticatedMatchmakerNewRouteImport } from './routes/_authenticated/matchmaker.new'
+import { Route as AuthenticatedMatchmakerIdRouteImport } from './routes/_authenticated/matchmaker.$id'
+import { Route as AuthenticatedChatConversationIdRouteImport } from './routes/_authenticated/chat.$conversationId'
 import { Route as ApiPublicHooksResetCallingQuotasRouteImport } from './routes/api/public/hooks/reset-calling-quotas'
+import { Route as ApiPublicHooksReconcileRazorpayRouteImport } from './routes/api/public/hooks/reconcile-razorpay'
+import { Route as ApiPublicHooksProcessPrivacyDeletionsRouteImport } from './routes/api/public/hooks/process-privacy-deletions'
+import { Route as ApiPublicHooksPlayRtdnRouteImport } from './routes/api/public/hooks/play-rtdn'
+import { Route as ApiPublicHooksKycCleanupRouteImport } from './routes/api/public/hooks/kyc-cleanup'
+import { Route as AuthenticatedCallKindUserIdRouteImport } from './routes/_authenticated/call.$kind.$userId'
 
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
-  id: '/_authenticated',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AuthRoute = AuthRouteImport.update({
-  id: '/auth',
-  path: '/auth',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const BannedRoute = BannedRouteImport.update({
-  id: '/banned',
-  path: '/banned',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ChildSafetyRoute = ChildSafetyRouteImport.update({
-  id: '/child-safety',
-  path: '/child-safety',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const CommunityGuidelinesRoute = CommunityGuidelinesRouteImport.update({
-  id: '/community-guidelines',
-  path: '/community-guidelines',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const DeleteAccountRoute = DeleteAccountRouteImport.update({
-  id: '/delete-account',
-  path: '/delete-account',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ManifestDotwebmanifestRoute = ManifestDotwebmanifestRouteImport.update({
-  id: '/manifest.webmanifest',
-  path: '/manifest.webmanifest',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const PrivacyRoute = PrivacyRouteImport.update({
-  id: '/privacy',
-  path: '/privacy',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const RefundPolicyRoute = RefundPolicyRouteImport.update({
-  id: '/refund-policy',
-  path: '/refund-policy',
+const TermsRoute = TermsRouteImport.update({
+  id: '/terms',
+  path: '/terms',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SafetyRoute = SafetyRouteImport.update({
@@ -121,105 +77,98 @@ const SafetyRoute = SafetyRouteImport.update({
   path: '/safety',
   getParentRoute: () => rootRouteImport,
 } as any)
-const TermsRoute = TermsRouteImport.update({
-  id: '/terms',
-  path: '/terms',
+const RefundPolicyRoute = RefundPolicyRouteImport.update({
+  id: '/refund-policy',
+  path: '/refund-policy',
   getParentRoute: () => rootRouteImport,
 } as any)
-const _e2eCallControlsRoute = _e2eCallControlsRouteImport.update({
-  id: '/__e2e/call-controls',
-  path: '/call-controls',
+const PrivacyRoute = PrivacyRouteImport.update({
+  id: '/privacy',
+  path: '/privacy',
   getParentRoute: () => rootRouteImport,
 } as any)
-const _e2eCallFullscreenRoute = _e2eCallFullscreenRouteImport.update({
-  id: '/__e2e/call-fullscreen',
-  path: '/call-fullscreen',
+const ManifestDotwebmanifestRoute = ManifestDotwebmanifestRouteImport.update({
+  id: '/manifest.webmanifest',
+  path: '/manifest.webmanifest',
   getParentRoute: () => rootRouteImport,
 } as any)
-const _e2eCallRecoveryRoute = _e2eCallRecoveryRouteImport.update({
-  id: '/__e2e/call-recovery',
-  path: '/call-recovery',
+const DeleteAccountRoute = DeleteAccountRouteImport.update({
+  id: '/delete-account',
+  path: '/delete-account',
   getParentRoute: () => rootRouteImport,
 } as any)
-const _e2ePeerSheetBannerRoute = _e2ePeerSheetBannerRouteImport.update({
-  id: '/__e2e/peer-sheet-banner',
-  path: '/peer-sheet-banner',
+const CommunityGuidelinesRoute = CommunityGuidelinesRouteImport.update({
+  id: '/community-guidelines',
+  path: '/community-guidelines',
   getParentRoute: () => rootRouteImport,
 } as any)
-const _e2eRechargeRetryRoute = _e2eRechargeRetryRouteImport.update({
-  id: '/__e2e/recharge-retry',
-  path: '/recharge-retry',
+const ChildSafetyRoute = ChildSafetyRouteImport.update({
+  id: '/child-safety',
+  path: '/child-safety',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AuthenticatedAccountDeleteRoute =
-  AuthenticatedAccountDeleteRouteImport.update({
-    id: '/account-delete',
-    path: '/account-delete',
-    getParentRoute: () => AuthenticatedRouteRoute,
-  } as any)
-const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
-  id: '/admin',
-  path: '/admin',
+const BannedRoute = BannedRouteImport.update({
+  id: '/banned',
+  path: '/banned',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthRoute = AuthRouteImport.update({
+  id: '/auth',
+  path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
+  id: '/_authenticated',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const IndexRoute = IndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedWithdrawRoute = AuthenticatedWithdrawRouteImport.update({
+  id: '/withdraw',
+  path: '/withdraw',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const AuthenticatedChatRoute = AuthenticatedChatRouteImport.update({
-  id: '/chat',
-  path: '/chat',
+const AuthenticatedWalletRoute = AuthenticatedWalletRouteImport.update({
+  id: '/wallet',
+  path: '/wallet',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const AuthenticatedConnectRoute = AuthenticatedConnectRouteImport.update({
-  id: '/connect',
-  path: '/connect',
+const AuthenticatedSettingsRoute = AuthenticatedSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const AuthenticatedCreatorDashboardRoute =
-  AuthenticatedCreatorDashboardRouteImport.update({
-    id: '/creator-dashboard',
-    path: '/creator-dashboard',
-    getParentRoute: () => AuthenticatedRouteRoute,
-  } as any)
-const AuthenticatedDataExportRoute = AuthenticatedDataExportRouteImport.update({
-  id: '/data-export',
-  path: '/data-export',
+const AuthenticatedReviewerRoute = AuthenticatedReviewerRouteImport.update({
+  id: '/reviewer',
+  path: '/reviewer',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const AuthenticatedDiagnosticsRoute =
-  AuthenticatedDiagnosticsRouteImport.update({
-    id: '/diagnostics',
-    path: '/diagnostics',
-    getParentRoute: () => AuthenticatedRouteRoute,
-  } as any)
-const AuthenticatedHomeRoute = AuthenticatedHomeRouteImport.update({
-  id: '/home',
-  path: '/home',
+const AuthenticatedRequestsRoute = AuthenticatedRequestsRouteImport.update({
+  id: '/requests',
+  path: '/requests',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const AuthenticatedLeaderboardRoute =
-  AuthenticatedLeaderboardRouteImport.update({
-    id: '/leaderboard',
-    path: '/leaderboard',
-    getParentRoute: () => AuthenticatedRouteRoute,
-  } as any)
-const AuthenticatedNewJoinersRoute = AuthenticatedNewJoinersRouteImport.update({
-  id: '/new-joiners',
-  path: '/new-joiners',
+const AuthenticatedReferRoute = AuthenticatedReferRouteImport.update({
+  id: '/refer',
+  path: '/refer',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const AuthenticatedNotificationPreferencesRoute =
-  AuthenticatedNotificationPreferencesRouteImport.update({
-    id: '/notification-preferences',
-    path: '/notification-preferences',
-    getParentRoute: () => AuthenticatedRouteRoute,
-  } as any)
-const AuthenticatedNotificationsRoute =
-  AuthenticatedNotificationsRouteImport.update({
-    id: '/notifications',
-    path: '/notifications',
-    getParentRoute: () => AuthenticatedRouteRoute,
-  } as any)
-const AuthenticatedOnboardingRoute = AuthenticatedOnboardingRouteImport.update({
-  id: '/onboarding',
-  path: '/onboarding',
+const AuthenticatedRechargeRoute = AuthenticatedRechargeRouteImport.update({
+  id: '/recharge',
+  path: '/recharge',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedRecentsRoute = AuthenticatedRecentsRouteImport.update({
+  id: '/recents',
+  path: '/recents',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedReceiptsRoute = AuthenticatedReceiptsRouteImport.update({
+  id: '/receipts',
+  path: '/receipts',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedPrivacyCenterRoute =
@@ -228,71 +177,143 @@ const AuthenticatedPrivacyCenterRoute =
     path: '/privacy-center',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
-const AuthenticatedReceiptsRoute = AuthenticatedReceiptsRouteImport.update({
-  id: '/receipts',
-  path: '/receipts',
+const AuthenticatedOnboardingRoute = AuthenticatedOnboardingRouteImport.update({
+  id: '/onboarding',
+  path: '/onboarding',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const AuthenticatedRecentsRoute = AuthenticatedRecentsRouteImport.update({
-  id: '/recents',
-  path: '/recents',
+const AuthenticatedNotificationsRoute =
+  AuthenticatedNotificationsRouteImport.update({
+    id: '/notifications',
+    path: '/notifications',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedNotificationPreferencesRoute =
+  AuthenticatedNotificationPreferencesRouteImport.update({
+    id: '/notification-preferences',
+    path: '/notification-preferences',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedNewJoinersRoute = AuthenticatedNewJoinersRouteImport.update({
+  id: '/new-joiners',
+  path: '/new-joiners',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const AuthenticatedRechargeRoute = AuthenticatedRechargeRouteImport.update({
-  id: '/recharge',
-  path: '/recharge',
+const AuthenticatedLeaderboardRoute =
+  AuthenticatedLeaderboardRouteImport.update({
+    id: '/leaderboard',
+    path: '/leaderboard',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedHomeRoute = AuthenticatedHomeRouteImport.update({
+  id: '/home',
+  path: '/home',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const AuthenticatedReferRoute = AuthenticatedReferRouteImport.update({
-  id: '/refer',
-  path: '/refer',
+const AuthenticatedDiagnosticsRoute =
+  AuthenticatedDiagnosticsRouteImport.update({
+    id: '/diagnostics',
+    path: '/diagnostics',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedDataExportRoute = AuthenticatedDataExportRouteImport.update({
+  id: '/data-export',
+  path: '/data-export',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const AuthenticatedRequestsRoute = AuthenticatedRequestsRouteImport.update({
-  id: '/requests',
-  path: '/requests',
+const AuthenticatedCreatorDashboardRoute =
+  AuthenticatedCreatorDashboardRouteImport.update({
+    id: '/creator-dashboard',
+    path: '/creator-dashboard',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedConnectRoute = AuthenticatedConnectRouteImport.update({
+  id: '/connect',
+  path: '/connect',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const AuthenticatedReviewerRoute = AuthenticatedReviewerRouteImport.update({
-  id: '/reviewer',
-  path: '/reviewer',
+const AuthenticatedChatRoute = AuthenticatedChatRouteImport.update({
+  id: '/chat',
+  path: '/chat',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const AuthenticatedSettingsRoute = AuthenticatedSettingsRouteImport.update({
-  id: '/settings',
-  path: '/settings',
+const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const AuthenticatedWalletRoute = AuthenticatedWalletRouteImport.update({
-  id: '/wallet',
-  path: '/wallet',
-  getParentRoute: () => AuthenticatedRouteRoute,
+const AuthenticatedAccountDeleteRoute =
+  AuthenticatedAccountDeleteRouteImport.update({
+    id: '/account-delete',
+    path: '/account-delete',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const _e2eRechargeRetryRoute = _e2eRechargeRetryRouteImport.update({
+  id: '/__e2e/recharge-retry',
+  path: '/recharge-retry',
+  getParentRoute: () => rootRouteImport,
 } as any)
-const AuthenticatedWithdrawRoute = AuthenticatedWithdrawRouteImport.update({
-  id: '/withdraw',
-  path: '/withdraw',
-  getParentRoute: () => AuthenticatedRouteRoute,
+const _e2ePeerSheetBannerRoute = _e2ePeerSheetBannerRouteImport.update({
+  id: '/__e2e/peer-sheet-banner',
+  path: '/peer-sheet-banner',
+  getParentRoute: () => rootRouteImport,
 } as any)
-const AuthenticatedAdminIndexRoute = AuthenticatedAdminIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => AuthenticatedAdminRoute,
+const _e2eCallRecoveryRoute = _e2eCallRecoveryRouteImport.update({
+  id: '/__e2e/call-recovery',
+  path: '/call-recovery',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const _e2eCallFullscreenRoute = _e2eCallFullscreenRouteImport.update({
+  id: '/__e2e/call-fullscreen',
+  path: '/call-fullscreen',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const _e2eCallControlsRoute = _e2eCallControlsRouteImport.update({
+  id: '/__e2e/call-controls',
+  path: '/call-controls',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedChatIndexRoute = AuthenticatedChatIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => AuthenticatedChatRoute,
 } as any)
-const AuthenticatedChatConversationIdRoute =
-  AuthenticatedChatConversationIdRouteImport.update({
-    id: '/$conversationId',
-    path: '/$conversationId',
-    getParentRoute: () => AuthenticatedChatRoute,
+const AuthenticatedAdminIndexRoute = AuthenticatedAdminIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AuthenticatedAdminRoute,
+} as any)
+const Call_e2ePeerSheetBannerRoute = Call_e2ePeerSheetBannerRouteImport.update({
+  id: '/call/__e2e/peer-sheet-banner',
+  path: '/call/peer-sheet-banner',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicRazorpayWebhookRoute =
+  ApiPublicRazorpayWebhookRouteImport.update({
+    id: '/api/public/razorpay-webhook',
+    path: '/api/public/razorpay-webhook',
+    getParentRoute: () => rootRouteImport,
   } as any)
-const AuthenticatedMatchmakerIdRoute =
-  AuthenticatedMatchmakerIdRouteImport.update({
-    id: '/matchmaker/$id',
-    path: '/matchmaker/$id',
+const AuthenticatedRoomsNewRoute = AuthenticatedRoomsNewRouteImport.update({
+  id: '/rooms/new',
+  path: '/rooms/new',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedRoomsIdRoute = AuthenticatedRoomsIdRouteImport.update({
+  id: '/rooms/$id',
+  path: '/rooms/$id',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedRechargeStatusRoute =
+  AuthenticatedRechargeStatusRouteImport.update({
+    id: '/status',
+    path: '/status',
+    getParentRoute: () => AuthenticatedRechargeRoute,
+  } as any)
+const AuthenticatedMysteryCaseIdRoute =
+  AuthenticatedMysteryCaseIdRouteImport.update({
+    id: '/mystery/$caseId',
+    path: '/mystery/$caseId',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedMatchmakerNewRoute =
@@ -301,60 +322,22 @@ const AuthenticatedMatchmakerNewRoute =
     path: '/matchmaker/new',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
-const AuthenticatedMysteryCaseIdRoute =
-  AuthenticatedMysteryCaseIdRouteImport.update({
-    id: '/mystery/$caseId',
-    path: '/mystery/$caseId',
+const AuthenticatedMatchmakerIdRoute =
+  AuthenticatedMatchmakerIdRouteImport.update({
+    id: '/matchmaker/$id',
+    path: '/matchmaker/$id',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
-const AuthenticatedRechargeStatusRoute =
-  AuthenticatedRechargeStatusRouteImport.update({
-    id: '/status',
-    path: '/status',
-    getParentRoute: () => AuthenticatedRechargeRoute,
+const AuthenticatedChatConversationIdRoute =
+  AuthenticatedChatConversationIdRouteImport.update({
+    id: '/$conversationId',
+    path: '/$conversationId',
+    getParentRoute: () => AuthenticatedChatRoute,
   } as any)
-const AuthenticatedRoomsIdRoute = AuthenticatedRoomsIdRouteImport.update({
-  id: '/rooms/$id',
-  path: '/rooms/$id',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
-const AuthenticatedRoomsNewRoute = AuthenticatedRoomsNewRouteImport.update({
-  id: '/rooms/new',
-  path: '/rooms/new',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
-const ApiPublicRazorpayWebhookRoute =
-  ApiPublicRazorpayWebhookRouteImport.update({
-    id: '/api/public/razorpay-webhook',
-    path: '/api/public/razorpay-webhook',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const Call_e2ePeerSheetBannerRoute = Call_e2ePeerSheetBannerRouteImport.update({
-  id: '/call/__e2e/peer-sheet-banner',
-  path: '/call/peer-sheet-banner',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AuthenticatedCallKindUserIdRoute =
-  AuthenticatedCallKindUserIdRouteImport.update({
-    id: '/call/$kind/$userId',
-    path: '/call/$kind/$userId',
-    getParentRoute: () => AuthenticatedRouteRoute,
-  } as any)
-const ApiPublicHooksKycCleanupRoute =
-  ApiPublicHooksKycCleanupRouteImport.update({
-    id: '/api/public/hooks/kyc-cleanup',
-    path: '/api/public/hooks/kyc-cleanup',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const ApiPublicHooksPlayRtdnRoute = ApiPublicHooksPlayRtdnRouteImport.update({
-  id: '/api/public/hooks/play-rtdn',
-  path: '/api/public/hooks/play-rtdn',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiPublicHooksProcessPrivacyDeletionsRoute =
-  ApiPublicHooksProcessPrivacyDeletionsRouteImport.update({
-    id: '/api/public/hooks/process-privacy-deletions',
-    path: '/api/public/hooks/process-privacy-deletions',
+const ApiPublicHooksResetCallingQuotasRoute =
+  ApiPublicHooksResetCallingQuotasRouteImport.update({
+    id: '/api/public/hooks/reset-calling-quotas',
+    path: '/api/public/hooks/reset-calling-quotas',
     getParentRoute: () => rootRouteImport,
   } as any)
 const ApiPublicHooksReconcileRazorpayRoute =
@@ -363,11 +346,28 @@ const ApiPublicHooksReconcileRazorpayRoute =
     path: '/api/public/hooks/reconcile-razorpay',
     getParentRoute: () => rootRouteImport,
   } as any)
-const ApiPublicHooksResetCallingQuotasRoute =
-  ApiPublicHooksResetCallingQuotasRouteImport.update({
-    id: '/api/public/hooks/reset-calling-quotas',
-    path: '/api/public/hooks/reset-calling-quotas',
+const ApiPublicHooksProcessPrivacyDeletionsRoute =
+  ApiPublicHooksProcessPrivacyDeletionsRouteImport.update({
+    id: '/api/public/hooks/process-privacy-deletions',
+    path: '/api/public/hooks/process-privacy-deletions',
     getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicHooksPlayRtdnRoute = ApiPublicHooksPlayRtdnRouteImport.update({
+  id: '/api/public/hooks/play-rtdn',
+  path: '/api/public/hooks/play-rtdn',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicHooksKycCleanupRoute =
+  ApiPublicHooksKycCleanupRouteImport.update({
+    id: '/api/public/hooks/kyc-cleanup',
+    path: '/api/public/hooks/kyc-cleanup',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const AuthenticatedCallKindUserIdRoute =
+  AuthenticatedCallKindUserIdRouteImport.update({
+    id: '/call/$kind/$userId',
+    path: '/call/$kind/$userId',
+    getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 
 export interface FileRoutesByFullPath {
@@ -749,74 +749,11 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/_authenticated': {
-      id: '/_authenticated'
-      path: ''
-      fullPath: '/'
-      preLoaderRoute: typeof AuthenticatedRouteRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/auth': {
-      id: '/auth'
-      path: '/auth'
-      fullPath: '/auth'
-      preLoaderRoute: typeof AuthRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/banned': {
-      id: '/banned'
-      path: '/banned'
-      fullPath: '/banned'
-      preLoaderRoute: typeof BannedRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/child-safety': {
-      id: '/child-safety'
-      path: '/child-safety'
-      fullPath: '/child-safety'
-      preLoaderRoute: typeof ChildSafetyRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/community-guidelines': {
-      id: '/community-guidelines'
-      path: '/community-guidelines'
-      fullPath: '/community-guidelines'
-      preLoaderRoute: typeof CommunityGuidelinesRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/delete-account': {
-      id: '/delete-account'
-      path: '/delete-account'
-      fullPath: '/delete-account'
-      preLoaderRoute: typeof DeleteAccountRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/manifest.webmanifest': {
-      id: '/manifest.webmanifest'
-      path: '/manifest.webmanifest'
-      fullPath: '/manifest.webmanifest'
-      preLoaderRoute: typeof ManifestDotwebmanifestRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/privacy': {
-      id: '/privacy'
-      path: '/privacy'
-      fullPath: '/privacy'
-      preLoaderRoute: typeof PrivacyRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/refund-policy': {
-      id: '/refund-policy'
-      path: '/refund-policy'
-      fullPath: '/refund-policy'
-      preLoaderRoute: typeof RefundPolicyRouteImport
+    '/terms': {
+      id: '/terms'
+      path: '/terms'
+      fullPath: '/terms'
+      preLoaderRoute: typeof TermsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/safety': {
@@ -826,193 +763,81 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SafetyRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/terms': {
-      id: '/terms'
-      path: '/terms'
-      fullPath: '/terms'
-      preLoaderRoute: typeof TermsRouteImport
+    '/refund-policy': {
+      id: '/refund-policy'
+      path: '/refund-policy'
+      fullPath: '/refund-policy'
+      preLoaderRoute: typeof RefundPolicyRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/__e2e/call-controls': {
-      id: '/__e2e/call-controls'
-      path: '/call-controls'
-      fullPath: '/call-controls'
-      preLoaderRoute: typeof _e2eCallControlsRouteImport
+    '/privacy': {
+      id: '/privacy'
+      path: '/privacy'
+      fullPath: '/privacy'
+      preLoaderRoute: typeof PrivacyRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/__e2e/call-fullscreen': {
-      id: '/__e2e/call-fullscreen'
-      path: '/call-fullscreen'
-      fullPath: '/call-fullscreen'
-      preLoaderRoute: typeof _e2eCallFullscreenRouteImport
+    '/manifest.webmanifest': {
+      id: '/manifest.webmanifest'
+      path: '/manifest.webmanifest'
+      fullPath: '/manifest.webmanifest'
+      preLoaderRoute: typeof ManifestDotwebmanifestRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/__e2e/call-recovery': {
-      id: '/__e2e/call-recovery'
-      path: '/call-recovery'
-      fullPath: '/call-recovery'
-      preLoaderRoute: typeof _e2eCallRecoveryRouteImport
+    '/delete-account': {
+      id: '/delete-account'
+      path: '/delete-account'
+      fullPath: '/delete-account'
+      preLoaderRoute: typeof DeleteAccountRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/__e2e/peer-sheet-banner': {
-      id: '/__e2e/peer-sheet-banner'
-      path: '/peer-sheet-banner'
-      fullPath: '/peer-sheet-banner'
-      preLoaderRoute: typeof _e2ePeerSheetBannerRouteImport
+    '/community-guidelines': {
+      id: '/community-guidelines'
+      path: '/community-guidelines'
+      fullPath: '/community-guidelines'
+      preLoaderRoute: typeof CommunityGuidelinesRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/__e2e/recharge-retry': {
-      id: '/__e2e/recharge-retry'
-      path: '/recharge-retry'
-      fullPath: '/recharge-retry'
-      preLoaderRoute: typeof _e2eRechargeRetryRouteImport
+    '/child-safety': {
+      id: '/child-safety'
+      path: '/child-safety'
+      fullPath: '/child-safety'
+      preLoaderRoute: typeof ChildSafetyRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/_authenticated/account-delete': {
-      id: '/_authenticated/account-delete'
-      path: '/account-delete'
-      fullPath: '/account-delete'
-      preLoaderRoute: typeof AuthenticatedAccountDeleteRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
+    '/banned': {
+      id: '/banned'
+      path: '/banned'
+      fullPath: '/banned'
+      preLoaderRoute: typeof BannedRouteImport
+      parentRoute: typeof rootRouteImport
     }
-    '/_authenticated/admin': {
-      id: '/_authenticated/admin'
-      path: '/admin'
-      fullPath: '/admin'
-      preLoaderRoute: typeof AuthenticatedAdminRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
+    '/auth': {
+      id: '/auth'
+      path: '/auth'
+      fullPath: '/auth'
+      preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
     }
-    '/_authenticated/chat': {
-      id: '/_authenticated/chat'
-      path: '/chat'
-      fullPath: '/chat'
-      preLoaderRoute: typeof AuthenticatedChatRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
+    '/_authenticated': {
+      id: '/_authenticated'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AuthenticatedRouteRouteImport
+      parentRoute: typeof rootRouteImport
     }
-    '/_authenticated/connect': {
-      id: '/_authenticated/connect'
-      path: '/connect'
-      fullPath: '/connect'
-      preLoaderRoute: typeof AuthenticatedConnectRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
     }
-    '/_authenticated/creator-dashboard': {
-      id: '/_authenticated/creator-dashboard'
-      path: '/creator-dashboard'
-      fullPath: '/creator-dashboard'
-      preLoaderRoute: typeof AuthenticatedCreatorDashboardRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/data-export': {
-      id: '/_authenticated/data-export'
-      path: '/data-export'
-      fullPath: '/data-export'
-      preLoaderRoute: typeof AuthenticatedDataExportRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/diagnostics': {
-      id: '/_authenticated/diagnostics'
-      path: '/diagnostics'
-      fullPath: '/diagnostics'
-      preLoaderRoute: typeof AuthenticatedDiagnosticsRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/home': {
-      id: '/_authenticated/home'
-      path: '/home'
-      fullPath: '/home'
-      preLoaderRoute: typeof AuthenticatedHomeRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/leaderboard': {
-      id: '/_authenticated/leaderboard'
-      path: '/leaderboard'
-      fullPath: '/leaderboard'
-      preLoaderRoute: typeof AuthenticatedLeaderboardRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/new-joiners': {
-      id: '/_authenticated/new-joiners'
-      path: '/new-joiners'
-      fullPath: '/new-joiners'
-      preLoaderRoute: typeof AuthenticatedNewJoinersRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/notification-preferences': {
-      id: '/_authenticated/notification-preferences'
-      path: '/notification-preferences'
-      fullPath: '/notification-preferences'
-      preLoaderRoute: typeof AuthenticatedNotificationPreferencesRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/notifications': {
-      id: '/_authenticated/notifications'
-      path: '/notifications'
-      fullPath: '/notifications'
-      preLoaderRoute: typeof AuthenticatedNotificationsRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/onboarding': {
-      id: '/_authenticated/onboarding'
-      path: '/onboarding'
-      fullPath: '/onboarding'
-      preLoaderRoute: typeof AuthenticatedOnboardingRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/privacy-center': {
-      id: '/_authenticated/privacy-center'
-      path: '/privacy-center'
-      fullPath: '/privacy-center'
-      preLoaderRoute: typeof AuthenticatedPrivacyCenterRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/receipts': {
-      id: '/_authenticated/receipts'
-      path: '/receipts'
-      fullPath: '/receipts'
-      preLoaderRoute: typeof AuthenticatedReceiptsRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/recents': {
-      id: '/_authenticated/recents'
-      path: '/recents'
-      fullPath: '/recents'
-      preLoaderRoute: typeof AuthenticatedRecentsRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/recharge': {
-      id: '/_authenticated/recharge'
-      path: '/recharge'
-      fullPath: '/recharge'
-      preLoaderRoute: typeof AuthenticatedRechargeRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/refer': {
-      id: '/_authenticated/refer'
-      path: '/refer'
-      fullPath: '/refer'
-      preLoaderRoute: typeof AuthenticatedReferRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/requests': {
-      id: '/_authenticated/requests'
-      path: '/requests'
-      fullPath: '/requests'
-      preLoaderRoute: typeof AuthenticatedRequestsRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/reviewer': {
-      id: '/_authenticated/reviewer'
-      path: '/reviewer'
-      fullPath: '/reviewer'
-      preLoaderRoute: typeof AuthenticatedReviewerRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/settings': {
-      id: '/_authenticated/settings'
-      path: '/settings'
-      fullPath: '/settings'
-      preLoaderRoute: typeof AuthenticatedSettingsRouteImport
+    '/_authenticated/withdraw': {
+      id: '/_authenticated/withdraw'
+      path: '/withdraw'
+      fullPath: '/withdraw'
+      preLoaderRoute: typeof AuthenticatedWithdrawRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/wallet': {
@@ -1022,19 +847,187 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedWalletRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/withdraw': {
-      id: '/_authenticated/withdraw'
-      path: '/withdraw'
-      fullPath: '/withdraw'
-      preLoaderRoute: typeof AuthenticatedWithdrawRouteImport
+    '/_authenticated/settings': {
+      id: '/_authenticated/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof AuthenticatedSettingsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/admin/': {
-      id: '/_authenticated/admin/'
-      path: '/'
-      fullPath: '/admin/'
-      preLoaderRoute: typeof AuthenticatedAdminIndexRouteImport
-      parentRoute: typeof AuthenticatedAdminRoute
+    '/_authenticated/reviewer': {
+      id: '/_authenticated/reviewer'
+      path: '/reviewer'
+      fullPath: '/reviewer'
+      preLoaderRoute: typeof AuthenticatedReviewerRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/requests': {
+      id: '/_authenticated/requests'
+      path: '/requests'
+      fullPath: '/requests'
+      preLoaderRoute: typeof AuthenticatedRequestsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/refer': {
+      id: '/_authenticated/refer'
+      path: '/refer'
+      fullPath: '/refer'
+      preLoaderRoute: typeof AuthenticatedReferRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/recharge': {
+      id: '/_authenticated/recharge'
+      path: '/recharge'
+      fullPath: '/recharge'
+      preLoaderRoute: typeof AuthenticatedRechargeRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/recents': {
+      id: '/_authenticated/recents'
+      path: '/recents'
+      fullPath: '/recents'
+      preLoaderRoute: typeof AuthenticatedRecentsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/receipts': {
+      id: '/_authenticated/receipts'
+      path: '/receipts'
+      fullPath: '/receipts'
+      preLoaderRoute: typeof AuthenticatedReceiptsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/privacy-center': {
+      id: '/_authenticated/privacy-center'
+      path: '/privacy-center'
+      fullPath: '/privacy-center'
+      preLoaderRoute: typeof AuthenticatedPrivacyCenterRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/onboarding': {
+      id: '/_authenticated/onboarding'
+      path: '/onboarding'
+      fullPath: '/onboarding'
+      preLoaderRoute: typeof AuthenticatedOnboardingRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/notifications': {
+      id: '/_authenticated/notifications'
+      path: '/notifications'
+      fullPath: '/notifications'
+      preLoaderRoute: typeof AuthenticatedNotificationsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/notification-preferences': {
+      id: '/_authenticated/notification-preferences'
+      path: '/notification-preferences'
+      fullPath: '/notification-preferences'
+      preLoaderRoute: typeof AuthenticatedNotificationPreferencesRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/new-joiners': {
+      id: '/_authenticated/new-joiners'
+      path: '/new-joiners'
+      fullPath: '/new-joiners'
+      preLoaderRoute: typeof AuthenticatedNewJoinersRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/leaderboard': {
+      id: '/_authenticated/leaderboard'
+      path: '/leaderboard'
+      fullPath: '/leaderboard'
+      preLoaderRoute: typeof AuthenticatedLeaderboardRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/home': {
+      id: '/_authenticated/home'
+      path: '/home'
+      fullPath: '/home'
+      preLoaderRoute: typeof AuthenticatedHomeRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/diagnostics': {
+      id: '/_authenticated/diagnostics'
+      path: '/diagnostics'
+      fullPath: '/diagnostics'
+      preLoaderRoute: typeof AuthenticatedDiagnosticsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/data-export': {
+      id: '/_authenticated/data-export'
+      path: '/data-export'
+      fullPath: '/data-export'
+      preLoaderRoute: typeof AuthenticatedDataExportRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/creator-dashboard': {
+      id: '/_authenticated/creator-dashboard'
+      path: '/creator-dashboard'
+      fullPath: '/creator-dashboard'
+      preLoaderRoute: typeof AuthenticatedCreatorDashboardRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/connect': {
+      id: '/_authenticated/connect'
+      path: '/connect'
+      fullPath: '/connect'
+      preLoaderRoute: typeof AuthenticatedConnectRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/chat': {
+      id: '/_authenticated/chat'
+      path: '/chat'
+      fullPath: '/chat'
+      preLoaderRoute: typeof AuthenticatedChatRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/admin': {
+      id: '/_authenticated/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AuthenticatedAdminRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/account-delete': {
+      id: '/_authenticated/account-delete'
+      path: '/account-delete'
+      fullPath: '/account-delete'
+      preLoaderRoute: typeof AuthenticatedAccountDeleteRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/__e2e/recharge-retry': {
+      id: '/__e2e/recharge-retry'
+      path: '/recharge-retry'
+      fullPath: '/recharge-retry'
+      preLoaderRoute: typeof _e2eRechargeRetryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/__e2e/peer-sheet-banner': {
+      id: '/__e2e/peer-sheet-banner'
+      path: '/peer-sheet-banner'
+      fullPath: '/peer-sheet-banner'
+      preLoaderRoute: typeof _e2ePeerSheetBannerRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/__e2e/call-recovery': {
+      id: '/__e2e/call-recovery'
+      path: '/call-recovery'
+      fullPath: '/call-recovery'
+      preLoaderRoute: typeof _e2eCallRecoveryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/__e2e/call-fullscreen': {
+      id: '/__e2e/call-fullscreen'
+      path: '/call-fullscreen'
+      fullPath: '/call-fullscreen'
+      preLoaderRoute: typeof _e2eCallFullscreenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/__e2e/call-controls': {
+      id: '/__e2e/call-controls'
+      path: '/call-controls'
+      fullPath: '/call-controls'
+      preLoaderRoute: typeof _e2eCallControlsRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/_authenticated/chat/': {
       id: '/_authenticated/chat/'
@@ -1043,32 +1036,39 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedChatIndexRouteImport
       parentRoute: typeof AuthenticatedChatRoute
     }
-    '/_authenticated/chat/$conversationId': {
-      id: '/_authenticated/chat/$conversationId'
-      path: '/$conversationId'
-      fullPath: '/chat/$conversationId'
-      preLoaderRoute: typeof AuthenticatedChatConversationIdRouteImport
-      parentRoute: typeof AuthenticatedChatRoute
+    '/_authenticated/admin/': {
+      id: '/_authenticated/admin/'
+      path: '/'
+      fullPath: '/admin/'
+      preLoaderRoute: typeof AuthenticatedAdminIndexRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
     }
-    '/_authenticated/matchmaker/$id': {
-      id: '/_authenticated/matchmaker/$id'
-      path: '/matchmaker/$id'
-      fullPath: '/matchmaker/$id'
-      preLoaderRoute: typeof AuthenticatedMatchmakerIdRouteImport
+    '/call/__e2e/peer-sheet-banner': {
+      id: '/call/__e2e/peer-sheet-banner'
+      path: '/call/peer-sheet-banner'
+      fullPath: '/call/peer-sheet-banner'
+      preLoaderRoute: typeof Call_e2ePeerSheetBannerRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/razorpay-webhook': {
+      id: '/api/public/razorpay-webhook'
+      path: '/api/public/razorpay-webhook'
+      fullPath: '/api/public/razorpay-webhook'
+      preLoaderRoute: typeof ApiPublicRazorpayWebhookRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/rooms/new': {
+      id: '/_authenticated/rooms/new'
+      path: '/rooms/new'
+      fullPath: '/rooms/new'
+      preLoaderRoute: typeof AuthenticatedRoomsNewRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/matchmaker/new': {
-      id: '/_authenticated/matchmaker/new'
-      path: '/matchmaker/new'
-      fullPath: '/matchmaker/new'
-      preLoaderRoute: typeof AuthenticatedMatchmakerNewRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/mystery/$caseId': {
-      id: '/_authenticated/mystery/$caseId'
-      path: '/mystery/$caseId'
-      fullPath: '/mystery/$caseId'
-      preLoaderRoute: typeof AuthenticatedMysteryCaseIdRouteImport
+    '/_authenticated/rooms/$id': {
+      id: '/_authenticated/rooms/$id'
+      path: '/rooms/$id'
+      fullPath: '/rooms/$id'
+      preLoaderRoute: typeof AuthenticatedRoomsIdRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/recharge/status': {
@@ -1078,60 +1078,39 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedRechargeStatusRouteImport
       parentRoute: typeof AuthenticatedRechargeRoute
     }
-    '/_authenticated/rooms/$id': {
-      id: '/_authenticated/rooms/$id'
-      path: '/rooms/$id'
-      fullPath: '/rooms/$id'
-      preLoaderRoute: typeof AuthenticatedRoomsIdRouteImport
+    '/_authenticated/mystery/$caseId': {
+      id: '/_authenticated/mystery/$caseId'
+      path: '/mystery/$caseId'
+      fullPath: '/mystery/$caseId'
+      preLoaderRoute: typeof AuthenticatedMysteryCaseIdRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/rooms/new': {
-      id: '/_authenticated/rooms/new'
-      path: '/rooms/new'
-      fullPath: '/rooms/new'
-      preLoaderRoute: typeof AuthenticatedRoomsNewRouteImport
+    '/_authenticated/matchmaker/new': {
+      id: '/_authenticated/matchmaker/new'
+      path: '/matchmaker/new'
+      fullPath: '/matchmaker/new'
+      preLoaderRoute: typeof AuthenticatedMatchmakerNewRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/api/public/razorpay-webhook': {
-      id: '/api/public/razorpay-webhook'
-      path: '/api/public/razorpay-webhook'
-      fullPath: '/api/public/razorpay-webhook'
-      preLoaderRoute: typeof ApiPublicRazorpayWebhookRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/call/__e2e/peer-sheet-banner': {
-      id: '/call/__e2e/peer-sheet-banner'
-      path: '/call/peer-sheet-banner'
-      fullPath: '/call/peer-sheet-banner'
-      preLoaderRoute: typeof Call_e2ePeerSheetBannerRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/_authenticated/call/$kind/$userId': {
-      id: '/_authenticated/call/$kind/$userId'
-      path: '/call/$kind/$userId'
-      fullPath: '/call/$kind/$userId'
-      preLoaderRoute: typeof AuthenticatedCallKindUserIdRouteImport
+    '/_authenticated/matchmaker/$id': {
+      id: '/_authenticated/matchmaker/$id'
+      path: '/matchmaker/$id'
+      fullPath: '/matchmaker/$id'
+      preLoaderRoute: typeof AuthenticatedMatchmakerIdRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/api/public/hooks/kyc-cleanup': {
-      id: '/api/public/hooks/kyc-cleanup'
-      path: '/api/public/hooks/kyc-cleanup'
-      fullPath: '/api/public/hooks/kyc-cleanup'
-      preLoaderRoute: typeof ApiPublicHooksKycCleanupRouteImport
-      parentRoute: typeof rootRouteImport
+    '/_authenticated/chat/$conversationId': {
+      id: '/_authenticated/chat/$conversationId'
+      path: '/$conversationId'
+      fullPath: '/chat/$conversationId'
+      preLoaderRoute: typeof AuthenticatedChatConversationIdRouteImport
+      parentRoute: typeof AuthenticatedChatRoute
     }
-    '/api/public/hooks/play-rtdn': {
-      id: '/api/public/hooks/play-rtdn'
-      path: '/api/public/hooks/play-rtdn'
-      fullPath: '/api/public/hooks/play-rtdn'
-      preLoaderRoute: typeof ApiPublicHooksPlayRtdnRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/hooks/process-privacy-deletions': {
-      id: '/api/public/hooks/process-privacy-deletions'
-      path: '/api/public/hooks/process-privacy-deletions'
-      fullPath: '/api/public/hooks/process-privacy-deletions'
-      preLoaderRoute: typeof ApiPublicHooksProcessPrivacyDeletionsRouteImport
+    '/api/public/hooks/reset-calling-quotas': {
+      id: '/api/public/hooks/reset-calling-quotas'
+      path: '/api/public/hooks/reset-calling-quotas'
+      fullPath: '/api/public/hooks/reset-calling-quotas'
+      preLoaderRoute: typeof ApiPublicHooksResetCallingQuotasRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/hooks/reconcile-razorpay': {
@@ -1141,12 +1120,33 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicHooksReconcileRazorpayRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/public/hooks/reset-calling-quotas': {
-      id: '/api/public/hooks/reset-calling-quotas'
-      path: '/api/public/hooks/reset-calling-quotas'
-      fullPath: '/api/public/hooks/reset-calling-quotas'
-      preLoaderRoute: typeof ApiPublicHooksResetCallingQuotasRouteImport
+    '/api/public/hooks/process-privacy-deletions': {
+      id: '/api/public/hooks/process-privacy-deletions'
+      path: '/api/public/hooks/process-privacy-deletions'
+      fullPath: '/api/public/hooks/process-privacy-deletions'
+      preLoaderRoute: typeof ApiPublicHooksProcessPrivacyDeletionsRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/api/public/hooks/play-rtdn': {
+      id: '/api/public/hooks/play-rtdn'
+      path: '/api/public/hooks/play-rtdn'
+      fullPath: '/api/public/hooks/play-rtdn'
+      preLoaderRoute: typeof ApiPublicHooksPlayRtdnRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/hooks/kyc-cleanup': {
+      id: '/api/public/hooks/kyc-cleanup'
+      path: '/api/public/hooks/kyc-cleanup'
+      fullPath: '/api/public/hooks/kyc-cleanup'
+      preLoaderRoute: typeof ApiPublicHooksKycCleanupRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/call/$kind/$userId': {
+      id: '/_authenticated/call/$kind/$userId'
+      path: '/call/$kind/$userId'
+      fullPath: '/call/$kind/$userId'
+      preLoaderRoute: typeof AuthenticatedCallKindUserIdRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
   }
 }
