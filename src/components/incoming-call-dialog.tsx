@@ -81,7 +81,7 @@ export function IncomingCallDialog({ disabled }: { disabled?: boolean }) {
             refresh();
           } else if (status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED") {
             // auto-reconnect realtime if it drops
-            if (channel) { try { supabase.removeChannel(channel); } catch {} channel = null; }
+            if (channel) { const old = channel; channel = null; setTimeout(() => { try { supabase.removeChannel(old); } catch {} }, 0); }
             if (!cancelled) {
               reconnectTimer = setTimeout(connect, 2000);
             }
@@ -100,7 +100,7 @@ export function IncomingCallDialog({ disabled }: { disabled?: boolean }) {
       document.removeEventListener("visibilitychange", onVisible);
       window.removeEventListener("focus", refresh);
       window.removeEventListener("online", refresh);
-      if (channel) supabase.removeChannel(channel);
+      if (channel) { const old = channel; channel = null; supabase.removeChannel(old); }
     };
   }, [disabled, qc]);
 
