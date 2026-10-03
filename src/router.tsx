@@ -20,7 +20,7 @@ export const getRouter = () => {
     scrollRestoration: true,
     defaultPreloadStaleTime: 0,
     defaultErrorComponent: ({ error }) => (
-      <div className="p-8 text-center"><p className="text-destructive">{error.message}</p></div>
+      <div className="p-8 text-center"><p className="text-destructive">{error instanceof Error ? error.message : String(error)}</p></div>
     ),
   });
   return router;
