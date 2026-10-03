@@ -5,7 +5,7 @@ import { NotificationPrefsCard } from "@/components/notification-prefs-card";
 export const Route = createFileRoute("/_authenticated/notification-preferences")({
   component: NotificationPreferencesPage,
   errorComponent: ({ error }) => (
-    <div className="p-4 text-sm text-destructive">{error.message}</div>
+    <div className="p-4 text-sm text-destructive">{error instanceof Error ? error.message : String(error)}</div>
   ),
   notFoundComponent: () => <div className="p-4 text-sm">Not found</div>,
 });
