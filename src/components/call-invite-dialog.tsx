@@ -288,7 +288,7 @@ export function CallInviteDialog({
             // sync once after subscribe in case status changed before channel was ready
             checkOnce();
           } else if (status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED") {
-            if (channel) { try { supabase.removeChannel(channel); } catch {} channel = null; }
+            if (channel) { const old = channel; channel = null; setTimeout(() => { try { supabase.removeChannel(old); } catch {} }, 0); }
             if (!done) reconnectTimer = setTimeout(connect, 2000);
           }
         });
@@ -309,7 +309,7 @@ export function CallInviteDialog({
       if (expiryTimer) clearTimeout(expiryTimer);
       document.removeEventListener("visibilitychange", onVisible);
       window.removeEventListener("online", checkOnce);
-      if (channel) supabase.removeChannel(channel);
+      if (channel) { const old = channel; channel = null; supabase.removeChannel(old); }
     };
   }, [invite?.id, invite?.status, navigate, onClose, statusFn]);
 
