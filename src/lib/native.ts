@@ -143,6 +143,7 @@ export async function registerPushNotifications(): Promise<PushRegistration | nu
     const { PushNotifications } = await import('@capacitor/push-notifications');
     const perm = await PushNotifications.requestPermissions();
     if (perm.receive !== 'granted') return null;
+    if (!(await isFirebaseReady())) return null;
     return await new Promise<PushRegistration | null>((resolve) => {
       const timeout = setTimeout(() => resolve(null), 8000);
       PushNotifications.addListener('registration', (t) => {
@@ -153,7 +154,7 @@ export async function registerPushNotifications(): Promise<PushRegistration | nu
         clearTimeout(timeout);
         resolve(null);
       });
-      void PushNotifications.register();
+      void PushNotifications.register().catch(() => resolve(null));
     });
   } catch {
     return null;
@@ -239,7 +240,7 @@ async function kickPushRegister(): Promise<void> {
     // The first-run prompt is owned by <PushPermissionGate> so it can show
     // an explainer (and inline guidance on deny) instead of a silent OS popup.
     if (perm.receive !== 'granted') return;
-    await PushNotifications.register();
+    await safePushRegister();
   } catch (e) {
     console.warn('[push] kick register failed', e);
   }
@@ -291,7 +292,7 @@ export async function requestPushPermission(): Promise<PermState> {
     const req = await PushNotifications.requestPermissions();
     const state = normalizeNativePerm(req.receive);
     if (state === 'granted') {
-      try { await PushNotifications.register(); } catch { /* ignore */ }
+      try { await safePushRegister(); } catch { /* ignore */ }
     }
     return state;
   } catch {
@@ -382,8 +383,38 @@ export interface BackgroundReliabilityStatus {
 
 interface BackgroundReliabilityBridge {
   status(): Promise<BackgroundReliabilityStatus>;
+  firebaseReady(): Promise<{ ready: boolean }>;
   openBatterySettings(): Promise<{ opened: boolean }>;
   openAutostartSettings(): Promise<{ opened: boolean; vendor?: OemVendor; fallback?: boolean }>;
+}
+
+/**
+ * Native PushNotifications.register() hard-crashes the Android app when
+ * Firebase is not initialised (APK built without google-services.json, or an
+ * old native shell). Only register when the native side confirms Firebase is
+ * ready; if the check is unavailable (old APK), skip — no push, but no crash.
+ */
+let firebaseReadyCache: boolean | null = null;
+async function isFirebaseReady(): Promise<boolean> {
+  if (platform() !== 'android') return true;
+  if (firebaseReadyCache !== null) return firebaseReadyCache;
+  const p = bgPlugin();
+  if (!p) return false;
+  try {
+    const r = await p.firebaseReady();
+    firebaseReadyCache = !!r?.ready;
+  } catch {
+    firebaseReadyCache = false;
+  }
+  if (!firebaseReadyCache) console.warn('[push] Firebase not ready — skipping register() to avoid crash');
+  return firebaseReadyCache;
+}
+
+async function safePushRegister(): Promise<boolean> {
+  if (!(await isFirebaseReady())) return false;
+  const { PushNotifications } = await import('@capacitor/push-notifications');
+  await PushNotifications.register();
+  return true;
 }
 
 let bgReliabilityPlugin: BackgroundReliabilityBridge | null = null;

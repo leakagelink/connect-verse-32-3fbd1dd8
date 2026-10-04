@@ -31,6 +31,29 @@ import com.getcapacitor.annotation.CapacitorPlugin;
 @CapacitorPlugin(name = "BackgroundReliability")
 public class BackgroundReliabilityPlugin extends Plugin {
 
+    /**
+     * Reports whether Firebase is initialised. PushNotifications.register()
+     * calls FirebaseMessaging.getInstance(), which throws an uncatchable
+     * IllegalStateException ("Default FirebaseApp is not initialized") and
+     * kills the app when google-services.json was missing at build time.
+     * JS checks this before every register() call.
+     */
+    @PluginMethod
+    public void firebaseReady(PluginCall call) {
+        JSObject ret = new JSObject();
+        boolean ready = false;
+        try {
+            ready = !com.google.firebase.FirebaseApp.getApps(getContext()).isEmpty();
+            if (!ready) {
+                ready = com.google.firebase.FirebaseApp.initializeApp(getContext()) != null;
+            }
+        } catch (Throwable ignored) {
+            ready = false;
+        }
+        ret.put("ready", ready);
+        call.resolve(ret);
+    }
+
     @PluginMethod
     public void status(PluginCall call) {
         Context ctx = getContext();
