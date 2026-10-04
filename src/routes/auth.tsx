@@ -10,6 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Sparkles } from "lucide-react";
 import { APP_NAME } from "@/lib/constants";
+import { handleLoginSuccess } from "@/lib/native";
 import talkoraLogo from "@/assets/talkora-logo.png.asset.json";
 
 export const Route = createFileRoute("/auth")({
@@ -35,7 +36,12 @@ function AuthPage() {
     setBusy(true);
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     setBusy(false);
-    if (error) toast.error(error.message); else navigate({ to: "/home", replace: true });
+    if (error) toast.error(error.message);
+    else {
+      // Notification permission prompt only after a successful login.
+      void handleLoginSuccess();
+      navigate({ to: "/home", replace: true });
+    }
   }
 
   async function signUp() {
@@ -48,7 +54,12 @@ function AuthPage() {
     });
     setBusy(false);
     if (error) toast.error(error.message);
-    else { toast.success("Account created! Continue to set up your profile."); navigate({ to: "/home", replace: true }); }
+    else {
+      toast.success("Account created! Continue to set up your profile.");
+      // Same rule for a freshly created (and thereby signed-in) account.
+      void handleLoginSuccess();
+      navigate({ to: "/home", replace: true });
+    }
   }
 
   const consents = (
