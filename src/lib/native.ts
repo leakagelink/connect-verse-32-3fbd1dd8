@@ -299,6 +299,25 @@ export async function requestPushPermission(): Promise<PermState> {
   }
 }
 
+/**
+ * Runs once right after a successful sign-in / sign-up. This is the ONLY
+ * place the push-notification permission prompt is triggered from the
+ * login flow — it never fires on initial app load. The OS dialog appears
+ * inside the login-success gesture chain, and both Capacitor
+ * (`PushNotifications.requestPermissions()`) and the Web Notifications API
+ * return the stored decision without re-prompting if it was already
+ * granted or denied, so calling this repeatedly is safe.
+ *
+ * Never throws — login must not be blocked by push issues.
+ */
+export async function handleLoginSuccess(): Promise<void> {
+  try {
+    await requestPushPermission();
+  } catch {
+    /* push permission is best-effort; never block login */
+  }
+}
+
 /* ---------------- Full-screen-intent permission (Android 14+) ----------------
  * Without USE_FULL_SCREEN_INTENT granted at runtime, Android 14+ demotes our
  * incoming-call full-screen launch to a regular heads-up notification, which
