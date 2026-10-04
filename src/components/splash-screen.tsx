@@ -78,9 +78,10 @@ export function SplashScreen() {
     return () => clearTimeout(t);
   }, []);
 
-  if (seen) return null;
-
+  // Hooks must run before any early return (React rules of hooks).
   const logoSrc = useCachedLogo(`${talkoraLogo.url}?v=${talkoraLogo.asset_id}`);
+
+  if (seen) return null;
   const progressDuration = `${HOLD_MS}ms`;
   const fadeDuration = `${TOTAL_MS}ms`;
 
