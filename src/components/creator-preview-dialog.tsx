@@ -197,9 +197,9 @@ export function CreatorPreviewDialog({ userId, kind, onOpenChange, onConfirm, on
             <div>
               <p className="text-xs font-medium text-muted-foreground mb-2">Safety & verification</p>
               <div className="flex flex-wrap gap-1.5">
-                <Badge variant="secondary" className="gap-1"><ShieldCheck className="size-3" />18+ Verified</Badge>
+                <Badge variant="secondary" className="gap-1"><ShieldCheck className="size-3" />18+ account</Badge>
                 {p.is_creator && (
-                  <Badge variant="secondary" className="gap-1"><BadgeCheck className="size-3" />Verified Creator</Badge>
+                  <Badge variant="secondary" className="gap-1"><BadgeCheck className="size-3" />Creator</Badge>
                 )}
                 {p.avatar_url && (
                   <Badge variant="secondary" className="gap-1"><Camera className="size-3" />Photo on file</Badge>

@@ -36,7 +36,7 @@ function Wallet() {
           <Sparkles className="size-5 text-primary" />
           <p className="mt-2 text-sm font-semibold">No wallet needed</p>
           <p className="mt-1 text-xs text-muted-foreground">
-            Chat and voice or video calls are free and unlimited in this version, so there is no
+            Chat and voice or video calls are free in this version, so there is no
             balance to manage and nothing to buy.
           </p>
           <Link to="/home" className="mt-4 inline-block">

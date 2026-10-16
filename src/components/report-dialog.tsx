@@ -58,7 +58,7 @@ export function ReportDialog({ targetUserId, conversationId, trigger }: {
             </SelectContent>
           </Select>
           <Textarea placeholder="Add details (optional)" value={note} onChange={(e) => setNote(e.target.value)} maxLength={500} />
-          <p className="text-xs text-muted-foreground">False reports may result in action on your own account. Our team reviews every report.</p>
+          <p className="text-xs text-muted-foreground">False reports may result in action on your own account. Reports are sent to our moderation team for review.</p>
         </div>
         <DialogFooter>
           <Button variant="ghost" onClick={() => setOpen(false)}>Cancel</Button>

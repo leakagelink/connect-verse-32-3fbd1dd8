@@ -31,16 +31,12 @@ function Page() {
 
         <Section title="Tools we give you">
           <li><strong>Block</strong> — instantly stop any user from contacting you. Find blocked users in Settings.</li>
-          <li><strong>Report</strong> — flag any profile, message or call. Reports are reviewed 24/7.</li>
+          <li><strong>Report</strong> — flag any profile, message or call. Reports go to our moderation team for review.</li>
           <li><strong>End call anytime</strong> — every call shows a clear End button with confirmation.</li>
-          <li><strong>Verified badges</strong> — see verification status before you start a call.</li>
-          <li><strong>No DOB sharing</strong> — your date of birth is never shown to other users.</li>
+                    <li><strong>No DOB sharing</strong> — your date of birth is never shown to other users.</li>
         </Section>
-
-        <Section title="Special protections for women">
-          <li>Women creators receive priority moderation on every report they file.</li>
-          <li>You can only message someone after they accept your request — this drastically reduces unwanted spam.</li>
-          <li>Free account creation and earnings for women, with manual KYC review before withdrawals.</li>
+        <Section title="Messaging protections">
+          <li>You can only message someone after they accept your request — this reduces unwanted spam.</li>
           <li>One-tap block & report from any call, chat or room.</li>
         </Section>
 

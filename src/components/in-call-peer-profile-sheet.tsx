@@ -309,7 +309,7 @@ export function InCallPeerProfileSheet({ userId, open, onOpenChange, inCall = fa
             <div className="flex flex-wrap gap-2" data-testid="in-call-status-pills">
               {p.is_creator && (
                 <Badge variant="secondary" className="gap-1">
-                  <BadgeCheck className="size-3" /> Verified creator
+                  <BadgeCheck className="size-3" /> Creator
                 </Badge>
               )}
               {outgoing === "pending" && (

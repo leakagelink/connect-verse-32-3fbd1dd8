@@ -15,9 +15,9 @@ export function TrustBadgesFooter() {
           <h3 className="text-xs font-semibold uppercase tracking-wider">Why Talkora is safe</h3>
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 mb-3">
-          <Badge icon={<Eye className="size-4" />} label="24×7 Moderated" color="text-emerald-400" />
-          <Badge icon={<BadgeCheck className="size-4" />} label="Verified Creators" color="text-sky-400" />
-          <Badge icon={<Lock className="size-4" />} label="Private & Encrypted" color="text-violet-400" />
+          <Badge icon={<Eye className="size-4" />} label="Report & Block" color="text-emerald-400" />
+          <Badge icon={<BadgeCheck className="size-4" />} label="18+ Only" color="text-sky-400" />
+          <Badge icon={<Lock className="size-4" />} label="Privacy Controls" color="text-violet-400" />
           <Badge icon={<Headphones className="size-4" />} label="In-app SOS" color="text-rose-400" />
         </div>
         <div className="flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-muted-foreground">
@@ -34,7 +34,7 @@ export function TrustBadgesFooter() {
           <Link to="/account-delete" className="hover:text-foreground">Delete Account</Link>
         </div>
         <p className="mt-2 text-[10px] text-muted-foreground/80">
-          18+ only · AI + human moderation · Report any user from their profile or in-call SOS button.
+          18+ only (self-declared date of birth) · Report or block any user from their profile, chat or call.
         </p>
       </div>
     </section>

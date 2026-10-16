@@ -32,7 +32,7 @@ export const Route = createFileRoute("/")({
       { title: `${APP_NAME} — Free Chat, Voice & Video Calls` },
       { name: "description", content: "Talkora is an 18+ social app: free chat, free voice and video calls, community rooms and strong safety tools." },
       { property: "og:title", content: `${APP_NAME} — Free Chat, Voice & Video Calls` },
-      { property: "og:description", content: "Chat and make free voice & video calls with verified 18+ members on Talkora." },
+      { property: "og:description", content: "Chat and make free voice & video calls with 18+ members on Talkora." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
@@ -77,7 +77,7 @@ function Landing() {
 
       <section className="mx-auto max-w-4xl px-6 pt-12 pb-20 text-center">
         <span className="inline-flex items-center gap-1 rounded-full glass px-3 py-1 text-xs text-muted-foreground">
-          <Heart className="size-3 text-primary" /> Safe · Verified · 18+
+          <Heart className="size-3 text-primary" /> Free · Safe · 18+
         </span>
         <h1 className="mt-6 text-5xl md:text-7xl font-bold tracking-tight">
           Voice rooms.<br /><span className="text-gradient">Real conversations.</span>
@@ -93,9 +93,9 @@ function Landing() {
 
       <section id="how" className="mx-auto max-w-6xl px-6 pb-24 grid gap-4 md:grid-cols-3">
         {[
-          { icon: MessageCircle, t: "Free chat", d: "Unlimited 1-on-1 messaging with members across India and beyond." },
+          { icon: MessageCircle, t: "Free chat", d: "Free 1-on-1 messaging with members across India and beyond." },
           { icon: Phone, t: "Free calls", d: "Voice and video calls at no cost — no coins, no recharge." },
-          { icon: Shield, t: "Strong safety", d: "18+ only. One-tap block & report. Human moderation." },
+          { icon: Shield, t: "Strong safety", d: "18+ only. One-tap block & report. Reports reviewed by our team." },
           { icon: Users, t: "Community rooms", d: "Join or host rooms and talk about what you love." },
           { icon: Sparkles, t: "Simple profiles", d: "Set your languages, interests and availability in a minute." },
           { icon: Heart, t: "Open to everyone", d: "Free signup, no gender-based restrictions." },

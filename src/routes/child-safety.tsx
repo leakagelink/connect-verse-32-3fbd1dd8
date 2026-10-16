@@ -62,8 +62,8 @@ function ChildSafety() {
         <Section icon={Ban} title="18+ only — no minors allowed">
           <p>
             {APP_NAME} is strictly for adults aged 18 and above. Users must confirm their
-            date of birth during sign-up, and accounts that appear to belong to a minor are
-            suspended immediately while we review them.
+            date of birth during sign-up (self-declared; sign-ups under 18 are rejected). Accounts
+            reported as belonging to a minor are reviewed by our moderation team and removed if confirmed.
           </p>
           <p>
             The current release has no payments, coins or payouts. If monetization is
