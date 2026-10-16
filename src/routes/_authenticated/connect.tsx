@@ -21,7 +21,6 @@ import {
 import {
   Phone,
   Video,
-  Coins,
   Sparkles,
   Languages,
   MapPin,
@@ -31,8 +30,6 @@ import {
   RotateCcw,
 } from "lucide-react";
 import {
-  VOICE_CALL_COINS_PER_MINUTE,
-  VIDEO_CALL_COINS_PER_MINUTE,
   APP_LANGUAGES,
 } from "@/lib/constants";
 import { COUNTRIES, STATES_BY_COUNTRY } from "@/lib/locations";
@@ -226,17 +223,6 @@ function ConnectScreen() {
     // screen — no pre-call audio/video check UI.
     try { await requestCallPermissions(kind); } catch { /* ignore; call screen will surface errors */ }
     setCallInvite({ kind, userId });
-  }
-
-  function autoConnect(kind: "voice" | "video") {
-    if (!sorted.length) {
-      toast.error("No creators match your filters right now.");
-      return;
-    }
-    // pick from top 5 priority creators
-    const pool = sorted.slice(0, Math.min(sorted.length, 5));
-    const pick = pool[Math.floor(Math.random() * pool.length)];
-    startCall(kind, pick.id);
   }
 
   const hasFilters =
