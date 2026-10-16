@@ -251,46 +251,7 @@ function ConnectScreen() {
           <Sparkles className="size-5 text-primary" />
           <h1 className="text-2xl font-bold">Connect</h1>
         </div>
-        <p className="text-sm text-muted-foreground">Talk live with our verified creators</p>
-      </div>
-
-      {/* Quick auto-match buttons */}
-      <div className="grid grid-cols-2 gap-3 mb-5">
-        <button
-          onClick={() => autoConnect("voice")}
-          className="group relative overflow-hidden rounded-2xl p-4 text-left border border-primary/30 bg-gradient-to-br from-primary/20 via-primary/10 to-transparent hover:from-primary/30 transition"
-        >
-          <div className="flex items-center gap-2 mb-2">
-            <div className="size-10 rounded-xl brand-gradient flex items-center justify-center">
-              <Phone className="size-5 text-primary-foreground" />
-            </div>
-            <div>
-              <p className="font-bold">Audio Call</p>
-              <p className="text-[11px] text-muted-foreground">Auto-match instantly</p>
-            </div>
-          </div>
-          <div className="inline-flex items-center gap-1 rounded-full bg-coin/20 px-2 py-0.5 text-[11px] font-semibold text-coin">
-            <Coins className="size-3" /> {VOICE_CALL_COINS_PER_MINUTE} / min
-          </div>
-        </button>
-
-        <button
-          onClick={() => autoConnect("video")}
-          className="group relative overflow-hidden rounded-2xl p-4 text-left border border-accent/40 bg-gradient-to-br from-accent/20 via-accent/10 to-transparent hover:from-accent/30 transition"
-        >
-          <div className="flex items-center gap-2 mb-2">
-            <div className="size-10 rounded-xl brand-gradient flex items-center justify-center">
-              <Video className="size-5 text-primary-foreground" />
-            </div>
-            <div>
-              <p className="font-bold">Video Call</p>
-              <p className="text-[11px] text-muted-foreground">Auto-match instantly</p>
-            </div>
-          </div>
-          <div className="inline-flex items-center gap-1 rounded-full bg-coin/20 px-2 py-0.5 text-[11px] font-semibold text-coin">
-            <Coins className="size-3" /> {VIDEO_CALL_COINS_PER_MINUTE} / min
-          </div>
-        </button>
+        <p className="text-sm text-muted-foreground">Browse available profiles and start a free voice or video call</p>
       </div>
 
       {/* Always-visible language chip bar — quick selective filter */}
@@ -599,9 +560,6 @@ function CreatorMarquee({
             <p className="text-[10px] text-muted-foreground truncate">
               {u.language ?? "—"}
             </p>
-            <div className="mt-1.5 inline-flex items-center gap-0.5 rounded-full bg-coin/15 px-1.5 py-0.5 text-[10px] font-semibold text-coin">
-              <Coins className="size-2.5" /> {VIDEO_CALL_COINS_PER_MINUTE}/m
-            </div>
           </Card>
         </button>
       ))}

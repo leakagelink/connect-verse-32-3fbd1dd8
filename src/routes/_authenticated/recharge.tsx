@@ -50,7 +50,7 @@ function FreeNotice() {
         <div className="flex items-start gap-3">
           <Sparkles className="mt-0.5 size-5 shrink-0 text-primary" />
           <div>
-            <p className="text-sm font-semibold">Everything is unlimited and free</p>
+            <p className="text-sm font-semibold">Chat and calls are free</p>
             <p className="mt-1 text-xs text-muted-foreground">
               Messages and voice or video calls do not cost anything. There are no coins, no
               packs and no payments in this release.
