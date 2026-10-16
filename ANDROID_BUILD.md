@@ -170,10 +170,10 @@ Already covered inside the app — for the listing form you'll need:
 - **Terms of service** → `https://<your-domain>/terms`
 - **Community guidelines** → `https://<your-domain>/community-guidelines`
 - **Safety policy** → `https://<your-domain>/safety`
-- **Data Safety form** — declare: Personal info (name, email, phone), Photos (KYC docs — encrypted, auto-deleted), Audio (call recording samples for AI moderation — not stored), Location (country/state, coarse), Financial (UPI/bank for withdrawals).
+- **Data Safety form** — follow PLAY_STORE_SUBMISSION.md (current free release; no financial or KYC data is collected).
 - **Content rating** → IARC questionnaire: User-to-user communication = Yes, User-generated content = Yes, Unrestricted internet = Yes → expect **Mature 17+**.
 - **Target audience** → 18+. Toggle off "appeals to children".
-- **In-app purchases** → list coin packs ₹9 – ₹50,000.
+- **In-app purchases** → none in the current free release.
 - **Permissions justification** — camera + mic only used during live calls; foreground service ensures the call survives backgrounding.
 
 ---
